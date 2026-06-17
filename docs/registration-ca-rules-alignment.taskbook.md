@@ -1,7 +1,7 @@
-# PRD-TEMP-1 报名 / RaceProject / CA 参赛语义整改临时任务书
+# PRD-TEMP-1 报名 / RaceProject / CA 参赛语义整改任务书与并入记录
 
 版本：v0.2
-状态：首轮整改完成 / 待复审
+状态：已完成 / 已并入 PRD-1 基线
 任务编号：PRD-TEMP-1
 上游入口：`ary-mvp.prd.md`、`ary-domain-analysis.v0.3.md`、`ary-ca-integration-spec.md`
 关联任务：`PRD-1`、`DEV-1`、`DEV-4`、`DEV-5`、`UX-1`
@@ -200,7 +200,7 @@ Registration approved
 | --- | --- |
 | 评审前风险提示命名待定 | 可能命名为 ReviewReadinessCheck、ReviewFlag、ComplianceFlag 或 EligibilitySignal，需后续统一 |
 | 提交准入边界待定 | 空作品、缺必填材料是否允许提交，或允许提交但标记风险，需要 PRD 明确 |
-| CAConnection 新增窗口待复审 | 已初步收敛为 running / submitting 且尚未进入 judging 前可新增；需复审确认是否进入正式 Race Rules |
+| CAConnection 新增截止窗口待架构定稿 | 当前基线确认为参赛过程中可新增，已初步收敛为 running / submitting 且尚未进入 judging 前可新增；精确截止窗口进入 DEV-1 / DEV-5 架构阶段定稿 |
 | 违规作品处理待定 | 系统只提示、Organizer 可标记、还是进入评审前人工处理，需要后续细化 |
 | UX / 高保真原型防回归 | 已完成首轮复审和整改；后续 Rider / Organizer / Judge 页面新增或改版时，需继续避免表达旧资格门禁 |
 
@@ -208,6 +208,6 @@ Registration approved
 
 # 9. 当前建议
 
-本任务已完成首轮文档和原型整改，建议作为 `PRD-1` 的子任务复审，并在确认后并入正式文档基线。
+本任务已完成文档和原型整改，并已并入正式 `PRD-1` 文档基线。
 
-在本任务复审完成前，`DEV-5` 不应重新固化“注册阶段 / 开赛冻结 / CA 失败放弃参赛”的旧模型。
+后续 `DEV-1` / `DEV-5` 不得重新固化“注册阶段 / 开赛冻结 / CA 失败放弃参赛”的旧模型；如需收敛截止窗口、Review Flag 命名或违规作品处理，应在已确认的新口径下细化。
