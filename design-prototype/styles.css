@@ -773,6 +773,17 @@ p {
 .leaderboard-panel,
 .event-stream article,
 .work-card,
+.work-story-card,
+.work-evidence-panel,
+.auth-card,
+.profile-form-panel,
+.auth-role-preview,
+.role-entry-grid article,
+.rider-status-card,
+.ca-connection-list,
+.assigned-work-card,
+.score-form-card,
+.admin-users-table,
 .asset-matrix,
 .award-grid article,
 .result-aside,
@@ -1053,6 +1064,7 @@ p {
 }
 
 .page-works .module-title,
+.page-work-detail .work-detail-hero,
 .page-results .module-title,
 .page-review .module-title,
 .page-rider .module-title,
@@ -1061,7 +1073,13 @@ p {
   width: 860px;
 }
 
+.page-works .module-title {
+  top: 108px;
+  width: 900px;
+}
+
 .page-works .module-title h1,
+.work-detail-hero h1,
 .page-results .module-title h1,
 .page-review .module-title h1,
 .page-rider .module-title h1,
@@ -1074,6 +1092,7 @@ p {
 }
 
 .page-works .module-title p,
+.work-detail-hero p,
 .page-results .module-title p,
 .page-review .module-title p,
 .page-rider .module-title p,
@@ -1083,7 +1102,24 @@ p {
   line-height: 1.35;
 }
 
+.page-works .module-title .section-kicker {
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+.page-works .module-title h1 {
+  margin: 6px 0 8px;
+}
+
+.page-works .module-title .module-summary {
+  margin-bottom: 0;
+  max-width: 560px;
+  font-size: 17px;
+  line-height: 1.28;
+}
+
 .work-grid,
+.work-story-grid,
 .award-grid,
 .review-layout,
 .profile-layout {
@@ -1092,6 +1128,150 @@ p {
   right: 42px;
   top: 268px;
   bottom: 54px;
+}
+
+.work-detail-hero {
+  position: absolute;
+  left: 42px;
+  top: 112px;
+  width: 950px;
+  z-index: 5;
+}
+
+.work-detail-actions,
+.profile-form-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.work-detail-actions button,
+.auth-card button,
+.profile-form-panel button,
+.ca-connection-list button,
+.score-form-card button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--blue-800);
+  background: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.work-detail-actions button:first-child,
+.auth-card button,
+.profile-form-panel button,
+.score-form-card button {
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+}
+
+.work-story-grid {
+  right: 420px;
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 16px;
+}
+
+.work-story-card {
+  padding: 22px;
+  overflow: hidden;
+}
+
+.work-story-card.primary {
+  grid-row: span 2;
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(8, 91, 236, 0.96), rgba(48, 216, 255, 0.64)),
+    var(--blue-700);
+}
+
+.work-story-card span,
+.work-evidence-panel span,
+.auth-role-preview span,
+.role-entry-grid span,
+.rider-status-card span,
+.ca-connection-list span,
+.assigned-work-card span,
+.score-form-card span {
+  color: var(--blue-700);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.work-story-card.primary span,
+.work-story-card.primary h2,
+.work-story-card.primary p {
+  color: #fff;
+}
+
+.work-story-card h2 {
+  margin: 16px 0 12px;
+  color: var(--blue-950);
+  font-size: 34px;
+  line-height: 1.06;
+}
+
+.work-story-card p {
+  color: var(--muted);
+  font-size: 17px;
+  font-weight: 720;
+  line-height: 1.4;
+}
+
+.work-evidence-panel {
+  position: absolute;
+  right: 42px;
+  top: 268px;
+  bottom: 54px;
+  width: 330px;
+  padding: 22px;
+}
+
+.work-evidence-panel h2 {
+  margin-bottom: 18px;
+  color: var(--blue-950);
+  font-size: 28px;
+}
+
+.work-evidence-panel div,
+.auth-role-preview div,
+.ca-connection-list div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  min-height: 62px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(34, 107, 230, 0.18);
+}
+
+.work-evidence-panel b,
+.auth-role-preview b,
+.ca-connection-list b {
+  color: var(--blue-950);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.work-evidence-panel em,
+.ca-connection-list em {
+  grid-column: span 2;
+  color: var(--muted);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.work-evidence-panel p {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
 }
 
 .cooperation-grid {
@@ -1127,7 +1307,7 @@ p {
   position: absolute;
   left: 42px;
   right: 420px;
-  top: 214px;
+  top: 238px;
   z-index: 6;
   display: flex;
   align-items: center;
@@ -1160,6 +1340,7 @@ p {
 
 .work-grid {
   right: 420px;
+  top: 300px;
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr;
   grid-template-rows: 1fr 1fr;
@@ -1434,6 +1615,112 @@ p {
   line-height: 1.1;
 }
 
+.auth-shell {
+  position: absolute;
+  left: 42px;
+  right: 42px;
+  top: 112px;
+  bottom: 54px;
+  display: grid;
+  grid-template-columns: 430px 1fr 390px;
+  gap: 22px;
+}
+
+.auth-card,
+.profile-form-panel,
+.auth-role-preview {
+  padding: 24px;
+  overflow: hidden;
+}
+
+.auth-card h1 {
+  margin: 8px 0 16px;
+  color: var(--blue-950);
+  font-size: 52px;
+  line-height: 0.98;
+  font-style: italic;
+}
+
+.auth-card p {
+  color: #344a7b;
+  font-size: 18px;
+  font-weight: 720;
+  line-height: 1.5;
+}
+
+.auth-status {
+  margin-top: 28px;
+  padding: 18px;
+  border: 1px solid rgba(34, 107, 230, 0.16);
+  border-radius: 16px;
+  background: rgba(234, 243, 255, 0.78);
+}
+
+.auth-status span,
+.profile-form-head span {
+  display: block;
+  color: var(--blue-700);
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.auth-status b,
+.profile-form-head b {
+  display: block;
+  margin-top: 8px;
+  color: var(--blue-950);
+  font-size: 28px;
+}
+
+.profile-form-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.profile-form-grid label,
+.score-form-card label {
+  display: grid;
+  gap: 8px;
+  color: var(--blue-700);
+  font-size: 13px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.profile-form-grid input,
+.score-form-card input,
+.score-form-card textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(34, 107, 230, 0.2);
+  border-radius: 12px;
+  padding: 0 12px;
+  color: var(--blue-950);
+  background: rgba(255, 255, 255, 0.74);
+  font-size: 16px;
+  font-weight: 850;
+}
+
+.profile-form-panel button {
+  margin-top: 22px;
+}
+
+.auth-role-preview h2 {
+  margin-bottom: 18px;
+  color: var(--blue-950);
+  font-size: 30px;
+}
+
 .console-sidebar {
   position: absolute;
   left: 42px;
@@ -1466,11 +1753,59 @@ p {
   right: 42px;
 }
 
+.role-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 22px 0 18px;
+}
+
+.role-entry-grid article {
+  min-height: 112px;
+  padding: 14px;
+  cursor: pointer;
+}
+
+.role-entry-grid article.active {
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(8, 91, 236, 0.96), rgba(48, 216, 255, 0.72)),
+    var(--blue-700);
+}
+
+.role-entry-grid article.active span,
+.role-entry-grid article.active b,
+.role-entry-grid article.active p {
+  color: #fff;
+}
+
+.role-entry-grid b {
+  display: block;
+  margin: 10px 0 6px;
+  color: var(--blue-950);
+  font-size: 20px;
+}
+
+.role-entry-grid p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.console-view-panel {
+  display: none;
+}
+
+.console-view-panel.active {
+  display: block;
+}
+
 .ops-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 14px;
-  margin-top: 30px;
+  margin-top: 0;
 }
 
 .ops-grid article {
@@ -1515,6 +1850,159 @@ p {
   grid-column: span 2;
   color: var(--blue-950);
   font-size: 22px;
+}
+
+.rider-cockpit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.rider-status-card {
+  min-height: 160px;
+  padding: 18px;
+}
+
+.rider-status-card b {
+  display: block;
+  margin: 16px 0 8px;
+  color: var(--blue-950);
+  font-size: 34px;
+}
+
+.rider-status-card p,
+.assigned-work-card p {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.42;
+}
+
+.ca-connection-list {
+  margin-top: 16px;
+  padding: 20px;
+}
+
+.ca-connection-list h2 {
+  margin-bottom: 12px;
+  color: var(--blue-950);
+  font-size: 30px;
+}
+
+.judge-review-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.assigned-work-card,
+.score-form-card {
+  min-height: 386px;
+  padding: 22px;
+}
+
+.page-works .asset-matrix {
+  top: 300px;
+}
+
+.assigned-work-card h2 {
+  margin: 16px 0 10px;
+  color: var(--blue-950);
+  font-size: 42px;
+}
+
+.assigned-work-card div {
+  margin-top: 22px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(234, 243, 255, 0.78);
+}
+
+.assigned-work-card b {
+  display: block;
+  color: var(--blue-950);
+  font-size: 20px;
+}
+
+.assigned-work-card em {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 850;
+}
+
+.score-form-card {
+  display: grid;
+  gap: 12px;
+}
+
+.score-form-card textarea {
+  min-height: 90px;
+  padding-top: 12px;
+  resize: none;
+}
+
+.admin-users-table {
+  padding: 18px 22px;
+}
+
+.admin-row {
+  display: grid;
+  grid-template-columns: 1.1fr 0.8fr 1.5fr;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  border-top: 1px solid rgba(34, 107, 230, 0.16);
+}
+
+.admin-row:first-child {
+  border-top: 0;
+}
+
+.admin-row span {
+  color: var(--blue-950);
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.admin-row b {
+  color: var(--muted);
+  font-size: 15px;
+  text-transform: uppercase;
+}
+
+.admin-row em {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-style: normal;
+}
+
+.admin-head span,
+.admin-head b,
+.admin-head em {
+  color: var(--blue-700);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.role-chip {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 999px;
+  color: var(--blue-800);
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.role-chip.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
 }
 
 .page-screen {

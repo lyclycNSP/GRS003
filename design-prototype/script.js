@@ -2,7 +2,14 @@ const sampleData = window.ARY_SAMPLE_DATA;
 const pageButtons = document.querySelectorAll("[data-page]");
 const pagePanels = document.querySelectorAll("[data-page-panel]");
 let currentHomeRaceId = sampleData?.raceGroups?.featuredRaceId;
+let currentWorkId = "work-gba-wander";
 let homeRaceCarouselTimer;
+const authState = {
+  signedIn: false,
+  profileCompleted: false,
+  displayName: "Mira Chen",
+  roles: ["rider", "judge", "organizer", "admin"],
+};
 
 function setPage(pageName) {
   pagePanels.forEach((panel) => {
@@ -11,7 +18,17 @@ function setPage(pageName) {
   pageButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.page === pageName);
   });
+  if (window.location.hash !== `#${pageName}`) {
+    history.replaceState(null, "", `#${pageName}`);
+  }
   requestAnimationFrame(resizeAll);
+}
+
+function setInitialPageFromHash() {
+  const pageName = (window.location.hash || "").replace("#", "").split(/[?&]/)[0];
+  if (!pageName) return;
+  const target = Array.from(pagePanels).find((panel) => panel.dataset.pagePanel === pageName);
+  if (target) setPage(pageName);
 }
 
 function getRace(id) {
@@ -81,6 +98,97 @@ function text(selector, value) {
 function html(selector, value) {
   const node = document.querySelector(selector);
   if (node && value !== undefined && value !== null) node.innerHTML = value;
+}
+
+function renderWorkPage(workId = currentWorkId) {
+  const work = getWork(workId) || getWork("work-gba-wander");
+  if (!work) return;
+  currentWorkId = work.id;
+  const race = getRace(work.raceId);
+  const rider = getRider(work.riderId);
+  const isPublic = work.visibility === "public";
+  text(".page-work-detail .section-kicker", `${race?.title || "Race"} / ${rider?.name || "Rider"}`);
+  text(".page-work-detail h1", work.title);
+  text(
+    ".page-work-detail .module-summary",
+    `${work.summary} 当前可见性为${isPublic ? "公开作品" : "评审/私有状态"}；Demo、Repo、骑行摘要和Evidence摘要按可见性展示。`,
+  );
+  html(
+    ".work-story-grid",
+    `<article class="work-story-card primary">
+       <span>作品亮点</span>
+       <h2>${escapeHtml(work.title)}</h2>
+       <p>${escapeHtml(work.summary)}</p>
+     </article>
+     <article class="work-story-card">
+       <span>Demo片段</span>
+       <h2>${work.demo ? "已绑定" : "未绑定"}</h2>
+       <p>${escapeHtml(work.demo || "等待Rider补充Demo材料")}</p>
+     </article>
+     <article class="work-story-card">
+       <span>代码材料</span>
+       <h2>GitHub Repo</h2>
+       <p>${escapeHtml(work.repo || "未绑定Repo")}，仅作为作品材料和Evidence外部sourceRef。</p>
+     </article>
+     <article class="work-story-card">
+       <span>评委摘录</span>
+       <h2>${isPublic ? "公开点评" : "评审席可见"}</h2>
+       <p>${isPublic ? "作品路径清晰，可作为赛后案例资产。" : "当前仍在评审或提交阶段，公开端只展示允许公开的摘要。"}</p>
+     </article>`,
+  );
+  html(
+    ".work-evidence-panel",
+    `<h2>Riding Evidence</h2>
+     <div><span>Session Summary</span><b>${work.evidenceRefs?.length || 0} refs</b><em>public summary</em></div>
+     <div><span>Review Flag</span><b>${work.status === "draft" ? "材料待补齐" : "可进入评审"}</b><em>judge visible</em></div>
+     <div><span>CA Boundary</span><b>实时接入摘要</b><em>raw hidden</em></div>
+     <div><span>Race Context</span><b>${escapeHtml(race?.title || "Race")}</b><em>${statusText(race?.status)}</em></div>
+     <p>原始CA Session默认不公开；本页只展示公开摘要、作品材料和评审可引用信息。</p>`,
+  );
+}
+
+function updateAuthPreview() {
+  const status = document.querySelector("[data-auth-status]");
+  if (status) {
+    status.innerHTML = authState.signedIn
+      ? `<span>GitHub已登录</span><b>${authState.profileCompleted ? "Profile Complete" : "Profile Needed"}</b>`
+      : `<span>未登录</span><b>Public Visitor</b>`;
+  }
+  text("[data-profile-state]", authState.profileCompleted ? "资料已补全" : authState.signedIn ? "等待保存资料" : "等待GitHub登录");
+  const loginButton = document.querySelector("[data-auth-entry]");
+  if (loginButton) {
+    if (!authState.signedIn) {
+      loginButton.textContent = "Login";
+      loginButton.dataset.page = "auth";
+      loginButton.setAttribute("aria-label", "ARY login");
+    } else if (!authState.profileCompleted) {
+      loginButton.textContent = "Profile";
+      loginButton.dataset.page = "auth";
+      loginButton.setAttribute("aria-label", "Complete profile");
+    } else {
+      loginButton.textContent = "Workspace";
+      loginButton.dataset.page = "console";
+      loginButton.setAttribute("aria-label", "Open workspace");
+    }
+  }
+}
+
+function setConsoleView(view) {
+  const labels = {
+    organizer: ["Organizer View / 湾区开心游 / managed Race", "湾区开心游指挥席"],
+    rider: ["Rider View / 湾区开心游 / own Registration", "Mira的参赛Cockpit"],
+    judge: ["Judge View / assigned Work", "评审席工作台"],
+    admin: ["Admin Console / system", "账号与角色控制台"],
+  };
+  const [kicker, title] = labels[view] || labels.organizer;
+  text(".console-main .section-kicker", kicker);
+  text(".console-main h1", title);
+  document.querySelectorAll("[data-console-view]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.consoleView === view);
+  });
+  document.querySelectorAll("[data-console-panel]").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.consolePanel === view);
+  });
 }
 
 const homeRaceAssets = {
@@ -268,10 +376,11 @@ function renderPrototypeData() {
     selectedWorks
       .map((work, index) => {
         const race = getRace(work.raceId);
-        return `<article class="work-card ${index === 0 ? "hero-work" : ""}"><span>${index === 0 ? "精选作品" : statusText(race.status)}</span><h2>${escapeHtml(work.title)}</h2><p>${escapeHtml(work.summary)}</p><b>${escapeHtml(race.title)} / ${escapeHtml(work.status)}</b><button type="button">查看详情</button></article>`;
+        return `<article class="work-card ${index === 0 ? "hero-work" : ""}"><span>${index === 0 ? "精选作品" : statusText(race.status)}</span><h2>${escapeHtml(work.title)}</h2><p>${escapeHtml(work.summary)}</p><b>${escapeHtml(race.title)} / ${escapeHtml(work.status)}</b><button type="button" data-page="work" data-work-id="${escapeHtml(work.id)}">查看详情</button></article>`;
       })
       .join(""),
   );
+  renderWorkPage("work-gba-wander");
 
   text(".page-works .module-title .section-kicker", "湾区开心游 / 作品墙");
   text(".page-works .module-title h1", "湾区开心游作品墙");
@@ -374,8 +483,6 @@ function renderPrototypeData() {
      <article class="glass-card"><span>赞助合作</span><h2>${escapeHtml(awardedWork.title)}</h2><p>支持赛题、奖项、导师点评和赛后公开资产沉淀。</p><button type="button" data-page="home">返回赛事</button></article>`,
   );
 
-  text(".console-main .section-kicker", `Organizer View / ${featuredRace.title}`);
-  text(".console-main h1", "湾区开心游指挥席");
   html(
     ".ops-grid",
     `<article><span>赛道</span><b>Running</b><p>作品提交开放</p></article>
@@ -387,6 +494,8 @@ function renderPrototypeData() {
   );
   const tasks = sampleData.consoleTasks.find((task) => task.raceId === featuredRace.id)?.items || [];
   html(".ops-table", tasks.map((task) => `<div><b>${escapeHtml(task.label)}</b><span>${task.count}</span><em>${escapeHtml(task.severity)}</em></div>`).join(""));
+  setConsoleView("organizer");
+  updateAuthPreview();
 
   text(".screen-top span", `${featuredRace.title} / Bay Area Happy Trip`);
   text(".screen-output h1", "Live Riding Board");
@@ -404,6 +513,32 @@ function renderPrototypeData() {
 }
 
 document.addEventListener("click", (event) => {
+  const authButton = event.target.closest("[data-auth-action]");
+  if (authButton) {
+    if (authButton.dataset.authAction === "github") {
+      authState.signedIn = true;
+    }
+    if (authButton.dataset.authAction === "complete-profile") {
+      authState.signedIn = true;
+      authState.profileCompleted = true;
+      setPage("console");
+    }
+    updateAuthPreview();
+    return;
+  }
+
+  const consoleViewButton = event.target.closest("[data-console-view]");
+  if (consoleViewButton) {
+    setConsoleView(consoleViewButton.dataset.consoleView);
+    return;
+  }
+
+  const roleChip = event.target.closest(".role-chip");
+  if (roleChip) {
+    roleChip.classList.toggle("active");
+    return;
+  }
+
   const liveRaceButton = event.target.closest("[data-live-race]");
   if (liveRaceButton) {
     renderHomeRace(liveRaceButton.dataset.liveRace);
@@ -425,6 +560,13 @@ document.addEventListener("click", (event) => {
 
   const button = event.target.closest("[data-page]");
   if (!button) return;
+  if (button.dataset.workId) {
+    renderWorkPage(button.dataset.workId);
+  }
+  if (button.dataset.page === "console" && !authState.signedIn) {
+    setPage("auth");
+    return;
+  }
   setPage(button.dataset.page);
 });
 
@@ -604,6 +746,7 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 }
 
 renderPrototypeData();
+setInitialPageFromHash();
 restartHomeRaceCarousel();
 resizeAll();
 window.addEventListener("resize", resizeAll);

@@ -1,15 +1,15 @@
 # ARY UX-1 高保真原型
 
-版本：v0.3
-任务：UX-1 高保真原型与设计基线
-状态：第一轮验收通过
+版本：v0.4
+任务：UX-1 高保真原型与DEV-2/DEV-3静态演示
+状态：第一轮验收通过；DEV-2/DEV-3静态闭环已补齐
 入口：`index.html`
 
 ---
 
 # 1. 本轮定位
 
-本目录是 UX-1 第一轮高保真原型产物，已通过第一轮验收，可作为 `M2` 架构设计输入。
+本目录是UX-1第一轮高保真原型产物，已通过第一轮验收，可作为`M2`架构设计输入。本轮同时补齐`DEV-2`公开端静态闭环和`DEV-3`登录/角色/Race Console静态演示，交付说明见`../docs/ary-dev-1-dev-3-delivery.md`。
 
 本轮遵循 `docs/ux-hifi.taskbook.md` 中确认的原则：
 
@@ -23,19 +23,21 @@
 
 # 2. 原型覆盖
 
-当前原型改为按 IA 组织的 10 个高保真页面：
+当前原型按IA组织为12个高保真页面：
 
 | 页面 | 目的 |
 | --- | --- |
 | Race Gallery | 建立 Gallery-first 的公开赛事入口和传播感。 |
 | Race Page | 表达单场 Race 上下文、状态 CTA 和内部导航。 |
 | Live Hall | 展示 Agent Racing 正在发生，突出骑手动态、成本、风险和过程 Projection。 |
-| Works / Work Page | 表达作品列表、作品资产和 Evidence 摘要入口。 |
+| Works | 表达作品列表、筛选/排序和作品详情入口。 |
+| Work Page | 表达作品资产、Demo/Repo、骑行摘要、Evidence摘要和Race回链。 |
 | Results | 表达 Award / final leaderboard 与过程 Projection 分离。 |
 | Review | 表达赛事复盘、评审总结和公开 Evidence。 |
 | Rider Profile | 表达 Rider 能力资产、作品、奖项和标签。 |
 | Cooperation | 表达报名、办赛、赞助和合作转化入口。 |
-| Race Console | 展示 Organizer / Rider / Judge / Admin 入口和高密度办赛控制台。 |
+| Login / Profile | 模拟GitHub登录、资料补全和授权入口预览。 |
+| Race Console | 展示Organizer / Rider / Judge / Admin入口、角色视图切换和高密度办赛控制台。 |
 | Screen Display | 展示大屏输出，并把 Screen Console 控制面分开。 |
 
 # 2.1 样例数据
@@ -57,15 +59,23 @@ design-prototype/data/sample-races.js
 * 即将开放赛事：`医疗随访助手`。
 * Rider、Work、Live Projection、Award、Review、Profile、Console Task 样例。
 
-当前主要页面已接入样例数据渲染，用于支撑 IA 页面中的赛事状态差异、作品资产、赛果、复盘、Rider Profile、控制台任务和 Screen Display 指标。
+当前主要页面已接入样例数据渲染，用于支撑IA页面中的赛事状态差异、作品资产、赛果、复盘、Rider Profile、控制台任务和Screen Display指标。
 
 当前可走查的主路径：
 
 ```text
 Home / Race Gallery
 → Race Page / Live Hall
-→ Work / Results / Rider 资产入口
+→ Works / Work Page / Results / Rider 资产入口
 → Screen Display
+```
+
+补充路径：
+
+```text
+Login / Profile
+→ Console
+→ Organizer / Rider / Judge / Admin View
 ```
 
 辅助路径：

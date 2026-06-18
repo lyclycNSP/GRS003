@@ -4,25 +4,33 @@
 
 ## 当前结论
 
-* 项目处于 MVP 文档基线与架构前准备阶段。
+* 项目处于MVP文档基线完成、DEV-1到OPS-1本地MVP交付完成阶段。
 * 业务文档已集中到 `docs/` 下。
 * 当前正式项目任务定义入口是 `docs/ary.plan.md`。
 * `PRD-TEMP-1` 已完成并入，报名、RaceProject 自动生成、CAConnection 动态接入和评审前风险提示的新口径已进入 `PRD-1` 正式基线。
 * `UX-1` 第一轮高保真原型已验收通过，可作为 `M2` 架构设计输入。
-* 下一步应启动 `DEV-1`，输出领域聚合边界、数据模型草案和接口鉴权规则。
-* 当前尚未看到应用代码、测试命令或部署配置；仓库主要由产品、领域、权限、QA、发布运维和设计原型材料组成。
+* `DEV-1`已输出聚合边界、数据模型草案和接口鉴权规则；`DEV-2`和`DEV-3`已补齐静态高保真可走查闭环。
+* `DEV-4`到`DEV-7`、`REL-1`和`OPS-1`已新增`app/`本地MVP应用，覆盖报名、RaceProject、Work、Judge、CA、Projection、Screen、Report、Results、发布检查、备份、事故和归档闭环。
+* `app/domain.test.js`已提供关键领域回归测试并通过本地Node验证。
+* 下一步应进入正式工程化，补真实后端、数据库迁移、服务端鉴权、GitHub OAuth、真实CAConnector、浏览器自动化和部署流水线。
+* 当前尚未建立生产级应用框架、后端、数据库迁移、真实OAuth、生产CA接入或部署配置；`app/`是无依赖本地MVP实现。
 
 ## 任务看板
 
 | 任务 | 状态 | 当前判断 | 证据 / 下一入口 |
 | --- | --- | --- | --- |
-| `PRD-1` 文档基线与范围确认 | 进行中 | `PRD-TEMP-1` 新口径已并入，当前基线可作为 `DEV-1` 架构输入；仍需在 DEV-1 中把领域边界、数据模型和鉴权规则落成设计产物。 | `docs/README.md`、`docs/ary.plan.md`、`docs/registration-ca-rules-alignment.taskbook.md` |
+| `PRD-1` 文档基线与范围确认 | 进行中 | `PRD-TEMP-1`新口径已并入，当前基线已支撑`DEV-1`到`OPS-1`本地MVP交付；后续进入正式工程化时继续校验生产边界。 | `docs/README.md`、`docs/ary.plan.md`、`docs/registration-ca-rules-alignment.taskbook.md`、`docs/ary-dev-1-dev-3-delivery.md`、`docs/ary-dev-4-to-ops-delivery.md` |
 | `PRD-TEMP-1` 报名 / RaceProject / CA 参赛语义整改 | 已并入 | Registration approved 自动生成 RaceProject、参赛中可新增 CAConnection、CA 接入异常进入评审前风险提示而非硬门禁的新口径已并入正式 `PRD-1` 基线。 | `docs/registration-ca-rules-alignment.taskbook.md`、`docs/ary-mvp.prd.md`、`docs/ary-domain-analysis.v0.3.md`、`design-prototype/` |
-| `UX-1` UX/UI 高保真原型与设计基线 | 验收通过 | 高保真原型已按 IA 重构为 1080P 高密度蓝白竞赛风格页面，并接入样例赛事数据驱动主要页面；首页 IA、视觉层级、Public Header、Drawer、Live Race 切换、Console 气质和 Screen Display 表达已通过第一轮验收，可作为 `M2` 架构设计输入。后续页面需继续按高保真页面工作流防回归。 | `docs/ux-hifi.taskbook.md`、`.agents/skills/hifi-ui-page-workflow/SKILL.md`、`design-prototype/index.html`、`design-prototype/README.md` |
-| `DEV-1` 领域模型 + 权限 + 数据模型 | 待启动 | UX-1 和 PRD-TEMP-1 前置输入已就绪；下一步输出聚合边界、数据模型草案和接口鉴权规则。 | `docs/ary-domain-analysis.v0.3.md`、`docs/ary-permission-matrix.md`、`docs/ary-mvp.ia.md` |
-| `DEV-5` CA 接入 / Projection / Live Hall | 细化中 | 已将 CA 作为 Agent Race 工具、比赛信号源和评审参考的口径落盘；CAConnection 可在参赛过程中登记和握手，合法连接数据进入证据链，接入异常进入评审前风险提示；`task_progress` 仅用于 unblock / 说明，不做定期推送，且不设 `session_progress` push。 | `docs/ary-ca-integration-spec.md` |
-| `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 待开始 | 等待开发任务和验收证据完成。 | `docs/ary-release-ops-plan.md` |
-| `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 待开始 | 等待发布方案和赛事执行计划明确。 | `docs/ary-release-ops-plan.md` |
+| `UX-1` UX/UI 高保真原型与设计基线 | 验收通过 | 高保真原型已按IA重构为1080P高密度蓝白竞赛风格页面，并接入样例赛事数据驱动主要页面；本轮继续补齐Work Page、Login/Profile和Console多角色视图，可支撑`DEV-2`/`DEV-3`静态演示。 | `docs/ux-hifi.taskbook.md`、`design-prototype/index.html`、`design-prototype/README.md` |
+| `DEV-1` 领域模型 + 权限 + 数据模型 | 已交付 | 已输出聚合边界、数据模型草案、接口鉴权规则、关键领域事件和验收记录；ReviewFlag采用本轮实现命名，ReviewReadinessCheck作为检查流程命名。 | `docs/ary-dev-1-dev-3-delivery.md`、`docs/ary-domain-analysis.v0.3.md`、`docs/ary-permission-matrix.md`、`docs/ary-mvp.ia.md` |
+| `DEV-2` Public Site 静态闭环 | 已交付 | 公开端已覆盖Home、Race Page、Live Hall、Works、Work Page、Results、Review、Rider Profile、Cooperation；公众浏览路径可用mock/样例数据走查。 | `design-prototype/index.html`、`design-prototype/script.js`、`design-prototype/styles.css`、`design-prototype/README.md` |
+| `DEV-3` 登录 / 角色 / Race Console | 已交付 | 已补齐模拟GitHub登录、资料补全、Workspace入口、Organizer/Rider/Judge/Admin视图切换、Admin用户资料状态和`User.roles`维护演示。 | `design-prototype/index.html`、`design-prototype/script.js`、`design-prototype/styles.css`、`docs/ary-dev-1-dev-3-delivery.md` |
+| `DEV-4` 报名 / RaceProject / Work / Judge 结构流程 | 已交付 | 本地MVP已实现Race发布、报名、审核、RaceProject幂等生成、Work提交、JudgeAssignment和JudgingRecord结构流程，并覆盖重复报名和幂等测试。 | `app/index.html#race`、`app/domain.js`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `DEV-5` CA 接入 / Projection / Live Hall | 已交付 | 本地MVP已实现CAConnection登记与握手、合法信号接入、非法信号隔离、接入失败ReviewFlag、Projection生成和失败隔离；CA失败不阻断提交、评审和Award。 | `app/index.html#ca`、`app/domain.js`、`app/domain.test.js`、`docs/ary-ca-integration-spec.md`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `DEV-6` Screen Console / 大屏联调 | 已交付 | 本地MVP已实现live、leaderboard、works、announcement、fallback模式切换，fallback读取稳定Projection或静态展示。 | `app/index.html#screen`、`app/app.js`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `DEV-7` Report / Review / Results | 已交付 | 本地MVP已实现Award/Leaderboard发布、Report生成失败记录、重跑/编辑/发布，以及Public Results/Review/Works公开读取边界。 | `app/index.html#reports`、`app/index.html#public`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 本地MVP已交付 | 已提供P0回归按钮、发布检查项和go/no-go证据记录；真实staging/production灰度和正式发布待基础设施接入。 | `app/index.html#ops`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 本地MVP已交付 | 已提供备份记录、事故记录、fallback记录和赛后归档入口；真实值守、回滚和生产归档待部署环境接入。 | `app/index.html#ops`、`app/domain.js`、`docs/ary-dev-4-to-ops-delivery.md` |
 
 ## 证据索引
 
@@ -57,11 +65,22 @@
 | UX-1 品牌区 logo 已替换为马头罗盘 PNG，生成透明底裁切版并按竖向比例调整 Header 图标容器 | `design-prototype/assets/logo-horse-compass-transparent.png`、`design-prototype/index.html`、`design-prototype/styles.css` |
 | UX-1 首页设计与交互短视频已录制，覆盖默认首页、Live Race 切换、右侧 Drawer 打开 / 收起，并内嵌字幕说明 | `design-prototype/recordings/ary-homepage-demo.mp4` |
 | UX-1 首页整改经验已沉淀为通用高保真页面工作流 Skill，并在任务书和原型 README 中引用；后续页面需先审 IA、补领域样例数据、复用已通过页面视觉 / 交互惯例，再浏览器复审 | `.agents/skills/hifi-ui-page-workflow/SKILL.md`、`docs/ux-hifi.taskbook.md`、`design-prototype/README.md` |
+| DEV-1到DEV-3交付记录已落盘，覆盖聚合边界、数据模型草案、接口鉴权规则、静态闭环演示和验收用例 | `docs/ary-dev-1-dev-3-delivery.md` |
+| DEV-2公开端静态闭环已补齐Work Page，Works卡片可进入作品详情，Work Page展示Demo/Repo、Evidence摘要、Race回链和原始CA Session默认不公开边界 | `design-prototype/index.html`、`design-prototype/script.js`、`design-prototype/styles.css` |
+| DEV-3登录/角色/Race Console静态演示已补齐，包含mock GitHub登录、资料补全、Console入口、Organizer/Rider/Judge/Admin视图切换和Admin角色chip维护 | `design-prototype/index.html`、`design-prototype/script.js`、`design-prototype/styles.css` |
+| DEV-2/DEV-3原型脚本通过Node语法检查 | `node --check design-prototype/script.js` |
+| DEV-4到OPS-1本地MVP应用已新增，覆盖后续任务的可运行闭环 | `app/index.html`、`app/domain.js`、`app/app.js`、`app/styles.css`、`app/README.md` |
+| DEV-4到OPS-1交付记录已落盘，包含实现范围、验收测试、未完成项和后续工程化判断 | `docs/ary-dev-4-to-ops-delivery.md` |
+| DEV-4报名/RaceProject/Work/Judge关键不变量通过领域测试 | `node app/domain.test.js` |
+| DEV-5 CA合法/非法接入、失败不阻断、Projection失败隔离通过领域测试 | `node app/domain.test.js` |
+| DEV-7 Report公开边界和REL/OPS P0回归通过领域测试 | `node app/domain.test.js` |
+| 本地MVP应用脚本通过Node语法检查 | `node --check app/domain.js`、`node --check app/app.js` |
 
 ## 风险与阻塞
 
 | 项目 | 状态 |
 | --- | --- |
-| 架构、数据模型和接口契约尚未完成 | `DEV-1` 下一步启动风险 |
-| Review Flag / Review Readiness 命名、CAConnection 新增截止窗口和违规作品处理仍需在架构阶段定稿 | `DEV-1` / `DEV-5` 待收敛 |
-| 尚未建立可运行应用和测试命令 | 进入实现阶段前需确认技术栈 |
+| 生产级应用框架、数据库迁移、后端接口、真实OAuth和部署配置尚未建立 | 本轮以`app/`本地MVP完成后续任务演示和领域测试；正式工程化仍需启动 |
+| ReviewFlag处理状态、CAConnection新增截止窗口和违规作品处理仍需产品化 | 当前本地MVP已实现open/resolved基础状态和风险可见性，正式实现需补细粒度处理流 |
+| `design-prototype/`和`app/`均不具备服务端权限控制 | 真实实现时必须按`docs/ary-dev-1-dev-3-delivery.md`、`docs/ary-dev-4-to-ops-delivery.md`和`docs/ary-permission-matrix.md`做服务端鉴权 |
+| 浏览器自动化截图验收仍未完成 | 当前环境缺少可用Playwright浏览器链路；已用Node语法、领域测试和静态入口检查替代 |

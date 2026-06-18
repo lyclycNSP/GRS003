@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ARY Local MVP</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="side-rail">
+        <a class="brand" href="#overview" aria-label="ARY local MVP">
+          <span class="brand-mark">A</span>
+          <span>
+            <strong>ARY</strong>
+            <small>Local MVP</small>
+          </span>
+        </a>
+
+        <nav class="nav-list" aria-label="Primary">
+          <a href="#overview" data-nav="overview">Overview</a>
+          <a href="#race" data-nav="race">Race</a>
+          <a href="#ca" data-nav="ca">CA</a>
+          <a href="#screen" data-nav="screen">Screen</a>
+          <a href="#reports" data-nav="reports">Reports</a>
+          <a href="#public" data-nav="public">Public</a>
+          <a href="#ops" data-nav="ops">Ops</a>
+          <a href="#admin" data-nav="admin">Admin</a>
+        </nav>
+
+        <section class="rail-panel">
+          <label for="user-select">User</label>
+          <select id="user-select"></select>
+          <label for="role-select">Role</label>
+          <select id="role-select"></select>
+        </section>
+
+        <section class="rail-panel compact">
+          <button class="button primary" data-action="run-p0">Run P0</button>
+          <button class="button" data-action="reset-state">Reset Seed</button>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">DEV-4 to OPS-1 runnable closure</p>
+            <h1 id="page-title">ARY赛事执行工作台</h1>
+          </div>
+          <div class="status-strip" id="status-strip"></div>
+        </header>
+
+        <div id="notice" class="notice" hidden></div>
+
+        <section id="view-overview" class="view active" aria-labelledby="overview-title">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">System state</p>
+              <h2 id="overview-title">MVP闭环</h2>
+            </div>
+            <button class="button" data-action="rebuild-projection">Rebuild Projection</button>
+          </div>
+          <div class="metric-grid" id="overview-metrics"></div>
+          <div class="two-col">
+            <article class="panel">
+              <div class="panel-head">
+                <h3>Task Coverage</h3>
+              </div>
+              <div class="coverage-list" id="coverage-list"></div>
+            </article>
+            <article class="panel">
+              <div class="panel-head">
+                <h3>Recent Audit</h3>
+              </div>
+              <div class="timeline" id="audit-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="view-race" class="view" aria-labelledby="race-title">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">DEV-4</p>
+              <h2 id="race-title">报名、RaceProject、Work、Judge</h2>
+            </div>
+            <div class="button-row">
+              <button class="button primary" data-action="publish-race">Publish Race</button>
+              <button class="button" data-action="approve-first">Approve Pending</button>
+            </div>
+          </div>
+          <div class="layout-grid">
+            <article class="panel span-8">
+              <div class="panel-head">
+                <h3>Registrations</h3>
+                <button class="button small" data-action="submit-sample-registration">Submit Sample</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Rider</th>
+                      <th>Status</th>
+                      <th>RaceProject</th>
+                      <th>CA</th>
+                      <th>Work</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="registration-table"></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="panel span-4">
+              <div class="panel-head">
+                <h3>Work Submission</h3>
+              </div>
+              <form id="work-form" class="stacked-form">
+                <label>
+                  Registration
+                  <select name="registrationId"></select>
+                </label>
+                <label>
+                  Title
+                  <input name="title" value="Adaptive Bay Route Agent" />
+                </label>
+                <label>
+                  Demo URL
+                  <input name="demoUrl" value="https://demo.example/route-agent" />
+                </label>
+                <label>
+                  Repo URL
+                  <input name="repoUrl" value="https://github.com/example/route-agent" />
+                </label>
+                <label>
+                  Summary
+                  <textarea name="summary" rows="4">A route planner that replans around live constraints and explains tradeoffs.</textarea>
+                </label>
+                <button class="button primary" type="submit">Submit Work</button>
+              </form>
+            </article>
+          </div>
+          <div class="layout-grid">
+            <article class="panel span-6">
+              <div class="panel-head">
+                <h3>Judge Assignments</h3>
+                <button class="button small" data-action="assign-first-judge">Assign Judge</button>
+              </div>
+              <div id="assignment-list" class="card-list"></div>
+            </article>
+            <article class="panel span-6">
+              <div class="panel-head">
+                <h3>Judging</h3>
+              </div>
+              <form id="judging-form" class="stacked-form">
+                <label>
+                  Assignment
+                  <select name="assignmentId"></select>
+                </label>
+                <div class="form-row">
+                  <label>
+                    Result
+                    <input name="scoreResult" type="number" min="0" max="100" value="92" />
+                  </label>
+                  <label>
+                    Riding
+                    <input name="scoreRiding" type="number" min="0" max="100" value="88" />
+                  </label>
+                </div>
+                <label>
+                  Comments
+                  <textarea name="comments" rows="4">Clear outcome, traceable evidence, and strong recovery behavior.</textarea>
+                </label>
+                <button class="button primary" type="submit">Submit Judging</button>
+              </form>
+            </article>
+          </div>
+        </section>
+
+        <section id="view-ca" class="view" aria-labelledby="ca-title">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">DEV-5</p>
+              <h2 id="ca-title">CA接入、Projection、Live Hall</h2>
+            </div>
+            <div class="button-row">
+              <button class="button primary" data-action="accept-signal">Accept Signal</button>
+              <button class="button" data-action="reject-signal">Reject Invalid</button>
+              <button class="button" data-action="fail-projection">Fail Projection</button>
+            </div>
+          </div>
+          <div class="layout-grid">
+            <article class="panel span-7">
+              <div class="panel-head">
+                <h3>CA Connections</h3>
+                <button class="button small" data-action="register-ca">Register + Handshake</button>
+              </div>
+              <div id="ca-list" class="card-list"></div>
+            </article>
+            <article class="panel span-5">
+              <div class="panel-head">
+                <h3>Live Hall Projection</h3>
+                <button class="button small" data-action="rebuild-projection">Rebuild</button>
+              </div>
+              <div id="projection-preview" class="projection-preview"></div>
+            </article>
+          </div>
+          <div class="layout-grid">
+            <article class="panel span-6">
+              <div class="panel-head">
+                <h3>Review Flags</h3>
+              </div>
+              <div id="flag-list" class="card-list"></div>
+            </article>
+            <article class="panel span-6">
+              <div class="panel-head">
+                <h3>Quarantine</h3>
+              </div>
+              <div id="quarantine-list" class="card-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="view-screen" class="view" aria-labelledby="screen-title">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">DEV-6</p>
+              <h2 id="screen-title">Screen Console</h2>
+            </div>
+            <div class="segmented" id="screen-mode-buttons"></div>
+          </div>
+          <div class="screen-stage" id="screen-stage"></div>
+          <div class="button-row">
+            <button class="button" data-screen-mode="fallback">Fallback</button>
+            <button class="button" data-screen-mode="announcement">Announcement</button>
+            <button class="button" data-screen-mode="leaderboard">Leaderboard</button>
+          </div>
+        </section>
+
+        <section id="view-reports" class="view" aria-labelledby="reports-title">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">DEV-7</p>
+              <h2 id="reports-title">Award、Report、Results</h2>
+            </div>
+            <div class="button-row">
+              <button class="button primary" data-action="publish-award">Publish Award</button>
+              <button class="button" data-action="generate-reports">Generate Reports</button>
+            </div>
+          </div>
+          <div class="layout-grid">
+            <article class="panel span-5">
+              <div class="panel-head">
+                <h3>Leaderboard</h3>
+              </div>
+              <div id="leaderboard-list" class="leaderboard-list"></div>
+            </article>
+            <article class="panel span-7">
+              <div class="panel-head">
+                <h3>Reports</h3>
+                <button class="button small" data-action="simulate-report-fail">Simulate Fail</button>
+              </div>
+              <div id="report-list" class="card-list"></div>
+            </article>
+          </div>
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Report Editor</h3>
+              <button class="button small" data-action="publish-selected-report">Publish Selected</button>
+            </div>
+            <form id="report-form" class="stacked-form">
+              <label>
+                Report
+                <select name="reportId"></select>
+              </label>
+              <textarea name="content" rows="8"></textarea>
+              <button class="button primary" type="submit">Save Edit</button>
+            </form>
+          </article>
+        </section>
+
+        <section id="view-public" class="view" aria-labelledby="public-title">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Public read models</p>
+              <h2 id="public-title">Results、Review、Works</h2>
+            </div>
+            <button class="button" data-action="rebuild-projection">Refresh Public</button>
+          </div>
+          <div class="layout-grid">
+            <article class="panel span-4">
+              <div class="panel-head">
+                <h3>Results</h3>
+              </div>
+              <div id="public-results" class="card-list"></div>
+            </article>
+            <article class="panel span-4">
+              <div class="panel-head">
+                <h3>Review</h3>
+              </div>
+              <div id="public-review" class="card-list"></div>
+            </article>
+            <article class="panel span-4">
+              <div class="panel-head">
+                <h3>Works</h3>
+              </div>
+              <div id="public-works" class="card-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="view-ops" class="view" aria-labelledby="ops-title">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">REL-1 / OPS-1</p>
+              <h2 id="ops-title">发布、值守、回滚、归档</h2>
+            </div>
+            <div class="button-row">
+              <button class="button primary" data-action="mark-all-release">Mark Release Ready</button>
+              <button class="button" data-action="record-incident">Record Incident</button>
+              <button class="button" data-action="archive-race">Archive Race</button>
+            </div>
+          </div>
+          <div class="layout-grid">
+            <article class="panel span-5">
+              <div class="panel-head">
+                <h3>Release Checklist</h3>
+              </div>
+              <div id="release-list" class="card-list"></div>
+            </article>
+            <article class="panel span-4">
+              <div class="panel-head">
+                <h3>Incidents</h3>
+              </div>
+              <div id="incident-list" class="card-list"></div>
+            </article>
+            <article class="panel span-3">
+              <div class="panel-head">
+                <h3>Backups</h3>
+              </div>
+              <div id="backup-list" class="card-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="view-admin" class="view" aria-labelledby="admin-title">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Admin Console</p>
+              <h2 id="admin-title">User.roles</h2>
+            </div>
+          </div>
+          <article class="panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>GitHub</th>
+                    <th>Profile</th>
+                    <th>Roles</th>
+                  </tr>
+                </thead>
+                <tbody id="user-table"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="./domain.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
