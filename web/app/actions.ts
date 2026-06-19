@@ -7,18 +7,32 @@ import {
   approveRegistration,
   assignJudge,
   createBackup,
+  createRace,
+  disableCAConnection,
+  editReport,
   generateReport,
   handshakeCAConnection,
   ingestRidingSignal,
+  markCanaryReady,
+  markProductionReleased,
+  markReleaseChecklistItem,
+  publishAnnouncement,
   publishAward,
+  publishRace,
   publishReport,
   publishWork,
   rebuildProjection,
+  regenerateReport,
+  recordGoNoGo,
   registerCAConnection,
   runP0Regression,
+  simulateProjectionFailure,
+  simulateReportFailure,
   submitJudgingRecord,
   submitRegistration,
   submitWork,
+  switchScreenMode,
+  toggleScreenFallback,
   updateProfile,
   updateUserRoles
 } from "@/lib/domain";
@@ -34,6 +48,24 @@ function refresh(path = "/console") {
   revalidatePath(path);
 }
 
+
+export async function createRaceAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await createRace(ctx, {
+    title: value(formData, "title"),
+    challenge: value(formData, "challenge"),
+    summary: value(formData, "summary")
+  });
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function publishRaceAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await publishRace(ctx, value(formData, "raceId"));
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
 export async function submitRegistrationAction(formData: FormData) {
   const ctx = await getAuthContext();
   const result = await submitRegistration(ctx, value(formData, "raceId"));
@@ -77,6 +109,13 @@ export async function ingestSignalAction(formData: FormData) {
   if (!result.ok) throw new Error(result.message);
 }
 
+
+export async function disableCAConnectionAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await disableCAConnection(ctx, value(formData, "caConnectionId"));
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
 export async function submitWorkAction(formData: FormData) {
   const ctx = await getAuthContext();
   const result = await submitWork(ctx, value(formData, "registrationId"), {
@@ -139,6 +178,31 @@ export async function generateReportAction(formData: FormData) {
   if (!result.ok) throw new Error(result.message);
 }
 
+
+export async function editReportAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await editReport(ctx, value(formData, "reportId"), value(formData, "content"));
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function regenerateReportAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await regenerateReport(ctx, value(formData, "reportId"));
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function simulateReportFailureAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await simulateReportFailure(ctx, {
+    raceId: value(formData, "raceId"),
+    type: value(formData, "type") || "race_report",
+    subjectRegistrationId: value(formData, "subjectRegistrationId") || undefined
+  });
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
 export async function publishReportAction(formData: FormData) {
   const ctx = await getAuthContext();
   const result = await publishReport(ctx, value(formData, "reportId"));
@@ -153,6 +217,13 @@ export async function rebuildProjectionAction(formData: FormData) {
   if (!result.ok) throw new Error(result.message);
 }
 
+
+export async function simulateProjectionFailureAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await simulateProjectionFailure(ctx, value(formData, "raceId"));
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
 export async function createBackupAction(formData: FormData) {
   const ctx = await getAuthContext();
   const result = await createBackup(ctx, value(formData, "raceId"), value(formData, "scope") || "manual_snapshot");
@@ -167,6 +238,31 @@ export async function runP0Action(formData: FormData) {
   if (!result.ok) throw new Error(result.message);
 }
 
+
+export async function switchScreenModeAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await switchScreenMode(ctx, value(formData, "raceId"), value(formData, "mode"));
+  refresh("/screen");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function toggleScreenFallbackAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await toggleScreenFallback(ctx, value(formData, "raceId"), value(formData, "enabled") === "true");
+  refresh("/screen");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function publishAnnouncementAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await publishAnnouncement(ctx, {
+    raceId: value(formData, "raceId"),
+    title: value(formData, "title"),
+    body: value(formData, "body")
+  });
+  refresh("/screen");
+  if (!result.ok) throw new Error(result.message);
+}
 export async function updateRolesAction(formData: FormData) {
   const ctx = await getAuthContext();
   const roles = ["rider", "judge", "organizer", "admin"].filter((role) => formData.get(role));
@@ -175,6 +271,40 @@ export async function updateRolesAction(formData: FormData) {
   if (!result.ok) throw new Error(result.message);
 }
 
+
+export async function markReleaseChecklistItemAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await markReleaseChecklistItem(ctx, {
+    raceId: value(formData, "raceId"),
+    itemKey: value(formData, "itemKey"),
+    label: value(formData, "label") || undefined,
+    status: value(formData, "status") || "done",
+    evidence: value(formData, "evidence")
+  });
+  refresh("/ops");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function recordGoNoGoAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await recordGoNoGo(ctx, value(formData, "raceId"), value(formData, "evidence"));
+  refresh("/ops");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function markCanaryReadyAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await markCanaryReady(ctx, value(formData, "raceId"), value(formData, "evidence"));
+  refresh("/ops");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function markProductionReleasedAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await markProductionReleased(ctx, value(formData, "raceId"), value(formData, "evidence"));
+  refresh("/ops");
+  if (!result.ok) throw new Error(result.message);
+}
 export async function updateProfileAction(formData: FormData) {
   const ctx = await getAuthContext();
   const result = await updateProfile(ctx, {

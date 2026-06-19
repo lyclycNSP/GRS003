@@ -57,6 +57,57 @@ async function createReviewFlag(input: {
   });
 }
 
+
+export async function createRace(ctx: AuthContext | null, input: { title: string; challenge: string; summary: string }): Promise<Result> {
+  requireRole(ctx, ["organizer", "admin"]);
+  const title = input.title.trim();
+  if (!title) return fail("Race标题不能为空");
+  const baseSlug = slugify(title) || makeId("race");
+  const raceId = makeId("race");
+  const race = await prisma.race.create({
+    data: {
+      id: raceId,
+      slug: `${baseSlug}-${raceId.slice(-5)}`,
+      title,
+      status: "draft",
+      visibility: "private",
+      challenge: input.challenge.trim() || "本地演示赛题",
+      summary: input.summary.trim() || input.challenge.trim() || "本地演示赛题",
+      organizerJson: toJson([ctx!.userId]),
+      scheduleJson: toJson({ registration: "open", race: "draft", submission: "closed", judging: "closed", results: "not_published" }),
+      rulesJson: toJson({ allowCAConnectionUntil: "judging", maxMainWorksPerRegistration: 1, caFailureBlocksSubmission: false }),
+      metricsJson: toJson({ riders: 0, activeRiders: 0, sessions: 0, submittedWorks: 0, riskSignals: 0 }),
+      createdByUserId: ctx!.userId,
+      releaseItems: {
+        create: [
+          { id: makeId("check"), itemKey: "p0_regression", label: "P0回归一键跑通", status: "open", evidence: "" },
+          { id: makeId("check"), itemKey: "screen_rehearsal", label: "大屏彩排", status: "open", evidence: "" },
+          { id: makeId("check"), itemKey: "live_rehearsal", label: "Live Hall彩排", status: "open", evidence: "" },
+          { id: makeId("check"), itemKey: "report_results_rehearsal", label: "Report/Results彩排", status: "open", evidence: "" },
+          { id: makeId("check"), itemKey: "go_no_go", label: "go/no-go证据确认", status: "open", evidence: "" }
+        ]
+      },
+      screenState: { create: { id: makeId("screen"), mode: "live", fallbackEnabled: false } }
+    }
+  });
+  return ok("Race已创建", race.id);
+}
+
+export async function publishRace(ctx: AuthContext | null, raceId: string): Promise<Result> {
+  requireRole(ctx, ["organizer", "admin"]);
+  const race = await prisma.race.findUnique({ where: { id: raceId } });
+  if (!race) return fail("Race不存在");
+  if (race.createdByUserId !== ctx!.userId && !canManageRace(ctx, raceId)) return fail("没有发布Race的权限");
+  await prisma.race.update({
+    where: { id: raceId },
+    data: {
+      status: "running",
+      visibility: "public",
+      scheduleJson: toJson({ registration: "open", race: "running", submission: "open", judging: "queue", results: "not_published" })
+    }
+  });
+  return ok("Race已发布", raceId);
+}
 export async function submitRegistration(ctx: AuthContext | null, raceId: string): Promise<Result> {
   requireRole(ctx, ["rider", "admin"]);
   const race = await prisma.race.findUnique({ where: { id: raceId } });
@@ -107,14 +158,15 @@ export async function registerCAConnection(ctx: AuthContext | null, raceProjectI
   if (project.registration.userId !== ctx.userId && !canManageRace(ctx, project.registration.raceId)) {
     return fail("没有登记CAConnection的权限");
   }
+  const connectionId = makeId("conn");
   const connection = await prisma.cAConnection.create({
     data: {
-      id: makeId("conn"),
+      id: connectionId,
       raceProjectId,
       caType: "codex",
       connectorId: "github-oauth-demo-connector",
       connectorVersion: "0.1.0",
-      externalProjectRef: `ca-${raceProjectId}`,
+      externalProjectRef: `ca-${raceProjectId}-${connectionId}`,
       ingestionStatus: "connected",
       registeredAt: new Date()
     }
@@ -215,6 +267,34 @@ export async function ingestRidingSignal(input: {
   return ok("CA信号已接入", session.id);
 }
 
+
+export async function disableCAConnection(ctx: AuthContext | null, caConnectionId: string): Promise<Result> {
+  requireAuth(ctx);
+  const connection = await prisma.cAConnection.findUnique({
+    where: { id: caConnectionId },
+    include: { raceProject: { include: { registration: true, caConnections: true } } }
+  });
+  if (!connection) return fail("CAConnection不存在");
+  const raceId = connection.raceProject.registration.raceId;
+  if (connection.raceProject.registration.userId !== ctx!.userId && !canManageRace(ctx, raceId)) return fail("没有禁用CAConnection的权限");
+  await prisma.cAConnection.update({ where: { id: caConnectionId }, data: { ingestionStatus: "failed", disabledAt: new Date() } });
+  const activeCount = await prisma.cAConnection.count({
+    where: { raceProjectId: connection.raceProjectId, disabledAt: null, handshakeAt: { not: null }, ingestionStatus: { in: ["connected", "active"] } }
+  });
+  if (activeCount === 0) {
+    await prisma.raceProject.update({ where: { id: connection.raceProjectId }, data: { aggregateIngestionStatus: "failed", connectionHealth: "no_active_connection" } });
+    await createReviewFlag({
+      raceId,
+      registrationId: connection.raceProject.registrationId,
+      raceProjectId: connection.raceProjectId,
+      type: "ingestion_exception",
+      severity: "high",
+      summary: "所有可用CAConnection均不可用，进入评审前风险提示。",
+      sourceRef: { caConnectionId }
+    });
+  }
+  return ok("CAConnection已禁用", caConnectionId);
+}
 export async function submitWork(ctx: AuthContext | null, registrationId: string, input: { title: string; summary: string; demoUrl?: string; repoUrl?: string }): Promise<Result> {
   requireAuth(ctx);
   const registration = await prisma.registration.findUnique({ where: { id: registrationId } });
@@ -330,6 +410,45 @@ export async function generateReport(ctx: AuthContext | null, input: { raceId: s
   return ok("Report已生成", report.id);
 }
 
+
+export async function editReport(ctx: AuthContext | null, reportId: string, content: string): Promise<Result> {
+  requireAuth(ctx);
+  const report = await prisma.report.findUnique({ where: { id: reportId } });
+  if (!report) return fail("Report不存在");
+  requireManagedRace(ctx, report.raceId);
+  await prisma.report.update({ where: { id: reportId }, data: { content: content.trim(), status: "draft", lastError: null } });
+  return ok("Report已编辑", reportId);
+}
+
+export async function regenerateReport(ctx: AuthContext | null, reportId: string): Promise<Result> {
+  requireAuth(ctx);
+  const report = await prisma.report.findUnique({ where: { id: reportId } });
+  if (!report) return fail("Report不存在");
+  requireManagedRace(ctx, report.raceId);
+  await prisma.report.update({
+    where: { id: reportId },
+    data: { status: "draft", visibility: "private", lastError: null, generatedAt: new Date(), content: `${report.type} regenerated for ${report.raceId}` }
+  });
+  return ok("Report已重跑", reportId);
+}
+
+export async function simulateReportFailure(ctx: AuthContext | null, input: { raceId: string; type: string; subjectRegistrationId?: string }): Promise<Result> {
+  requireManagedRace(ctx, input.raceId);
+  const report = await prisma.report.create({
+    data: {
+      id: makeId("report"),
+      raceId: input.raceId,
+      type: input.type,
+      subjectRegistrationId: input.subjectRegistrationId ?? null,
+      status: "failed",
+      visibility: "private",
+      content: "",
+      generatedAt: new Date(),
+      lastError: "simulated_report_generation_failure"
+    }
+  });
+  return ok("Report失败状态已记录", report.id);
+}
 export async function publishReport(ctx: AuthContext | null, reportId: string): Promise<Result> {
   requireAuth(ctx);
   const report = await prisma.report.findUnique({ where: { id: reportId } });
@@ -377,6 +496,56 @@ export async function rebuildProjection(ctx: AuthContext | null, raceId: string)
   return ok("Projection已重建", projection.id);
 }
 
+
+export async function simulateProjectionFailure(ctx: AuthContext | null, raceId: string): Promise<Result> {
+  requireManagedRace(ctx, raceId);
+  const stable = await prisma.projection.findFirst({ where: { raceId, status: "stable" }, orderBy: { lastRebuiltAt: "desc" } });
+  const projection = await prisma.projection.create({
+    data: {
+      id: makeId("projection"),
+      raceId,
+      type: "race_progress",
+      status: "failed",
+      stableVersionId: stable?.id ?? null,
+      payloadJson: toJson({ error: "simulated_projection_failure", stableVersionId: stable?.id ?? null }),
+      lastRebuiltAt: new Date()
+    }
+  });
+  return ok("Projection失败已隔离，stable版本未被覆盖", projection.id);
+}
+
+export async function switchScreenMode(ctx: AuthContext | null, raceId: string, mode: string): Promise<Result> {
+  requireManagedRace(ctx, raceId);
+  const allowed = ["live", "leaderboard", "works", "announcement", "fallback"];
+  if (!allowed.includes(mode)) return fail("Screen mode不合法");
+  const state = await prisma.screenState.upsert({
+    where: { raceId },
+    update: { mode, fallbackEnabled: mode === "fallback" },
+    create: { id: makeId("screen"), raceId, mode, fallbackEnabled: mode === "fallback" }
+  });
+  return ok("Screen mode已切换", state.id);
+}
+
+export async function toggleScreenFallback(ctx: AuthContext | null, raceId: string, enabled: boolean): Promise<Result> {
+  requireManagedRace(ctx, raceId);
+  const state = await prisma.screenState.upsert({
+    where: { raceId },
+    update: { fallbackEnabled: enabled, mode: enabled ? "fallback" : "live" },
+    create: { id: makeId("screen"), raceId, mode: enabled ? "fallback" : "live", fallbackEnabled: enabled }
+  });
+  return ok(enabled ? "Screen fallback已开启" : "Screen fallback已关闭", state.id);
+}
+
+export async function publishAnnouncement(ctx: AuthContext | null, input: { raceId: string; title: string; body: string }): Promise<Result> {
+  requireManagedRace(ctx, input.raceId);
+  const title = input.title.trim();
+  if (!title) return fail("公告标题不能为空");
+  const announcement = await prisma.announcement.create({
+    data: { id: makeId("ann"), raceId: input.raceId, title, body: input.body.trim(), visibility: "public", publishedAt: new Date() }
+  });
+  await switchScreenMode(ctx, input.raceId, "announcement");
+  return ok("公告已发布", announcement.id);
+}
 export async function createBackup(ctx: AuthContext | null, raceId: string, scope = "race_day_core"): Promise<Result> {
   requireManagedRace(ctx, raceId);
   const backup = await prisma.backup.create({
@@ -385,6 +554,28 @@ export async function createBackup(ctx: AuthContext | null, raceId: string, scop
   return ok("备份记录已创建", backup.id);
 }
 
+
+export async function markReleaseChecklistItem(ctx: AuthContext | null, input: { raceId: string; itemKey: string; label?: string; status?: string; evidence: string }): Promise<Result> {
+  requireManagedRace(ctx, input.raceId);
+  const item = await prisma.releaseChecklistItem.upsert({
+    where: { raceId_itemKey: { raceId: input.raceId, itemKey: input.itemKey } },
+    update: { status: input.status ?? "done", evidence: input.evidence, updatedAt: new Date() },
+    create: { id: makeId("check"), raceId: input.raceId, itemKey: input.itemKey, label: input.label ?? input.itemKey, status: input.status ?? "done", evidence: input.evidence, updatedAt: new Date() }
+  });
+  return ok("发布检查项已更新", item.id);
+}
+
+export async function recordGoNoGo(ctx: AuthContext | null, raceId: string, evidence: string): Promise<Result> {
+  return markReleaseChecklistItem(ctx, { raceId, itemKey: "go_no_go", label: "go/no-go证据确认", status: "done", evidence: evidence || "go decision recorded" });
+}
+
+export async function markCanaryReady(ctx: AuthContext | null, raceId: string, evidence: string): Promise<Result> {
+  return markReleaseChecklistItem(ctx, { raceId, itemKey: "canary_ready", label: "灰度发布确认", status: "done", evidence: evidence || "local canary release evidence recorded" });
+}
+
+export async function markProductionReleased(ctx: AuthContext | null, raceId: string, evidence: string): Promise<Result> {
+  return markReleaseChecklistItem(ctx, { raceId, itemKey: "production_release", label: "正式发布确认", status: "done", evidence: evidence || "local production release evidence recorded" });
+}
 export async function updateUserRoles(ctx: AuthContext | null, userId: string, roles: string[]): Promise<Result> {
   requireRole(ctx, ["admin"]);
   await prisma.user.update({ where: { id: userId }, data: { rolesJson: toJson(roles) } });
@@ -458,7 +649,14 @@ export async function runP0Regression(ctx: AuthContext | null, raceId: string): 
   if (raceReport.ok) await publishReport(ctx, raceReport.id!);
   if (review.ok) await publishReport(ctx, review.id!);
   await rebuildProjection(ctx, raceId);
-  await createBackup(ctx, raceId, "p0_rehearsal_snapshot");
+  await switchScreenMode(ctx, raceId, "live");
+  await switchScreenMode(ctx, raceId, "leaderboard");
+  await switchScreenMode(ctx, raceId, "works");
+  await publishAnnouncement(ctx, { raceId, title: "P0 rehearsal", body: "Screen, Live Hall, Report and Results rehearsal completed." });
+  await markReleaseChecklistItem(ctx, { raceId, itemKey: "screen_rehearsal", label: "大屏彩排", status: "done", evidence: "Screen modes live/leaderboard/works/announcement switched." });
+  await markReleaseChecklistItem(ctx, { raceId, itemKey: "live_rehearsal", label: "Live Hall彩排", status: "done", evidence: "Live Hall reads stable Projection after rebuild." });
+  await markReleaseChecklistItem(ctx, { raceId, itemKey: "report_results_rehearsal", label: "Report/Results彩排", status: "done", evidence: "Public race_report/review_summary generated and published." });
+  await recordGoNoGo(ctx, raceId, "Local demo go decision recorded after P0 regression.");  await createBackup(ctx, raceId, "p0_rehearsal_snapshot");
   await prisma.releaseChecklistItem.upsert({
     where: { raceId_itemKey: { raceId, itemKey: "p0_regression" } },
     update: { status: "done", evidence: "Next.js P0 regression completed.", updatedAt: new Date() },

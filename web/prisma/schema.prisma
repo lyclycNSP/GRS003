@@ -60,6 +60,7 @@ model Race {
   backups        Backup[]
   incidents      Incident[]
   releaseItems   ReleaseChecklistItem[]
+  screenState    ScreenState?
 }
 
 model Registration {
@@ -259,6 +260,15 @@ model Announcement {
   race        Race      @relation(fields: [raceId], references: [id], onDelete: Cascade)
 }
 
+
+model ScreenState {
+  id              String   @id
+  raceId          String   @unique
+  mode            String
+  fallbackEnabled Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+  race            Race     @relation(fields: [raceId], references: [id], onDelete: Cascade)
+}
 model Backup {
   id        String   @id
   raceId    String
