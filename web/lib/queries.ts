@@ -25,6 +25,7 @@ export async function getRaceBySlug(slug: string) {
       reports: true,
       projections: { orderBy: { lastRebuiltAt: "desc" } },
       announcements: true,
+      screenState: true,
       releaseItems: true,
       backups: true,
       incidents: true
@@ -169,6 +170,9 @@ export async function getConsoleSnapshot() {
       releaseItems: true,
       backups: true,
       incidents: true,
+      screenState: true,
+      announcements: true,
+      projections: { orderBy: { lastRebuiltAt: "desc" } },
       awards: true,
       reports: true
     }
@@ -178,4 +182,14 @@ export async function getConsoleSnapshot() {
     include: { work: { include: { registration: { include: { user: true, race: true } } } }, judge: true, judgingRecord: true }
   });
   return { race, users, assignments };
+}
+
+export async function getScreenSnapshot(slug?: string) {
+  const race = slug ? await getRaceBySlug(slug) : await getRaceBySlug("bay-area-happy-trip");
+  if (!race) return null;
+  const works = await getPublicWorks(race.id);
+  const stableProjection = race.projections.find((projection) => projection.status === "stable") ?? null;
+  const failedProjection = race.projections.find((projection) => projection.status === "failed") ?? null;
+  const screenState = race.screenState ?? { mode: "live", fallbackEnabled: false };
+  return { race, works, stableProjection, failedProjection, screenState };
 }

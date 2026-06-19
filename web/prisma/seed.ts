@@ -7,6 +7,7 @@ function json(value: unknown) {
 }
 
 async function main() {
+  await prisma.screenState.deleteMany();
   await prisma.releaseChecklistItem.deleteMany();
   await prisma.incident.deleteMany();
   await prisma.backup.deleteMany();
@@ -226,6 +227,10 @@ async function main() {
     data: { id: "ann_seed", raceId: "race_bay_2026", title: "Registration desk open", body: "Organizer desk is validating rider profiles and CA connectors.", visibility: "public", publishedAt: new Date() }
   });
 
+
+  await prisma.screenState.create({
+    data: { id: "screen_bay", raceId: "race_bay_2026", mode: "live", fallbackEnabled: false }
+  });
   for (const item of [
     ["p0_regression", "P0回归一键跑通"],
     ["staging_rehearsal", "staging全流程彩排"],

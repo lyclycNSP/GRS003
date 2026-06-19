@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color-scheme: light;
   --blue-950: #06164a;
   --blue-900: #09266f;
@@ -779,6 +779,7 @@ p {
 .profile-form-panel,
 .auth-role-preview,
 .role-entry-grid article,
+.role-entry-grid a,
 .rider-status-card,
 .ca-connection-list,
 .assigned-work-card,
@@ -1760,13 +1761,16 @@ p {
   margin: 22px 0 18px;
 }
 
-.role-entry-grid article {
+.role-entry-grid article,
+.role-entry-grid a {
   min-height: 112px;
   padding: 14px;
   cursor: pointer;
+  text-decoration: none;
 }
 
-.role-entry-grid article.active {
+.role-entry-grid article.active,
+.role-entry-grid a.active {
   color: #fff;
   background:
     linear-gradient(135deg, rgba(8, 91, 236, 0.96), rgba(48, 216, 255, 0.72)),
@@ -1775,7 +1779,10 @@ p {
 
 .role-entry-grid article.active span,
 .role-entry-grid article.active b,
-.role-entry-grid article.active p {
+.role-entry-grid article.active p,
+.role-entry-grid a.active span,
+.role-entry-grid a.active b,
+.role-entry-grid a.active p {
   color: #fff;
 }
 
@@ -1852,6 +1859,18 @@ p {
   font-size: 22px;
 }
 
+
+.console-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.console-empty-actions p {
+  flex-basis: 100%;
+  margin: 0;
+}
 .rider-cockpit-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -3134,4 +3153,112 @@ body {
     font-size: 42px;
   }
 }
+.screen-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
 
+.screen-mode-grid button.active {
+  color: #fff;
+  background: var(--blue-700);
+}
+
+.screen-display {
+  min-height: 100vh;
+  color: #fff;
+  background: #06164a;
+  padding: 28px;
+}
+
+.screen-display header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 48px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.screen-display header a {
+  color: #fff;
+}
+
+.screen-display main {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.screen-display p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 22px;
+}
+
+.screen-display h1 {
+  max-width: 980px;
+  margin: 10px 0 36px;
+  color: #fff;
+  font-size: 76px;
+  line-height: 0.96;
+}
+
+.screen-display h2 {
+  max-width: 980px;
+  color: #fff;
+  font-size: 44px;
+  line-height: 1.1;
+}
+
+.screen-stat-grid,
+.screen-board-list {
+  display: grid;
+  gap: 16px;
+}
+
+.screen-stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.screen-stat-grid article,
+.screen-board-list article {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 22px;
+}
+
+.screen-stat-grid span,
+.screen-board-list em {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.screen-stat-grid b {
+  display: block;
+  margin-top: 12px;
+  color: #fff;
+  font-size: 38px;
+}
+
+.screen-board-list article {
+  display: grid;
+  grid-template-columns: 90px 1fr 1.4fr;
+  align-items: center;
+  gap: 18px;
+}
+
+.screen-board-list b,
+.screen-board-list span {
+  color: #fff;
+  font-size: 28px;
+}
+
+@media (max-width: 760px) {
+  .screen-mode-grid,
+  .screen-stat-grid,
+  .screen-board-list article {
+    grid-template-columns: 1fr;
+  }
+
+  .screen-display h1 {
+    font-size: 44px;
+  }
+}

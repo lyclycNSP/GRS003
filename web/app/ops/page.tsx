@@ -1,6 +1,6 @@
 import { getAuthContext } from "@/lib/auth";
 import { getConsoleSnapshot } from "@/lib/queries";
-import { createBackupAction, runP0Action } from "@/app/actions";
+import { createBackupAction, markCanaryReadyAction, markProductionReleasedAction, markReleaseChecklistItemAction, recordGoNoGoAction, runP0Action } from "@/app/actions";
 
 export default async function OpsPage() {
   const ctx = await getAuthContext();
@@ -26,13 +26,35 @@ export default async function OpsPage() {
             <h2>Release Checklist</h2>
             <div className="table-list">
               {race.releaseItems.map((item) => (
-                <div className="table-row" key={item.id}>
+                <form className="table-row" action={markReleaseChecklistItemAction} key={item.id}>
+                  <input type="hidden" name="raceId" value={race.id} />
+                  <input type="hidden" name="itemKey" value={item.itemKey} />
+                  <input type="hidden" name="label" value={item.label} />
                   <span>{item.label}</span>
                   <b>{item.status}</b>
-                  <em>{item.evidence || "No evidence yet"}</em>
-                </div>
+                  <input name="evidence" defaultValue={item.evidence || "local rehearsal evidence recorded"} />
+                  <button type="submit">Mark done</button>
+                </form>
               ))}
             </div>
+          </section>
+          <section className="form-card">
+            <h2>Canary / Production / Go-No-Go</h2>
+            <form action={markCanaryReadyAction}>
+              <input type="hidden" name="raceId" value={race.id} />
+              <input name="evidence" defaultValue="本地灰度发布证据已确认。" />
+              <button type="submit">Mark Canary Ready</button>
+            </form>
+            <form action={markProductionReleasedAction}>
+              <input type="hidden" name="raceId" value={race.id} />
+              <input name="evidence" defaultValue="本地正式发布证据已确认。" />
+              <button type="submit">Mark Production Released</button>
+            </form>
+            <form action={recordGoNoGoAction}>
+              <input type="hidden" name="raceId" value={race.id} />
+              <input name="evidence" defaultValue="go：P0、Live Hall、大屏、Report、Results 彩排完成。" />
+              <button type="submit">Record Go / No-Go</button>
+            </form>
           </section>
         </div>
         <aside className="form-card">

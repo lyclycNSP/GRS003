@@ -3,14 +3,22 @@ import { redirect } from "next/navigation";
 import {
   approveRegistrationAction,
   assignJudgeAction,
+  createRaceAction,
+  disableCAConnectionAction,
+  editReportAction,
   generateReportAction,
   handshakeCAAction,
   ingestSignalAction,
   publishAwardAction,
+  publishRaceAction,
   publishReportAction,
   publishWorkAction,
   rebuildProjectionAction,
+  regenerateReportAction,
   registerCAAction,
+  simulateProjectionFailureAction,
+  simulateReportFailureAction,
+  submitRegistrationAction,
   submitWorkAction,
   updateRolesAction
 } from "@/app/actions";
@@ -46,6 +54,7 @@ export default async function ConsolePage() {
   const firstApproved = registrations.find((registration) => registration.status === "approved");
   const firstProject = firstApproved?.raceProject;
   const firstConnection = firstProject?.caConnections[0];
+  const allConnections = registrations.flatMap((registration) => registration.raceProject?.caConnections.map((connection) => ({ connection, registration })) ?? []);
   const firstWork = registrations.find((registration) => registration.work)?.work;
   const judge = users.find((user) => fromJson<string[]>(user.rolesJson, []).includes("judge"));
   const ownRegistrations = currentUser?.registrations ?? [];
@@ -70,16 +79,29 @@ export default async function ConsolePage() {
         <h1>{race.title} 指挥席</h1>
         <section className="role-entry-grid">
           {["organizer", "rider", "judge", "admin"].map((role) => (
-            <article className={hasRole(roles, role) ? "active" : ""} key={role}>
+            <a href={hasRole(roles, role) ? `#${role}` : "#"} className={hasRole(roles, role) ? "active" : ""} key={role}>
               <span>{role}</span>
               <b>{hasRole(roles, role) ? "enabled" : "hidden"}</b>
               <p>{role === "organizer" ? "报名、CA、作品、评审和发布。" : role === "rider" ? "自己的报名、RaceProject 和 Work。" : role === "judge" ? "已分配作品和评分表。" : "User.roles 维护。"}</p>
-            </article>
+            </a>
           ))}
         </section>
 
         {hasRole(roles, "organizer") ? (
           <section id="organizer" className="console-view-panel active">
+            <section className="form-card">
+              <h2>Race 管理</h2>
+              <form action={createRaceAction}>
+                <input name="title" defaultValue="本地演示 Race" />
+                <input name="challenge" defaultValue="用 Agent 完成一次可演示的赛事闭环。" />
+                <textarea name="summary" defaultValue="DEV-4 到 REL-1 本地演示 Race。" />
+                <button type="submit">创建 Race</button>
+              </form>
+              <form action={publishRaceAction}>
+                <input type="hidden" name="raceId" value={race.id} />
+                <button type="submit">发布当前 Race</button>
+              </form>
+            </section>
             <div className="ops-grid">
               <article><span>赛道</span><b>{race.status}</b><p>作品提交开放</p></article>
               <article><span>报名</span><b>{registrations.length}</b><p>Rider 已入场</p></article>
@@ -98,6 +120,22 @@ export default async function ConsolePage() {
                     <form action={approveRegistrationAction}>
                       <input type="hidden" name="registrationId" value={registration.id} />
                       <button type="submit">Approve + RaceProject</button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+            </section>
+            <section className="form-card">
+              <h2>CAConnection 状态</h2>
+              <div className="table-list">
+                {allConnections.map(({ connection, registration }) => (
+                  <div className="table-row" key={connection.id}>
+                    <span>{registration.user.displayName}</span>
+                    <b>{connection.ingestionStatus}{connection.disabledAt ? "/disabled" : ""}</b>
+                    <em>{connection.connectorId} / {connection.externalProjectRef}</em>
+                    <form action={disableCAConnectionAction}>
+                      <input type="hidden" name="caConnectionId" value={connection.id} />
+                      <button type="submit">Disable</button>
                     </form>
                   </div>
                 ))}
@@ -167,7 +205,16 @@ export default async function ConsolePage() {
               <article className="rider-status-card"><span>RaceProject</span><b>{ownProject?.aggregateIngestionStatus ?? "not_configured"}</b><p>{ownProject?.connectionHealth ?? "等待审核生成"}</p></article>
               <article className="rider-status-card"><span>Work</span><b>{ownRegistration?.work?.status ?? "none"}</b><p>{ownRegistration?.work?.title ?? "尚未提交作品"}</p></article>
             </div>
-            {ownProject ? (
+            {!ownRegistration ? (
+              <div className="console-empty-actions">
+                <p>你还没有报名当前赛事。先提交报名，审核通过后会生成 RaceProject。</p>
+                <form action={submitRegistrationAction}>
+                  <input type="hidden" name="raceId" value={race.id} />
+                  <button type="submit">报名参赛</button>
+                </form>
+                <Link className="inline-action" href={`/races/${race.slug}`}>查看 Race Page</Link>
+              </div>
+            ) : ownProject ? (
               <>
                 <form action={registerCAAction}>
                   <input type="hidden" name="raceProjectId" value={ownProject.id} />
