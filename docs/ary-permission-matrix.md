@@ -1,9 +1,10 @@
 # ARY MVP Permission Matrix
 
-版本：v0.3
+版本：v0.4
 文档类型：Permission Matrix
 上游入口：`ary-mvp.prd.md`
 领域基线：`ary-domain-analysis.v0.3.md`
+本地 MVP 实现参考：`../app/domain.js`
 
 ---
 
@@ -255,3 +256,28 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 * Organizer 只能管理自己负责的 Race 及其相关资源。
 * Admin 可以维护 `User.roles`，但 Admin Console 不承担赛事执行、CA 接入维护或数据运营职责。
 * Projection 重建、Report 生成、大屏 fallback 等内部维护动作只能由 Organizer 管理赛事范围或 Admin 系统范围执行。
+
+---
+
+# 5. 当前实现状态（本地 MVP 口径，截至 v0.4）
+
+本权限矩阵是 ARY MVP 的资源动作级规范，是后续**服务端鉴权**的输入。当前阶段（`DEV-4`到`OPS-1`）在 `app/` 形成本地 MVP，权限落地状态如下：
+
+| 权限实现维度 | 当前状态 | 代码 / UI 入口 |
+|---|---|---|
+| 角色身份 | 通过 `app/index.html` 顶部 `user-select` 和 `role-select` 选择器模拟，存于内存 `state.currentUserId` 和 `state.currentRole` | `app/app.js` 顶部 select 监听 |
+| Server-side 鉴权 | **未实现**；当前所有动作通过 UI 入口控制可见性，调用方传入 `actorId` 后由 domain actions 校验 | — |
+| 已落地的 actor 校验 | `submitJudgingRecord` 校验 `assignment.judgeUserId===actorId`；`archiveRace` 等运维动作校验 `actor.roles` 包含 `organizer`（managed race）或 `admin` | `app/domain.js` 各 action 入口 |
+| 公开端访问控制 | UI 上无登录即可访问 `Public Reports` / `Public Works` 视图；domain 层 `publicReports` selector 仅返回 `visibility=public` 的 Report | `app/domain.js` `selectors.publicReports` |
+| 数据可见性 | `rider_report` 强制带 `subjectRegistrationId` 且发布后仍为 `private`；`race_report` / `review_summary` 不带 subject 才允许公开 | `app/domain.js` `actions.publishReport` |
+| 跨用户隔离 | `app/localStorage` 仅持有本地状态，无多用户并发；UI 顶部选择器用于演示不同 actor | `app/app.js` |
+
+**正式工程化启动时必须补齐**：
+
+1. 服务端会话与 OAuth（GitHub）落地，actor 来自服务端鉴权而非 UI 选择。
+2. 接口层按本矩阵逐条实现拒绝逻辑（不止 UI 隐藏入口）。
+3. 数据库迁移时把权限判定所需的关系字段（`Race.organizerUserIds`、`Registration.userId`、`Work.registrationId`、`JudgeAssignment.judgeUserId` 等）落到唯一约束和外键上。
+4. 跨设备、跨会话的角色切换与会话失效。
+5. 审计日志：记录被拒绝的越权请求，便于 QA 和安全复盘。
+
+正式权限测试需在服务端鉴权接入后，按本矩阵全量回归；本节当前只反映本地 MVP 实现口径。

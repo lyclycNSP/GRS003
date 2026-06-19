@@ -224,10 +224,12 @@
       })
       .join("");
 
-    $("#audit-list").innerHTML = state.auditLog
-      .slice(0, 10)
-      .map((entry) => `<div class="timeline-item"><time>${formatTime(entry.at)}</time><p>${escapeHtml(entry.message)}</p></div>`)
-      .join("");
+    $("#audit-list").innerHTML = state.auditLog.length
+      ? state.auditLog
+          .slice(0, 10)
+          .map((entry) => `<div class="timeline-item"><time>${formatTime(entry.at)}</time><p>${escapeHtml(entry.message)}</p></div>`)
+          .join("")
+      : renderEmpty("No audit entries", "Trigger any action to populate the audit timeline");
   }
 
   function metric(label, value, sub) {
@@ -255,7 +257,7 @@
         </tr>`;
       })
       .join("");
-    $("#registration-table").innerHTML = rows || `<tr><td colspan="6">No registrations</td></tr>`;
+    $("#registration-table").innerHTML = rows || `<tr><td colspan="6">${renderEmpty("No registrations", "Approve or submit a registration to populate this table")}</td></tr>`;
 
     const workRegistrationSelect = $("#work-form select[name='registrationId']");
     workRegistrationSelect.innerHTML = selectedRaceRegistrations()
@@ -279,7 +281,7 @@
             record ? chip(`score ${record.scoreResult}/${record.scoreRiding}`, "ok") : chip("record open", "warn"),
           ]);
         })
-        .join("") || empty("No judge assignments");
+        .join("") || renderEmpty("No judge assignments", "Assign a judge from the toolbar to start scoring");
 
     const judgingSelect = $("#judging-form select[name='assignmentId']");
     judgingSelect.innerHTML = state.judgeAssignments
@@ -312,7 +314,7 @@
             connection.handshakeAt ? chip("handshaked", "ok") : chip("no handshake", "warn"),
           ]);
         })
-        .join("") || empty("No CA connections");
+        .join("") || renderEmpty("No CA connections", "Register a CAConnection from the toolbar to populate this list");
 
     const projection = domain.selectors.getLatestStableProjection(state, raceId);
     $("#projection-preview").innerHTML = projection
@@ -326,20 +328,20 @@
               <div>${chip(entry.ingestion, statusVariant(entry.ingestion))}</div>
             </div>`;
           })
-          .join("") || empty("Projection has no entries")
-      : empty("No stable projection");
+          .join("") || renderEmpty("Projection has no entries", "Latest rebuild produced no rider entries yet")
+      : renderEmpty("No stable projection", "Rebuild projection to make a stable Live Hall available");
 
     $("#flag-list").innerHTML =
       state.reviewFlags
         .filter((flag) => flag.raceId === raceId && flag.status !== "resolved")
         .map((flag) => miniCard(flag.type, [chip(flag.severity, statusVariant(flag.severity === "high" ? "failed" : "pending")), chip(flag.status, "warn")], flag.judgeVisibleSummary))
-        .join("") || empty("No open review flags");
+        .join("") || renderEmpty("No open review flags", "Quarantined or invalid signals are not currently held for review");
 
     $("#quarantine-list").innerHTML =
       state.quarantinedSignals
         .slice(0, 6)
         .map((item) => miniCard(item.reason, [chip(formatTime(item.receivedAt), "danger")]))
-        .join("") || empty("No quarantined signals");
+        .join("") || renderEmpty("No quarantined signals", "All rejected signals will appear here for inspection");
   }
 
   function renderScreen() {
@@ -358,19 +360,19 @@
       content = `<h3>${escapeHtml(race.title)}</h3><div class="screen-grid">${
         feed.leaderboard
           .map((row) => `<div class="screen-card"><strong>#${row.rank} ${escapeHtml(row.riderName)}</strong><p>${escapeHtml(row.workTitle || row.awardName)}</p></div>`)
-          .join("") || `<div class="screen-card"><strong>No results</strong><p>Award publication is pending.</p></div>`
+          .join("") || renderEmpty("No results", "Award publication is pending")
       }</div>`;
     } else if (feed.mode === "works") {
       content = `<h3>Works</h3><div class="screen-grid">${
         feed.works
           .map((work) => `<div class="screen-card"><strong>${escapeHtml(work.title)}</strong><p>${escapeHtml(work.summary)}</p></div>`)
-          .join("") || `<div class="screen-card"><strong>No public work</strong><p>Submitted work is not public yet.</p></div>`
+          .join("") || renderEmpty("No public work", "Submitted work is not public yet")
       }</div>`;
     } else if (feed.mode === "announcement") {
       content = `<h3>Announcements</h3><div class="screen-grid">${
         feed.announcements
           .map((item) => `<div class="screen-card"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.body)}</p></div>`)
-          .join("") || `<div class="screen-card"><strong>Stand by</strong><p>Operator announcement channel is open.</p></div>`
+          .join("") || renderEmpty("Stand by", "Operator announcement channel is open")
       }</div>`;
     } else if (feed.mode === "fallback") {
       content = `<h3>Fallback Active</h3><div class="screen-grid"><div class="screen-card"><strong>${escapeHtml(feed.fallback)}</strong><p>Stable projection or static display is being used.</p></div>${
@@ -381,7 +383,7 @@
         entries
           .slice(0, 6)
           .map((entry) => `<div class="screen-card"><strong>${escapeHtml(entry.riderName)}</strong><p>${escapeHtml(entry.ingestion)} · ${entry.progressPercent}% · ${entry.tokens} tokens</p></div>`)
-          .join("") || `<div class="screen-card"><strong>Waiting</strong><p>Projection will appear after rebuild.</p></div>`
+          .join("") || renderEmpty("Waiting", "Projection will appear after rebuild")
       }</div>`;
     }
 
@@ -394,7 +396,7 @@
     $("#leaderboard-list").innerHTML =
       leaderboard
         .map((row) => `<div class="leaderboard-row"><div class="rank">#${row.rank}</div><div><strong>${escapeHtml(row.riderName)}</strong><p>${escapeHtml(row.workTitle || row.awardName)}</p>${chip(row.awardName, "ok")}</div></div>`)
-        .join("") || empty("No published awards");
+        .join("") || renderEmpty("No published awards", "Publish an award to populate the leaderboard");
 
     const raceReports = state.reports.filter((report) => report.raceId === raceId);
     $("#report-list").innerHTML =
@@ -405,10 +407,10 @@
             chip(report.status, statusVariant(report.status)),
             chip(report.visibility, report.visibility === "public" ? "ok" : "warn"),
           ];
-          if (report.lastError) actions.push(chip(report.lastError, "danger"));
-          return miniCard(report.id, actions, report.content || "No content");
+          const card = miniCard(report.id, actions, report.content || "No content");
+          return report.lastError ? `${card}${renderError("Report generation failed", report.lastError)}` : card;
         })
-        .join("") || empty("No reports");
+        .join("") || renderEmpty("No reports", "Generate a report to populate this list");
 
     const reportSelect = $("#report-form select[name='reportId']");
     const selectedReportId = reportSelect.value;
@@ -427,69 +429,99 @@
     const leaderboard = domain.selectors.buildLeaderboard(state, raceId);
     $("#public-results").innerHTML =
       leaderboard.map((row) => miniCard(`#${row.rank} ${row.riderName}`, [chip(row.awardName, "ok")], row.decisionReason)).join("") ||
-      empty("No public results");
+      renderEmpty("No public results", "Public results appear here once an award is published");
 
     const reviewReports = domain.selectors
       .publicReports(state, raceId)
       .filter((report) => report.type === "review_summary");
     $("#public-review").innerHTML =
       reviewReports.map((report) => miniCard(report.type, [chip("published", "ok")], report.content)).join("") ||
-      empty("No public review summary");
+      renderEmpty("No public review summary", "Generate and publish a review summary to show it here");
 
     const works = selectedRaceWorks().filter((work) => work.visibility === "public");
     $("#public-works").innerHTML =
       works.map((work) => miniCard(work.title, [chip(work.status, "ok"), chip("public", "ok")], work.summary)).join("") ||
-      empty("No public works");
+      renderEmpty("No public works", "Mark a work as public to expose it on the public site");
   }
 
   function renderOps() {
-    $("#release-list").innerHTML = state.releaseChecklist
-      .map((item) => {
-        return `<div class="mini-card">
-          <strong>${escapeHtml(item.label)}</strong>
-          <p>${escapeHtml(item.evidence || "evidence pending")}</p>
-          <div class="meta">
-            ${chip(item.status, statusVariant(item.status))}
-            <button class="button small" data-checklist="${escapeHtml(item.id)}">Done</button>
-          </div>
-        </div>`;
-      })
-      .join("");
+    $("#release-list").innerHTML = state.releaseChecklist.length
+      ? state.releaseChecklist
+          .map((item) => {
+            return `<div class="mini-card">
+              <strong>${escapeHtml(item.label)}</strong>
+              <p>${escapeHtml(item.evidence || "evidence pending")}</p>
+              <div class="meta">
+                ${chip(item.status, statusVariant(item.status))}
+                <button class="button small" data-checklist="${escapeHtml(item.id)}">Done</button>
+              </div>
+            </div>`;
+          })
+          .join("")
+      : renderEmpty("No release checks", "Seed a release checklist before invoking Mark Release Ready");
 
     $("#incident-list").innerHTML =
       state.incidents
         .map((incident) => miniCard(incident.impact, [chip(formatTime(incident.occurredAt), "warn"), chip(incident.action, "info")], incident.followUp))
-        .join("") || empty("No incidents");
+        .join("") || renderEmpty("No incidents", "Record an incident from the toolbar to start the timeline");
 
     $("#backup-list").innerHTML =
       state.backups
         .map((backup) => miniCard(backup.scope, [chip(backup.status, "ok")], backup.evidence))
-        .join("") || empty("No backups");
+        .join("") || renderEmpty("No backups", "Create a backup snapshot from Mark Release Ready or the action bar");
   }
 
   function renderAdmin() {
-    $("#user-table").innerHTML = state.users
-      .map((user) => {
-        const roles = domain.constants.ROLES.map((role) => {
-          const active = user.roles.includes(role) ? "active" : "";
-          return `<button class="role-toggle ${active}" data-user-role="${escapeHtml(user.id)}:${escapeHtml(role)}">${escapeHtml(role)}</button>`;
-        }).join(" ");
-        return `<tr>
-          <td><strong>${escapeHtml(user.displayName)}</strong><br>${escapeHtml(user.city)}</td>
-          <td>${escapeHtml(user.githubLogin)}</td>
-          <td>${chip(user.profileCompleted ? "complete" : "missing", user.profileCompleted ? "ok" : "warn")}</td>
-          <td>${roles}</td>
-        </tr>`;
-      })
-      .join("");
+    $("#user-table").innerHTML = state.users.length
+      ? state.users
+          .map((user) => {
+            const roles = domain.constants.ROLES.map((role) => {
+              const active = user.roles.includes(role) ? "active" : "";
+              return `<button class="role-toggle ${active}" data-user-role="${escapeHtml(user.id)}:${escapeHtml(role)}">${escapeHtml(role)}</button>`;
+            }).join(" ");
+            return `<tr>
+              <td><strong>${escapeHtml(user.displayName)}</strong><br>${escapeHtml(user.city)}</td>
+              <td>${escapeHtml(user.githubLogin)}</td>
+              <td>${chip(user.profileCompleted ? "complete" : "missing", user.profileCompleted ? "ok" : "warn")}</td>
+              <td>${roles}</td>
+            </tr>`;
+          })
+          .join("")
+      : `<tr><td colspan="4">${renderEmpty("No users", "Reset seed to restore default users")}</td></tr>`;
   }
 
   function miniCard(title, chips, body) {
     return `<div class="mini-card"><strong>${escapeHtml(title)}</strong>${body ? `<p>${escapeHtml(body)}</p>` : ""}<div class="meta">${chips.join("")}</div></div>`;
   }
 
+  // Empty-state helper: icon + label + optional hint, used for "no data" branches.
+  function renderEmpty(label, hint) {
+    const safeLabel = escapeHtml(label == null ? "" : label);
+    const hintHtml = hint ? `<p class="empty-state-hint">${escapeHtml(hint)}</p>` : "";
+    return `<div class="empty-state" role="status">
+      <span class="empty-state-icon" aria-hidden="true">∅</span>
+      <strong class="empty-state-label">${safeLabel}</strong>
+      ${hintHtml}
+    </div>`;
+  }
+
+  // Error-state helper: dismissible red banner with type + message + visual Retry.
+  function renderError(type, message) {
+    const safeType = escapeHtml(type == null ? "Error" : type);
+    const safeMessage = escapeHtml(message == null ? "" : message);
+    return `<div class="error-state" role="alert">
+      <span class="error-state-icon" aria-hidden="true">!</span>
+      <div class="error-state-body">
+        <strong class="error-state-type">${safeType}</strong>
+        <span class="error-state-message">${safeMessage}</span>
+      </div>
+      <button class="error-state-retry button small" type="button">Retry</button>
+    </div>`;
+  }
+
+  // Legacy empty helper kept as a thin alias for the new renderEmpty.
   function empty(text) {
-    return `<div class="empty">${escapeHtml(text)}</div>`;
+    return renderEmpty(text, "");
   }
 
   function action(name, payload) {

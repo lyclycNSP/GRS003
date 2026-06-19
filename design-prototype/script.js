@@ -25,10 +25,31 @@ function setPage(pageName) {
 }
 
 function setInitialPageFromHash() {
-  const pageName = (window.location.hash || "").replace("#", "").split(/[?&]/)[0];
-  if (!pageName) return;
-  const target = Array.from(pagePanels).find((panel) => panel.dataset.pagePanel === pageName);
-  if (target) setPage(pageName);
+  const hash = window.location.hash || "";
+  const parsed = parseHash(hash);
+  if (!parsed) return;
+  if (parsed.kind === "page") {
+    const target = Array.from(pagePanels).find((panel) => panel.dataset.pagePanel === parsed.name);
+    if (target) setPage(parsed.name);
+  } else if (parsed.kind === "race-detail") {
+    renderRaceDetail(parsed.id);
+  } else if (parsed.kind === "work-judge") {
+    renderWorkJudge(parsed.id);
+  }
+}
+
+function parseHash(hash) {
+  const raw = (hash || "").replace(/^#/, "");
+  if (!raw) return null;
+  const segments = raw.split(/[?&]/)[0].split("/").filter(Boolean);
+  if (segments.length === 0) return null;
+  if (segments[0] === "race" && segments[1]) {
+    return { kind: "race-detail", id: segments[1] };
+  }
+  if ((segments[0] === "work" || segments[0] === "works") && segments[1] && segments[2] === "judge") {
+    return { kind: "work-judge", id: segments[1] };
+  }
+  return { kind: "page", name: segments[0] };
 }
 
 function getRace(id) {
@@ -45,6 +66,33 @@ function getRider(id) {
 
 function getProjection(raceId) {
   return sampleData?.liveProjections?.find((projection) => projection.raceId === raceId);
+}
+
+function riskLabel(risk) {
+  return {
+    low: "稳定",
+    cost_watch: "成本观察",
+    idle: "停滞风险",
+    evidence_gap: "证据缺口",
+    safety_boundary: "安全边界",
+  }[risk] || risk || "稳定";
+}
+
+function caLabel(status) {
+  return {
+    active: "active",
+    connected: "connected",
+    failed: "failed",
+    not_configured: "not_configured",
+  }[status] || status || "—";
+}
+
+function stageLabel(stage) {
+  return ({
+    done: "已完成",
+    active: "进行中",
+    upcoming: "未开始",
+  }[stage?.status] || stage?.status || "");
 }
 
 function statusText(status) {
@@ -145,6 +193,214 @@ function renderWorkPage(workId = currentWorkId) {
      <div><span>Race Context</span><b>${escapeHtml(race?.title || "Race")}</b><em>${statusText(race?.status)}</em></div>
      <p>原始CA Session默认不公开；本页只展示公开摘要、作品材料和评审可引用信息。</p>`,
   );
+}
+
+function renderRaceDetail(raceId) {
+  const race = getRace(raceId);
+  if (!race) return false;
+  const projection = getProjection(race.id);
+  const participants = race.live?.participants || [];
+  const ca = race.live?.caAccess;
+  const activeRiders = participants.filter((p) => p.caStatus === "active").length;
+
+  text("[data-race-detail-kicker]", `${race.title} / ${statusText(race.status)} / ${race.stageLabel || ""}`);
+  text("[data-race-detail-title]", race.title);
+  text(
+    "[data-race-detail-summary]",
+    `${race.challenge || race.summary} 当前共 ${race.metrics.riders} 位 Rider 入场，${activeRiders} 位正在骑行；赛程进度、实时状态摘要和 CA 接入状态按赛段刷新。`,
+  );
+
+  const stages = race.stages || [];
+  if (stages.length) {
+    const activeIndex = stages.findIndex((stage) => stage.status === "active");
+    text("[data-race-detail-stage-summary]", `${stages.length} 个阶段 / 当前 ${activeIndex >= 0 ? stages[activeIndex].label : "未启动"}`);
+    html(
+      "[data-race-detail-stage-track]",
+      stages
+        .map((stage, index) => {
+          const seg = `<span class="stage-track-fill" style="--progress: ${stage.progress}%"></span>`;
+          const dot =
+            stage.status === "done"
+              ? `<i class="stage-dot stage-dot--done"></i>`
+              : stage.status === "active"
+                ? `<i class="stage-dot stage-dot--active"></i>`
+                : `<i class="stage-dot"></i>`;
+          return `<li class="stage-step stage-step--${stage.status}">
+              ${dot}
+              <span class="stage-step-name">${escapeHtml(stage.label)}</span>
+              <span class="stage-step-meta">${escapeHtml(stageLabel(stage))} · ${stage.progress}%</span>
+              ${index < stages.length - 1 ? `<span class="stage-track-line">${seg}</span>` : ""}
+            </li>`;
+        })
+        .join(""),
+    );
+  }
+
+  text("[data-race-detail-participants-count]", `${activeRiders} 位正在骑行`);
+  html(
+    "[data-race-detail-participants]",
+    participants
+      .map((row) => {
+        const flag = row.risk && row.risk !== "low" ? `<em class="risk-tag risk-tag--${escapeHtml(row.risk)}">${escapeHtml(riskLabel(row.risk))}</em>` : `<em class="risk-tag">稳定</em>`;
+        return `<div class="participants-row">
+          <span class="participants-name">${escapeHtml(row.name)}</span>
+          <span class="participants-progress"><b>${row.progress}%</b><i style="--w:${row.progress}%"></i></span>
+          <span class="participants-cost">${escapeHtml(row.cost || "—")}</span>
+          <span class="participants-ca ca-pill ca-pill--${escapeHtml(row.caStatus)}">${escapeHtml(caLabel(row.caStatus))}</span>
+          <span class="participants-event">${escapeHtml(row.lastEvent || "—")}</span>
+          ${flag}
+        </div>`;
+      })
+      .join(""),
+  );
+
+  if (ca) {
+    text("[data-race-detail-ca-status]", ca.failed > 0 ? `${ca.failed} 个缺口` : "Healthy");
+    html(
+      "[data-race-detail-ca-stats]",
+      `<span><b>${ca.total}</b> Riders</span>
+       <span><b>${ca.active}</b> active</span>
+       <span><b>${ca.connected}</b> connected</span>
+       <span><b>${ca.failed}</b> failed</span>`,
+    );
+    text("[data-race-detail-ca-summary]", ca.summary);
+  } else {
+    text("[data-race-detail-ca-status]", "暂无数据");
+  }
+
+  const leaderboardList = document.querySelector("[data-race-detail-leaderboard]");
+  if (leaderboardList) {
+    const board = (projection?.processLeaderboard || []).slice(0, 3);
+    const signal = projection?.headlineMetrics?.ridingSignal ?? race.live?.ridingSignal;
+    const signalSuffix = signal
+      ? `· Signal ${signal}%`
+      : "";
+    text(
+      "[data-race-detail-leaderboard-title]",
+      `Top ${board.length || 0} / 节奏榜 ${signalSuffix}`.trim(),
+    );
+    html(
+      "[data-race-detail-leaderboard]",
+      board.length
+        ? board
+            .map((row, index) => {
+              const isTop = index === 0;
+              return `<li>
+                 <span class="rank${isTop ? " rank--top" : ""}">${String(row.rank ?? index + 1).padStart(2, "0")}</span>
+                 <span class="rider">
+                   <span class="name">${escapeHtml(row.name || row.riderId || "Rider")}</span>
+                   <span class="label">${escapeHtml(row.label || "")}</span>
+                 </span>
+                 <span class="score">${row.score}</span>
+               </li>`;
+            })
+            .join("")
+        : `<li><span class="rank">—</span><span class="rider"><span class="name">暂无节奏数据</span><span class="label">等待 Live Hall 上线</span></span><span class="score">—</span></li>`,
+    );
+  }
+
+  const eventStreamList = document.querySelector("[data-race-detail-event-stream]");
+  if (eventStreamList) {
+    const events = (projection?.eventStream || []).slice(0, 5);
+    text(
+      "[data-race-detail-event-stream-title]",
+      `Recent ${events.length}`,
+    );
+    html(
+      "[data-race-detail-event-stream]",
+      events.length
+        ? events
+            .map((event) => {
+              const variant = event.type ? ` event-text--${escapeHtml(event.type)}` : "";
+              return `<li>
+                 <span class="event-time">${escapeHtml(event.time || "")}</span>
+                 <p class="event-text${variant}">${escapeHtml(event.text || "")}</p>
+               </li>`;
+            })
+            .join("")
+        : `<li><span class="event-time">—</span><p class="event-text">等待 Live Hall 推送事件流。</p></li>`,
+    );
+  }
+
+  const liveCta = document.querySelector("[data-race-detail-live]");
+  if (liveCta) {
+    liveCta.textContent = race.primaryCta || "进入 Live Hall";
+  }
+
+  setPage("race-detail");
+  history.replaceState(null, "", `#race/${race.id}`);
+  return true;
+}
+
+function renderWorkJudge(workId) {
+  const work = getWork(workId);
+  if (!work) return false;
+  const race = getRace(work.raceId);
+  const rider = getRider(work.riderId);
+  const reviews = work.judgeReviews || [];
+  const flags = work.reviewFlags || [];
+  const assigned = work.assignedJudges || [];
+
+  text("[data-work-judge-kicker]", `${race?.title || "Race"} / ${work.title} / Judge View`);
+  text("[data-work-judge-title]", work.title);
+  text(
+    "[data-work-judge-summary]",
+    `评审席视角：${rider?.name || "Rider"} 的作品已提交，Demo、Repo 与 Riding Evidence 摘要可被评审席查看。`,
+  );
+
+  text("[data-work-judge-assigned-title]", work.title);
+  text("[data-work-judge-assigned-summary]", work.summary);
+
+  html(
+    "[data-work-judge-flags]",
+    (flags.length ? flags : []).map((flag) => {
+      return `<span class="review-flag review-flag--${escapeHtml(flag.severity || "info")}">
+        <b>${escapeHtml(flag.type || "ReviewFlag")}</b>
+        <em>${escapeHtml(flag.judgeVisibleSummary || "")}</em>
+      </span>`;
+    }).join("") || `<span class="review-flag review-flag--info"><b>无 ReviewFlag</b><em>当前没有评审前提示。</em></span>`,
+  );
+
+  html(
+    "[data-work-judge-jury]",
+    assigned
+      .map((entry) => {
+        const review = reviews.find((r) => r.judgeId === entry.judgeId);
+        const scoreText = review ? `score_result ${review.scoreResult} · score_riding ${review.scoreRiding}` : "待评分";
+        const statusLabel = entry.status === "scored" ? "已提交" : "待评分";
+        return `<div class="jury-row">
+          <span class="jury-name">${escapeHtml(entry.judgeName)}</span>
+          <span class="jury-score">${escapeHtml(scoreText)}</span>
+          <span class="jury-status jury-status--${escapeHtml(entry.status)}">${escapeHtml(statusLabel)}</span>
+        </div>`;
+      })
+      .join(""),
+  );
+
+  const firstReview = reviews[0];
+  if (firstReview) {
+    const scoreResultInput = document.querySelector("[data-work-judge-score-result]");
+    const scoreRidingInput = document.querySelector("[data-work-judge-score-riding]");
+    const commentsInput = document.querySelector("[data-work-judge-comments]");
+    if (scoreResultInput) scoreResultInput.value = firstReview.scoreResult ?? "";
+    if (scoreRidingInput) scoreRidingInput.value = firstReview.scoreRiding ?? "";
+    if (commentsInput) commentsInput.value = firstReview.comments ?? "";
+  }
+
+  html(
+    "[data-work-judge-evidence-rows]",
+    `<div><span>Session Summary</span><b>${work.evidenceRefs?.length || 0} refs</b><em>public summary</em></div>
+     <div><span>CA Boundary</span><b>${race?.status === "running" ? "实时接入摘要" : "评审材料"}</b><em>raw hidden</em></div>
+     <div><span>Demo</span><b>${work.demo ? "已绑定" : "未绑定"}</b><em>judge visible</em></div>
+     <div><span>Repo</span><b>${work.repo ? "已绑定" : "未绑定"}</b><em>judge visible</em></div>
+     <div><span>Race Context</span><b>${escapeHtml(race?.title || "Race")}</b><em>${statusText(race?.status)}</em></div>`,
+  );
+
+  text("[data-work-judge-evidence-foot]", "原始 CA Session 默认不公开；本页只展示公开摘要、作品材料和评审可引用信息。");
+
+  setPage("work-judge");
+  history.replaceState(null, "", `#works/${work.id}/judge`);
+  return true;
 }
 
 function updateAuthPreview() {
@@ -376,7 +632,11 @@ function renderPrototypeData() {
     selectedWorks
       .map((work, index) => {
         const race = getRace(work.raceId);
-        return `<article class="work-card ${index === 0 ? "hero-work" : ""}"><span>${index === 0 ? "精选作品" : statusText(race.status)}</span><h2>${escapeHtml(work.title)}</h2><p>${escapeHtml(work.summary)}</p><b>${escapeHtml(race.title)} / ${escapeHtml(work.status)}</b><button type="button" data-page="work" data-work-id="${escapeHtml(work.id)}">查看详情</button></article>`;
+        const hasJudge = Array.isArray(work.assignedJudges) && work.assignedJudges.length > 0;
+        const judgeButton = hasJudge
+          ? `<button type="button" data-work-judge-target="${escapeHtml(work.id)}" aria-label="打开 Judge View">Judge View</button>`
+          : "";
+        return `<article class="work-card ${index === 0 ? "hero-work" : ""}"><span>${index === 0 ? "精选作品" : statusText(race.status)}</span><h2>${escapeHtml(work.title)}</h2><p>${escapeHtml(work.summary)}</p><b>${escapeHtml(race.title)} / ${escapeHtml(work.status)}</b><div class="work-card-actions"><button type="button" data-page="work" data-work-id="${escapeHtml(work.id)}">查看详情</button>${judgeButton}</div></article>`;
       })
       .join(""),
   );
@@ -558,6 +818,18 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const raceDetailButton = event.target.closest("[data-race-detail-target]");
+  if (raceDetailButton) {
+    renderRaceDetail(raceDetailButton.dataset.raceDetailTarget);
+    return;
+  }
+
+  const workJudgeButton = event.target.closest("[data-work-judge-target]");
+  if (workJudgeButton) {
+    renderWorkJudge(workJudgeButton.dataset.workJudgeTarget);
+    return;
+  }
+
   const button = event.target.closest("[data-page]");
   if (!button) return;
   if (button.dataset.workId) {
@@ -568,6 +840,19 @@ document.addEventListener("click", (event) => {
     return;
   }
   setPage(button.dataset.page);
+});
+
+window.addEventListener("hashchange", () => {
+  const parsed = parseHash(window.location.hash);
+  if (!parsed) return;
+  if (parsed.kind === "race-detail") {
+    renderRaceDetail(parsed.id);
+  } else if (parsed.kind === "work-judge") {
+    renderWorkJudge(parsed.id);
+  } else if (parsed.kind === "page") {
+    const target = Array.from(pagePanels).find((panel) => panel.dataset.pagePanel === parsed.name);
+    if (target) setPage(parsed.name);
+  }
 });
 
 const canvases = [

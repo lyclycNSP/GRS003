@@ -14,6 +14,7 @@
 | 任务 | 目标 | 下一入口 |
 | --- | --- | --- |
 | `PRD-1` 文档基线与范围确认 | `PRD-TEMP-1` 已并入正式基线；报名、RaceProject、CAConnection 和评审前风险提示口径可作为架构输入。 | `docs/ary.plan.md` |
+| `UX-1 收尾 v2` 设计原型细节态深化 + 移动端审计 | 已完成：Race Page in_progress 详情态（leaderboard + event-stream）+ Work Page Judge 视角评审态（5 hooks + renderWorkJudge）+ `app/` 移动端静态审计 0 P0 + 5 P1 + 4 P2。 | `design-prototype/ary-v0.4-race-detail.png`、`design-prototype/ary-v0.4-work-judge.png`、`docs/ary-mobile-ux-review.md` |
 | `PRD-TEMP-1` 报名 / RaceProject / CA 参赛语义整改 | 已完成并入：PRD、领域、CA 契约、IA、UX / 高保真原型、权限、QA、OPS 和计划文档已同步新口径。 | `docs/registration-ca-rules-alignment.taskbook.md` |
 | `UX-1` UX/UI 高保真原型与设计基线 | 第一轮 IA 对齐版 1080P 高密度高保真原型已验收通过，作为 `M2` 架构设计输入；后续页面按高保真页面工作流继续深化。 | `docs/ux-hifi.taskbook.md`、`.agents/skills/hifi-ui-page-workflow/SKILL.md`、`design-prototype/index.html` |
 | `DEV-1` 领域模型 + 权限 + 数据模型 | 已完成：输出聚合边界、逻辑数据模型草案、接口鉴权规则、领域事件和验收记录。 | `docs/ary-dev-1-dev-3-delivery.md` |
@@ -32,7 +33,7 @@
 | --- | --- |
 | `M1` 文档基线可作为架构入口 | PRD、领域、IA、权限、QA、计划、OPS、CA 草案无高优先级冲突。 |
 | `M2` 架构设计输入就绪 | DEV-1已输出领域边界、权限规则和数据模型草案；UX/UI原型已覆盖DEV-2/DEV-3关键页面状态；DEV-4到OPS-1本地MVP已提供可迁移的领域动作和验收测试。 |
-| `M3` 本地MVP闭环可演示 | `app/`可直接打开并运行P0回归，覆盖报名、CA、Projection、大屏、报告、发布检查和运维归档。 |
+| `M3` 本地MVP闭环可演示 | `app/`可直接打开并运行P0回归，覆盖报名、CA、Projection、大屏、报告、发布检查和运维归档。`app/domain.test.js` 9 个用例已覆盖 M3 对应的不变量。 |
 
 ## 下一步
 

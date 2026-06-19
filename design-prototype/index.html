@@ -174,6 +174,71 @@
             <button type="button" data-page="works">Works</button>
             <button type="button" data-page="results">Results</button>
             <button type="button" data-page="review">Review</button>
+            <button type="button" data-race-detail-target="bay-area-happy-trip" aria-label="打开 In Progress 详情">In Progress 详情</button>
+          </aside>
+        </section>
+
+        <section class="page page-race-detail" data-page-panel="race-detail" data-view="race-detail" aria-label="Race Page Detail">
+          <div class="page-label">
+            <span>Race Detail / In Progress</span>
+            <b>02.1 / 12</b>
+          </div>
+          <section class="race-hero-panel race-detail-hero">
+            <p class="section-kicker" data-race-detail-kicker>湾区开心游 / 进行中 / 作品提交开放</p>
+            <h1 data-race-detail-title>让 Agent 带你玩转大湾区</h1>
+            <p class="race-summary" data-race-detail-summary>从早茶、海岸线、展馆到夜色街区，Rider 正在训练自己的旅行 Agent，把一次周末出发变成可展示的智能体作品。</p>
+            <div class="race-cta-row race-detail-cta">
+              <button type="button" data-page="live" data-race-detail-live>进入 Live Hall</button>
+              <button type="button" data-page="works">查看作品</button>
+              <button type="button" data-page="home">返回首页</button>
+            </div>
+          </section>
+          <section class="stage-progress" data-race-detail-stages aria-label="Race stage progress">
+            <div class="stage-progress-head">
+              <span>赛程进度</span>
+              <b data-race-detail-stage-summary>5 个阶段 / 当前 赛道</b>
+            </div>
+            <ol class="stage-track" data-race-detail-stage-track></ol>
+          </section>
+          <section class="race-detail-grid">
+            <article class="participants-panel glass-card" aria-label="Live rider status">
+              <div class="card-head">
+                <span>参赛者实时状态</span>
+                <b data-race-detail-participants-count>0 位在线</b>
+              </div>
+              <div class="participants-table" data-race-detail-participants></div>
+            </article>
+            <article class="ca-access-panel glass-card" aria-label="CA access status">
+              <div class="card-head">
+                <span>CA 接入状态</span>
+                <b data-race-detail-ca-status>Healthy</b>
+              </div>
+              <div class="ca-stats" data-race-detail-ca-stats></div>
+              <p data-race-detail-ca-summary></p>
+            </article>
+            <article class="race-detail-leaderboard glass-card" aria-label="Process leaderboard">
+              <div class="card-head">
+                <span>进行中节奏</span>
+                <b data-race-detail-leaderboard-title>Top 3 / 节奏榜</b>
+              </div>
+              <ol class="race-detail-leaderboard-list" data-race-detail-leaderboard></ol>
+            </article>
+            <article class="race-detail-event-stream glass-card" aria-label="Recent event stream">
+              <div class="card-head">
+                <span>现场事件流</span>
+                <b data-race-detail-event-stream-title>Recent 5</b>
+              </div>
+              <ul class="race-detail-event-stream-list" data-race-detail-event-stream></ul>
+            </article>
+          </section>
+          <aside class="right-dashboard race-detail-aside" aria-label="Race detail navigation">
+            <h2>本场入口</h2>
+            <button type="button" data-page="live">Live Hall</button>
+            <button type="button" data-page="works">作品墙</button>
+            <button type="button" data-page="rider">Riders</button>
+            <button type="button" data-page="results">Results</button>
+            <button type="button" data-page="review">Review</button>
+            <button type="button" data-page="home">返回首页</button>
           </aside>
         </section>
 
@@ -291,6 +356,45 @@
             <div><span>Progress</span><b>92%</b><em>submitted</em></div>
             <p>原始CA Session默认不公开；本页只展示公开摘要、作品材料和评审可引用信息。</p>
           </aside>
+        </section>
+
+        <section class="page page-work-judge" data-page-panel="work-judge" data-view="work-judge" aria-label="Work Page Judge View">
+          <div class="page-label">
+            <span>Work Page / Judge View</span>
+            <b>05.1 / 12</b>
+          </div>
+          <section class="work-detail-hero work-judge-hero">
+            <p class="section-kicker" data-work-judge-kicker>湾区开心游 / LocalJoy Agent</p>
+            <h1 data-work-judge-title>LocalJoy Agent</h1>
+            <p class="module-summary" data-work-judge-summary>评审席视角：作品已提交，Demo、Repo 与 Riding Evidence 摘要可被评审席查看。</p>
+            <div class="work-detail-actions work-judge-actions">
+              <button type="button">打开 Demo</button>
+              <button type="button">查看 Repo</button>
+              <button type="button" data-page="work" data-work-id="work-localjoy">公开视角</button>
+              <button type="button" data-page="race">返回 Race</button>
+            </div>
+          </section>
+          <section class="judge-review-layout work-judge-layout">
+            <article class="assigned-work-card work-judge-summary" aria-label="Assigned work summary">
+              <span>Assigned Work</span>
+              <h2 data-work-judge-assigned-title>LocalJoy Agent</h2>
+              <p data-work-judge-assigned-summary>周末短途游作品，节奏轻快，适合第一次来湾区的朋友。</p>
+              <div class="work-judge-flags" data-work-judge-flags></div>
+              <div class="work-judge-jury" data-work-judge-jury></div>
+            </article>
+            <article class="score-form-card work-judge-form" aria-label="Score form">
+              <span>Score Form</span>
+              <label>score_result<input type="number" min="0" max="100" data-work-judge-score-result value="86" /></label>
+              <label>score_riding<input type="number" min="0" max="100" data-work-judge-score-riding value="91" /></label>
+              <label>comments<textarea data-work-judge-comments>路线表达清楚，纠偏记录完整，节奏轻快适合周末。</textarea></label>
+              <button type="button" data-work-judge-submit>提交评审</button>
+            </article>
+            <article class="work-evidence-panel work-judge-evidence" aria-label="Riding evidence">
+              <h2>Riding Evidence</h2>
+              <div data-work-judge-evidence-rows></div>
+              <p data-work-judge-evidence-foot>原始 CA Session 默认不公开；本页只展示公开摘要、作品材料和评审可引用信息。</p>
+            </article>
+          </section>
         </section>
 
         <section class="page page-results" data-page-panel="results" aria-label="Results">

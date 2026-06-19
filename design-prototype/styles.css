@@ -2123,6 +2123,706 @@ p {
   line-height: 1.4;
 }
 
+/* Race Page Detail (In Progress 阶段) */
+.page-race-detail .race-detail-hero {
+  top: 82px;
+  left: 42px;
+  width: 1080px;
+}
+
+.race-detail-cta {
+  margin-top: 22px;
+}
+
+.stage-progress {
+  position: absolute;
+  left: 42px;
+  right: 420px;
+  top: 332px;
+  padding: 22px 26px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--glass);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+}
+
+.stage-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 18px;
+}
+
+.stage-progress-head span {
+  color: var(--blue-700);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.stage-progress-head b {
+  color: var(--blue-950);
+  font-size: 22px;
+  font-style: italic;
+}
+
+.stage-track {
+  display: flex;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage-step {
+  position: relative;
+  flex: 1 1 0;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.stage-dot {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(34, 107, 230, 0.22);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.78);
+}
+
+.stage-dot--done {
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+}
+
+.stage-dot--active {
+  background: linear-gradient(135deg, var(--blue-500), var(--cyan));
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.78), 0 0 0 8px rgba(48, 216, 255, 0.24);
+}
+
+.stage-step-name {
+  color: var(--blue-950);
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.stage-step-meta {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.stage-step--upcoming .stage-step-name,
+.stage-step--upcoming .stage-step-meta {
+  color: var(--muted);
+}
+
+.stage-track-line {
+  position: absolute;
+  top: 9px;
+  left: calc(50% + 14px);
+  right: calc(-50% + 14px);
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(34, 107, 230, 0.18);
+  overflow: hidden;
+}
+
+.stage-track-fill {
+  display: block;
+  width: var(--progress, 0%);
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue-700), var(--blue-500));
+}
+
+.stage-step--done .stage-track-fill {
+  background: linear-gradient(90deg, var(--blue-800), var(--blue-500));
+}
+
+.stage-step--upcoming .stage-track-fill {
+  background: rgba(34, 107, 230, 0.18);
+}
+
+.race-detail-grid {
+  position: absolute;
+  left: 42px;
+  right: 420px;
+  top: 480px;
+  bottom: 54px;
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  grid-template-rows: minmax(0, 1fr) minmax(160px, 0.55fr);
+  gap: 14px;
+}
+
+.participants-panel,
+.ca-access-panel {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.participants-table {
+  display: grid;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+
+.participants-panel .card-head,
+.ca-access-panel .card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(34, 107, 230, 0.18);
+  flex-shrink: 0;
+}
+
+.participants-panel .card-head span,
+.ca-access-panel .card-head span {
+  color: var(--blue-700);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.participants-panel .card-head b,
+.ca-access-panel .card-head b {
+  color: var(--blue-950);
+  font-size: 18px;
+  font-style: italic;
+}
+
+.participants-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 0.7fr 0.95fr 1.5fr 0.9fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+  padding: 6px 12px;
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.participants-name {
+  color: var(--blue-950);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.participants-progress {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(34, 107, 230, 0.18);
+}
+
+.participants-progress b {
+  position: absolute;
+  top: -22px;
+  left: 0;
+  color: var(--blue-950);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.participants-progress i {
+  display: block;
+  height: 100%;
+  width: var(--w, 0%);
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--blue-700), var(--blue-500));
+}
+
+.participants-cost {
+  color: var(--blue-800);
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.ca-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(34, 107, 230, 0.14);
+  color: var(--blue-800);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.ca-pill--active {
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+  color: #fff;
+}
+
+.ca-pill--connected {
+  background: rgba(48, 216, 255, 0.2);
+  color: var(--blue-700);
+}
+
+.ca-pill--failed {
+  background: rgba(255, 75, 114, 0.18);
+  color: #c03557;
+}
+
+.participants-event {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.risk-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(34, 107, 230, 0.14);
+  color: var(--blue-800);
+  font-size: 12px;
+  font-weight: 950;
+  font-style: normal;
+}
+
+.risk-tag--cost_watch {
+  background: rgba(255, 177, 43, 0.22);
+  color: #b76b00;
+}
+
+.risk-tag--idle {
+  background: rgba(255, 75, 114, 0.18);
+  color: #c03557;
+}
+
+.risk-tag--evidence_gap {
+  background: rgba(168, 85, 247, 0.18);
+  color: #6b21a8;
+}
+
+.risk-tag--safety_boundary {
+  background: rgba(15, 118, 110, 0.18);
+  color: #0f766e;
+}
+
+.ca-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.ca-stats span {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(234, 243, 255, 0.86);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ca-stats b {
+  display: block;
+  margin-top: 4px;
+  color: var(--blue-950);
+  font-size: 24px;
+  font-style: italic;
+}
+
+.ca-access-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 720;
+}
+
+.race-detail-aside {
+  width: 330px;
+}
+
+.race-detail-leaderboard,
+.race-detail-event-stream {
+  padding: 18px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.race-detail-leaderboard .card-head,
+.race-detail-event-stream .card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(34, 107, 230, 0.18);
+}
+
+.race-detail-leaderboard .card-head span,
+.race-detail-event-stream .card-head span {
+  color: var(--blue-700);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.race-detail-leaderboard .card-head b,
+.race-detail-event-stream .card-head b {
+  color: var(--blue-950);
+  font-size: 16px;
+  font-style: italic;
+}
+
+.race-detail-leaderboard-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: 0;
+}
+
+.race-detail-leaderboard-list li {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+  min-height: 60px;
+}
+
+.race-detail-leaderboard-list .rank {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 30px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--blue-700);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.5px;
+}
+
+.race-detail-leaderboard-list .rank--top {
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+}
+
+.race-detail-leaderboard-list .rider {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.race-detail-leaderboard-list .name {
+  color: var(--blue-950);
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.race-detail-leaderboard-list .label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 720;
+  letter-spacing: 0.2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.race-detail-leaderboard-list .score {
+  color: var(--blue-700);
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 950;
+  text-align: right;
+}
+
+.race-detail-leaderboard-foot {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.race-detail-event-stream-list {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.race-detail-event-stream-list li {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 3px;
+  padding: 6px 8px;
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+  align-content: start;
+  min-height: 0;
+  min-width: 0;
+}
+
+.race-detail-event-stream-list .event-time {
+  color: var(--blue-700);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.race-detail-event-stream-list .event-text {
+  margin: 0;
+  color: var(--blue-950);
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.race-detail-event-stream-list .event-text--risk {
+  color: #b76b00;
+}
+
+.race-detail-event-stream-list .event-text--idle {
+  color: #c03557;
+}
+
+.race-detail-event-stream-list .event-text--safety {
+  color: #0f766e;
+}
+
+.race-detail-event-stream-list .event-text--work {
+  color: var(--blue-800);
+}
+
+.race-detail-event-stream-list .event-text--session_summary {
+  color: var(--blue-700);
+}
+
+/* Work Page Judge View */
+.page-work-judge .work-judge-hero {
+  top: 112px;
+  width: 1240px;
+}
+
+.work-judge-actions {
+  margin-top: 18px;
+}
+
+.work-judge-layout {
+  position: absolute;
+  left: 42px;
+  right: 42px;
+  top: 360px;
+  bottom: 54px;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr 0.95fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.work-judge-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.work-judge-summary p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 720;
+}
+
+.work-judge-flags {
+  display: grid;
+  gap: 8px;
+}
+
+.review-flag {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(234, 243, 255, 0.86);
+}
+
+.review-flag b {
+  color: var(--blue-950);
+  font-size: 13px;
+  font-weight: 950;
+  font-style: normal;
+}
+
+.review-flag em {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 720;
+  line-height: 1.4;
+}
+
+.review-flag--warning {
+  background: rgba(255, 177, 43, 0.18);
+}
+
+.review-flag--warning b {
+  color: #b76b00;
+}
+
+.review-flag--danger {
+  background: rgba(255, 75, 114, 0.16);
+}
+
+.review-flag--danger b {
+  color: #c03557;
+}
+
+.work-judge-jury {
+  display: grid;
+  gap: 6px;
+}
+
+.jury-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 0.95fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.jury-name {
+  color: var(--blue-950);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.jury-score {
+  color: var(--blue-800);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.assigned-work-card .jury-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  min-height: 26px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(34, 107, 230, 0.14);
+  color: var(--blue-800);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.assigned-work-card .jury-status--scored {
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+  color: #fff;
+}
+
+.work-judge-form label {
+  display: grid;
+  gap: 4px;
+  color: var(--blue-950);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.work-judge-form label input,
+.work-judge-form label textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--blue-950);
+  font-size: 15px;
+  font-weight: 720;
+}
+
+.work-judge-form textarea {
+  resize: none;
+  min-height: 96px;
+  font-family: inherit;
+}
+
+.work-judge-evidence {
+  position: static;
+  width: auto;
+  min-height: 0;
+}
+
+.work-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.work-card-actions button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--blue-800);
+  background: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.work-card-actions button[data-work-judge-target] {
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+}
+
 @media (max-width: 1200px) {
   body {
     overflow: auto;

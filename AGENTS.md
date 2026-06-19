@@ -15,6 +15,7 @@
 * 文档路由：`docs/README.md`
 * 近期窗口：`PLAN.md`
 * 任务看板：`STATUS.md`
+* 临时任务书：`docs/registration-ca-rules-alignment.taskbook.md`（PRD-TEMP-1，已完成并入 PRD-1 基线，作为历史参考保留）
 
 ## 执行纪律
 

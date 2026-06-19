@@ -1,10 +1,11 @@
 # ARY MVP Release & Ops Plan
 
-版本：v0.1
+版本：v0.2
 文档类型：Release & Ops Plan
 上游入口：`ary-mvp.prd.md`
 项目计划：`ary.plan.md`
 测试计划：`ary-qa-plan.md`
+本地 MVP 实现参考：`../app/domain.js`（`createBackup`、`recordIncident`、`archiveRace`、`runP0Regression`）、`../app/index.html#ops`
 
 ---
 
@@ -19,6 +20,25 @@
 * RaceProject 聚合 CA 接入失败、无 CA 数据或空骑行应形成评审前风险提示，不自动取消该选手提交、评审或 Award 资格。
 * MVP 不接受事后上传 Session Summary 伪造实时 CA 证据；如作为说明材料引用，必须标记来源、时间和可信度。
 * 单个选手 RaceProject 聚合 CA 接入失败不应影响赛事整体展示和其他选手。
+
+---
+
+# 1.1 当前实现状态（本地 MVP 口径，截至 v0.2）
+
+本计划的目标是覆盖生产环境的发布、监控、值守和回滚要求。当前阶段（`DEV-4`到`OPS-1`）已在 `app/` 形成本地 MVP 闭环；正式工程化尚未启动。下表区分**已通过本地 MVP 覆盖**和**待生产接入**两类条目：
+
+| 维度 | 本地 MVP 已覆盖 | 待生产接入 |
+|---|---|---|
+| 备份 | `createBackup` 记录备份条目（含赛前、赛中、赛后 `post_race_archive`），`#ops` 视图可见 | 数据库物理备份、跨可用区、备份恢复演练 |
+| 事故 | `recordIncident` 录入事故字段（时间、范围、用户、动作、fallback / 回滚标记） | 实时告警通道、值班 IM/SMS 通知 |
+| Fallback | `screenDisplays[raceId]` 切换 `live`/`leaderboard`/`works`/`announcement`/`fallback` 五模式，`rebuildProjection` 失败时保留最近稳定 Projection | 多区域 fallback 切换、自动降级策略 |
+| 发布检查 | `releaseChecklist` 检查项 + `runP0Regression` 一键串联 14 步闭环 | GitHub Actions / GitLab CI、灰度发布、go/no-go 评审 |
+| 值守 | `app/index.html#ops` 提供备份 / 事故 / fallback / 归档入口 | 现场值守表、SLA 监控、Prometheus / Grafana |
+| 归档 | `archiveRace` 归档动作 + 自动 `post_race_archive` 备份 | 冷存储归档、跨年赛事数据保留策略 |
+| 回滚 | 本地 MVP 中"回滚"为检查项和记录入口 | 镜像版本回退、数据库迁移回滚、P0 smoke test 自动化 |
+| 监控 | 无运行时监控 | 公开端首屏 1s、Live Hall 3s、并发 200 用户等性能目标 |
+
+后续工程化启动时，本节将随接入进展同步更新；正式版本需在 staging 完成一次完整彩排后才能进入 production。
 
 ---
 

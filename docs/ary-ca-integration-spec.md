@@ -1,10 +1,11 @@
 # ARY CA Integration Spec
 
-版本：v0.1
+版本：v0.2
 文档类型：Integration Spec
-状态：草案定义中
+状态：已与 PRD-1 基线对齐；真实 connector HTTP 接入契约待生产工程化补齐
 上游入口：`ary-mvp.prd.md`
 领域基线：`ary-domain-analysis.v0.3.md`
+本地 MVP 实现参考：`../app/domain.js`（`registerCAConnection`、`handshakeCAConnection`、`ingestRidingSignal`、`rebuildProjection`）
 
 ---
 
@@ -12,7 +13,7 @@
 
 本文档用于定义 ARY MVP 的 CA 接入契约，包括实时骑行信号接入、接入状态、幂等规则、失败状态、Projection 输入和可观测性要求。GitHub Repo / 代码材料只作为作品代码入口或 Evidence 外部材料引用，不作为实时 CA 接入来源。
 
-当前阶段先定义原始骑行状态消息草案，用于后续继续讨论和收敛。PRD 已明确产品级规则：
+PRD-TEMP-1 已并入正式基线（见 `registration-ca-rules-alignment.taskbook.md` v0.2），当前阶段契约已与产品级规则对齐：
 
 * 实时 CA 接入是骑行过程证据、Projection 输入和评审参考，不是参赛资格硬门禁。
 * CAConnection 可在参赛过程中新增；每个 CAConnection 必须先登记和握手，后续数据才可进入有效证据链。

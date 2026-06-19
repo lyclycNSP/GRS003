@@ -80,7 +80,20 @@
         "reports": 0,
         "evidenceRefs": 238
       },
-      "awards": ["最佳运营闭环", "最佳品牌语气", "最佳数据复盘"]
+      "awards": ["最佳运营闭环", "最佳品牌语气", "最佳数据复盘"],
+      "stages": [
+        { "name": "registration", "label": "报名席", "status": "done", "progress": 100 },
+        { "name": "race", "label": "赛道", "status": "done", "progress": 100 },
+        { "name": "submission", "label": "提交", "status": "done", "progress": 100 },
+        { "name": "judging", "label": "评审席", "status": "active", "progress": 44 },
+        { "name": "results", "label": "颁奖", "status": "upcoming", "progress": 0 }
+      ],
+      "judging": {
+        "assignedWorks": 27,
+        "reviewsSubmitted": 12,
+        "needsSecondJudge": 9,
+        "summary": "评审席进行中；27 份作品已分配，12 份已收到评分，9 份需要第二位评委。"
+      }
     },
     {
       "id": "bay-area-happy-trip",
@@ -111,12 +124,34 @@
         "evidenceRefs": 206
       },
       "awards": ["最佳旅行体验", "最佳本地洞察", "最佳实时规划", "最佳游玩复盘"],
+      "stages": [
+        { "name": "registration", "label": "报名席", "status": "done", "progress": 100 },
+        { "name": "race", "label": "赛道", "status": "active", "progress": 62 },
+        { "name": "submission", "label": "提交", "status": "active", "progress": 38 },
+        { "name": "judging", "label": "评审席", "status": "upcoming", "progress": 0 },
+        { "name": "results", "label": "颁奖", "status": "upcoming", "progress": 0 }
+      ],
       "live": {
         "ridingSignal": 82,
         "submitLeft": "02:18:44",
         "totalCost": "$512.70",
         "riskSignals": 5,
-        "costWatchRiders": 3
+        "costWatchRiders": 3,
+        "participants": [
+          { "riderId": "rider-mira", "name": "Mira Chen", "caStatus": "active", "progress": 92, "cost": "$42.80", "risk": "low", "lastEvent": "提交 Demo v2" },
+          { "riderId": "rider-ana", "name": "Ana Ruiz", "caStatus": "active", "progress": 84, "cost": "$36.40", "risk": "low", "lastEvent": "完成路线偏好建模" },
+          { "riderId": "rider-jun", "name": "Jun Park", "caStatus": "active", "progress": 71, "cost": "$51.20", "risk": "cost_watch", "lastEvent": "进入成本观察" },
+          { "riderId": "rider-rae", "name": "Rae Stone", "caStatus": "connected", "progress": 58, "cost": "$22.10", "risk": "idle", "lastEvent": "42 分钟无 Session Summary" },
+          { "riderId": "rider-ivy", "name": "Ivy Sun", "caStatus": "failed", "progress": 46, "cost": "$19.50", "risk": "evidence_gap", "lastEvent": "CA 接入异常" },
+          { "riderId": "rider-leo", "name": "Leo Wang", "caStatus": "active", "progress": 67, "cost": "$30.10", "risk": "low", "lastEvent": "完成跨城交通路线" }
+        ],
+        "caAccess": {
+          "total": 36,
+          "active": 27,
+          "connected": 7,
+          "failed": 2,
+          "summary": "34 / 36 Riders CA 握手完成；2 位 Rider 接入异常，仍可提交。"
+        }
       }
     },
     {
@@ -147,7 +182,34 @@
         "reports": 0,
         "evidenceRefs": 171
       },
-      "safetyNotes": ["只做信息整理、术语解释和风险提示；不输出直接买卖建议。"]
+      "safetyNotes": ["只做信息整理、术语解释和风险提示；不输出直接买卖建议。"],
+      "stages": [
+        { "name": "registration", "label": "报名席", "status": "done", "progress": 100 },
+        { "name": "race", "label": "赛道", "status": "active", "progress": 48 },
+        { "name": "submission", "label": "提交", "status": "active", "progress": 22 },
+        { "name": "judging", "label": "评审席", "status": "upcoming", "progress": 0 },
+        { "name": "results", "label": "颁奖", "status": "upcoming", "progress": 0 }
+      ],
+      "live": {
+        "ridingSignal": 76,
+        "submitLeft": "03:42:10",
+        "totalCost": "$438.20",
+        "riskSignals": 8,
+        "costWatchRiders": 4,
+        "participants": [
+          { "riderId": "rider-owen", "name": "Owen Xu", "caStatus": "active", "progress": 88, "cost": "$48.60", "risk": "safety_boundary", "lastEvent": "完成财报摘要" },
+          { "riderId": "rider-nina", "name": "Nina Cho", "caStatus": "active", "progress": 81, "cost": "$39.20", "risk": "low", "lastEvent": "风险术语解释提交" },
+          { "riderId": "rider-leo", "name": "Leo Wang", "caStatus": "active", "progress": 74, "cost": "$44.50", "risk": "low", "lastEvent": "完成摘要模板" },
+          { "riderId": "rider-jo", "name": "Jo Han", "caStatus": "connected", "progress": 52, "cost": "$28.30", "risk": "cost_watch", "lastEvent": "进入成本观察" }
+        ],
+        "caAccess": {
+          "total": 28,
+          "active": 21,
+          "connected": 5,
+          "failed": 2,
+          "summary": "26 / 28 Riders CA 握手完成；2 位 Rider 触发安全边界提示。"
+        }
+      }
     },
     {
       "id": "merchant-copilot",
@@ -367,7 +429,34 @@
       "summary": "周末短途游作品，节奏轻快，适合第一次来湾区的朋友。",
       "demo": "mock://demo/localjoy-agent",
       "repo": "mock://repo/localjoy-agent",
-      "evidenceRefs": ["ev-bay-003"]
+      "evidenceRefs": ["ev-bay-003"],
+      "assignedJudges": [
+        { "judgeId": "judge-mira", "judgeName": "Mira Chen", "status": "scored" },
+        { "judgeId": "judge-owen", "judgeName": "Owen Xu", "status": "pending" }
+      ],
+      "judgeReviews": [
+        {
+          "judgeId": "judge-mira",
+          "judgeName": "Mira Chen",
+          "scoreResult": 86,
+          "scoreRiding": 91,
+          "comments": "路线表达清楚，纠偏记录完整，节奏轻快适合周末。",
+          "status": "submitted",
+          "submittedAt": "2026-06-14T11:48:00+08:00"
+        }
+      ],
+      "reviewFlags": [
+        {
+          "type": "cost_watch",
+          "severity": "warning",
+          "judgeVisibleSummary": "Jun Park 在本场进入成本观察，作品材料仍可提交。"
+        },
+        {
+          "type": "evidence_summary_ready",
+          "severity": "info",
+          "judgeVisibleSummary": "本地摘要已生成：偏好建模 → 路线验证。"
+        }
+      ]
     },
     {
       "id": "work-ary-forge",
@@ -391,7 +480,43 @@
       "summary": "内容赛道已交卷，脚本、封面和排期正在评审席等分。",
       "demo": "mock://demo/media-loop-pilot",
       "repo": "mock://repo/media-loop-pilot",
-      "evidenceRefs": ["ev-media-001"]
+      "evidenceRefs": ["ev-media-001"],
+      "assignedJudges": [
+        { "judgeId": "judge-owen", "judgeName": "Owen Xu", "status": "scored" },
+        { "judgeId": "judge-mira", "judgeName": "Mira Chen", "status": "scored" }
+      ],
+      "judgeReviews": [
+        {
+          "judgeId": "judge-owen",
+          "judgeName": "Owen Xu",
+          "scoreResult": 82,
+          "scoreRiding": 88,
+          "comments": "选题与品牌语气一致，排期表清晰；复盘数据示例可补。",
+          "status": "submitted",
+          "submittedAt": "2026-06-14T13:32:00+08:00"
+        },
+        {
+          "judgeId": "judge-mira",
+          "judgeName": "Mira Chen",
+          "scoreResult": 79,
+          "scoreRiding": 86,
+          "comments": "封面与脚本节奏稳；发布复盘建议加入完播率样本。",
+          "status": "submitted",
+          "submittedAt": "2026-06-14T14:08:00+08:00"
+        }
+      ],
+      "reviewFlags": [
+        {
+          "type": "missing_required_material",
+          "severity": "info",
+          "judgeVisibleSummary": "复盘数据示例未提供；不阻断评分。"
+        },
+        {
+          "type": "evidence_summary_ready",
+          "severity": "info",
+          "judgeVisibleSummary": "内容运营 Session 摘要 18 条已生成。"
+        }
+      ]
     },
     {
       "id": "work-civic-path",

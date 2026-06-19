@@ -75,6 +75,31 @@
 | DEV-5 CA合法/非法接入、失败不阻断、Projection失败隔离通过领域测试 | `node app/domain.test.js` |
 | DEV-7 Report公开边界和REL/OPS P0回归通过领域测试 | `node app/domain.test.js` |
 | 本地MVP应用脚本通过Node语法检查 | `node --check app/domain.js`、`node --check app/app.js` |
+| `app/domain.test.js` 9 个用例 ↔ 任务 ↔ 代码动作 ↔ 文档证据 映射清晰 | 见下方"领域测试映射表" |
+| UX-1 收尾 v2 已完成：Race Page in_progress 详情态（leaderboard + event-stream 两张 glass-card 子面板）、Work Page Judge 视角评审态（5 work-judge hooks + renderWorkJudge() + .assigned-work-card span 副作用修复）、`app/` 移动端 UX 静态审计（0 P0 + 5 P1 + 4 P2）三件事一并交付 | `design-prototype/index.html`、`design-prototype/script.js`、`design-prototype/styles.css`、`design-prototype/ary-v0.4-race-detail.png`、`design-prototype/ary-v0.4-work-judge.png`、`docs/ary-mobile-ux-review.md` |
+| UX-1 收尾 v2 Race Page in_progress 详情态通过 Node 语法检查 | `node --check design-prototype/script.js`（绝对路径） |
+| UX-1 收尾 v2 Work Page Judge 视角通过 Node 语法检查 | `node --check design-prototype/script.js`（绝对路径） |
+| UX-1 收尾 v2 移动端 UX 静态审计未修改任何 `app/` 或 `design-prototype/` 源代码 | `docs/ary-mobile-ux-review.md`、`app/` `git diff` 为空、`design-prototype/` 仅 t2a/t2b 任务相关改动 |
+
+## 领域测试映射表
+
+`app/domain.test.js` 当前 9 个 P0 用例与交付任务、领域动作和文档证据的对应关系如下，作为代码 ↔ 测试 ↔ 任务的统一口径：
+
+| 测试用例 | 对应任务 | 主要代码动作 | 文档证据 |
+|---|---|---|---|
+| DEV-4 duplicate registration is idempotent per user and race | DEV-4 | `submitRegistration` | `docs/ary-dev-4-to-ops-delivery.md` §3.1 |
+| DEV-4 approved Registration ensures exactly one RaceProject | DEV-4 | `approveRegistration` → `ensureRaceProject` | `docs/ary-dev-4-to-ops-delivery.md` §3.1 |
+| DEV-5 invalid CA signal is quarantined and does not create evidence | DEV-5 | `ingestRidingSignal` 校验失败路径 | `docs/ary-dev-4-to-ops-delivery.md` §4.1 |
+| DEV-5 accepted CA signal creates active projection input and duplicate is ignored | DEV-5 | `ingestRidingSignal` + `rebuildProjection` + `idempotencyKey` | `docs/ary-dev-4-to-ops-delivery.md` §4.1 §4.2 |
+| DEV-5 CA failed does not block Work, Judge, or Award | DEV-5 | `disableCAConnection` / ReviewFlag `ingestion_exception` | `docs/ary-dev-4-to-ops-delivery.md` §4.1 |
+| DEV-5 projection failure is isolated from facts and keeps stable fallback | DEV-5 | `rebuildProjection` 失败分支 | `docs/ary-dev-4-to-ops-delivery.md` §4.2 |
+| DEV-7 report visibility keeps rider_report private and public review published | DEV-7 | `generateReport` / `publishReport` | `docs/ary-dev-4-to-ops-delivery.md` §6 |
+| DEV-7 failed report generation preserves already published public report | DEV-7 | `generateReport` 失败分支 | `docs/ary-dev-4-to-ops-delivery.md` §6 |
+| REL-1 and OPS-1 P0 regression reaches release and ops evidence | REL-1/OPS-1 | `runP0Regression` / `createBackup` / `releaseChecklist` | `docs/ary-dev-4-to-ops-delivery.md` §7 |
+
+新增领域动作或调整不变量时，必须同步在本表追加对应行，避免测试与文档漂移。
+
+---
 
 ## 风险与阻塞
 

@@ -1,11 +1,12 @@
 # ARY DEV-1到DEV-3交付与验收记录
 
-版本：v0.1
+版本：v0.2
 文档类型：Architecture & Demo Delivery
-状态：已交付草案
+状态：已交付
 关联任务：`DEV-1`、`DEV-2`、`DEV-3`
 上游入口：`ary-mvp.prd.md`、`ary-domain-analysis.v0.3.md`、`ary-permission-matrix.md`、`ary-mvp.ia.md`、`ary-ca-integration-spec.md`
 演示入口：`../design-prototype/index.html`
+后续接入：`../app/`（`app/domain.js` 已将本轮聚合边界和接口鉴权规则落地为可运行领域动作）
 
 ---
 

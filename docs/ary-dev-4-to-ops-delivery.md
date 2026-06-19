@@ -1,12 +1,13 @@
 # ARY DEV-4到OPS-1交付与验收记录
 
-版本：v0.1
+版本：v0.2
 文档类型：Implementation Delivery
-状态：已交付草案
+状态：已交付（本地 MVP 口径）
 关联任务：`DEV-4`、`DEV-5`、`DEV-6`、`DEV-7`、`REL-1`、`OPS-1`
 上游入口：`ary.plan.md`、`ary-qa-plan.md`、`ary-release-ops-plan.md`、`ary-ca-integration-spec.md`、`ary-permission-matrix.md`
 实现入口：`../app/index.html`
 测试入口：`../app/domain.test.js`
+后续工程化：见 `../STATUS.md` 的"风险与阻塞"和 `../PLAN.md` 的"下一步"
 
 ---
 
