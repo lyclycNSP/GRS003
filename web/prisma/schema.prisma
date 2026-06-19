@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String            @id
+  slug             String            @unique
+  displayName      String
+  githubLogin      String?
+  profileCompleted Boolean           @default(false)
+  rolesJson        String
+  city             String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  authAccounts     AuthAccount[]
+  registrations    Registration[]
+  createdRaces     Race[]            @relation("RaceCreator")
+  judgeAssignments JudgeAssignment[] @relation("JudgeAssignments")
+}
+
+model AuthAccount {
+  id                String   @id
+  userId            String
+  provider          String
+  providerAccountId String
+  loginName         String
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Race {
+  id             String           @id
+  slug           String           @unique
+  title          String
+  status         String
+  visibility     String
+  challenge      String
+  summary        String
+  taskId         String?
+  organizerJson  String
+  scheduleJson   String
+  rulesJson      String
+  metricsJson    String
+  createdByUserId String
+  createdAt      DateTime         @default(now())
+  archivedAt     DateTime?
+  createdBy      User             @relation("RaceCreator", fields: [createdByUserId], references: [id])
+  registrations  Registration[]
+  awards         Award[]
+  reports        Report[]
+  projections    Projection[]
+  announcements  Announcement[]
+  backups        Backup[]
+  incidents      Incident[]
+  releaseItems   ReleaseChecklistItem[]
+}
+
+model Registration {
+  id             String       @id
+  raceId         String
+  userId         String
+  status         String
+  submittedAt    DateTime
+  approvedAt     DateTime?
+  race           Race         @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  raceProject    RaceProject?
+  work           Work?
+  reviewFlags    ReviewFlag[]
+  awards         Award[]
+  reports        Report[]
+
+  @@unique([raceId, userId])
+}
+
+model RaceProject {
+  id                       String         @id
+  registrationId           String         @unique
+  repoUrl                  String?
+  aggregateIngestionStatus String
+  connectionHealth         String
+  metricsJson              String
+  createdAt                DateTime       @default(now())
+  lastSyncedAt             DateTime?
+  registration             Registration   @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  caConnections            CAConnection[]
+  reviewFlags              ReviewFlag[]
+}
+
+model CAConnection {
+  id                 String       @id
+  raceProjectId      String
+  caType             String
+  connectorId        String
+  connectorVersion   String
+  externalProjectRef String
+  ingestionStatus    String
+  registeredAt       DateTime
+  handshakeAt        DateTime?
+  disabledAt         DateTime?
+  lastSyncedAt       DateTime?
+  raceProject        RaceProject  @relation(fields: [raceProjectId], references: [id], onDelete: Cascade)
+  sessions           Session[]
+
+  @@unique([raceProjectId, connectorId, externalProjectRef])
+}
+
+model Session {
+  id                 String       @id
+  caConnectionId     String
+  externalSessionRef String
+  startedAt          DateTime?
+  endedAt            DateTime?
+  lastActiveAt       DateTime?
+  messageCount       Int          @default(0)
+  toolCallCount      Int          @default(0)
+  tokens             Int          @default(0)
+  snapshotJson       String
+  caConnection       CAConnection @relation(fields: [caConnectionId], references: [id], onDelete: Cascade)
+
+  @@unique([caConnectionId, externalSessionRef])
+}
+
+model Work {
+  id             String            @id
+  registrationId String            @unique
+  slug           String            @unique
+  title          String
+  summary        String
+  status         String
+  visibility     String
+  demoUrl        String?
+  repoUrl        String?
+  submittedAt    DateTime?
+  publishedAt    DateTime?
+  registration   Registration      @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  evidences      Evidence[]
+  reviewFlags    ReviewFlag[]
+  assignments    JudgeAssignment[]
+  awards         Award[]
+}
+
+model Evidence {
+  id             String        @id
+  raceId         String
+  registrationId String
+  workId         String?
+  type           String
+  title          String
+  summary        String
+  sourceRefJson  String
+  visibility     String
+  createdAt      DateTime      @default(now())
+  work           Work?         @relation(fields: [workId], references: [id], onDelete: SetNull)
+}
+
+model ReviewFlag {
+  id                  String        @id
+  raceId              String
+  registrationId      String
+  raceProjectId       String?
+  workId              String?
+  type                String
+  severity            String
+  status              String
+  judgeVisibleSummary String
+  sourceRefJson       String
+  createdAt           DateTime      @default(now())
+  resolvedAt          DateTime?
+  registration        Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  raceProject         RaceProject?  @relation(fields: [raceProjectId], references: [id], onDelete: SetNull)
+  work                Work?         @relation(fields: [workId], references: [id], onDelete: SetNull)
+}
+
+model JudgeAssignment {
+  id               String          @id
+  raceId           String
+  workId           String
+  judgeUserId      String
+  assignedByUserId String
+  status           String
+  assignedAt       DateTime
+  work             Work            @relation(fields: [workId], references: [id], onDelete: Cascade)
+  judge            User            @relation("JudgeAssignments", fields: [judgeUserId], references: [id], onDelete: Cascade)
+  judgingRecord    JudgingRecord?
+
+  @@unique([workId, judgeUserId])
+}
+
+model JudgingRecord {
+  id            String          @id
+  assignmentId  String          @unique
+  scoreResult   Int
+  scoreRiding   Int
+  comments      String
+  status        String
+  submittedAt   DateTime?
+  assignment    JudgeAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+}
+
+model Award {
+  id             String        @id
+  raceId         String
+  registrationId String
+  workId         String?
+  awardName      String
+  rank           Int
+  decisionReason String
+  status         String
+  publishedAt    DateTime?
+  race           Race          @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  registration   Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  work           Work?         @relation(fields: [workId], references: [id], onDelete: SetNull)
+
+  @@unique([raceId, awardName, rank])
+  @@unique([raceId, awardName, registrationId])
+}
+
+model Report {
+  id                    String        @id
+  raceId                String
+  type                  String
+  subjectRegistrationId String?
+  status                String
+  visibility            String
+  content               String
+  generatedAt           DateTime?
+  publishedAt           DateTime?
+  lastError             String?
+  race                  Race          @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  subjectRegistration   Registration? @relation(fields: [subjectRegistrationId], references: [id], onDelete: SetNull)
+}
+
+model Projection {
+  id             String    @id
+  raceId         String
+  type           String
+  status         String
+  payloadJson    String
+  stableVersionId String?
+  lastRebuiltAt  DateTime
+  race           Race      @relation(fields: [raceId], references: [id], onDelete: Cascade)
+}
+
+model Announcement {
+  id          String    @id
+  raceId      String
+  title       String
+  body        String
+  visibility  String
+  publishedAt DateTime?
+  race        Race      @relation(fields: [raceId], references: [id], onDelete: Cascade)
+}
+
+model Backup {
+  id        String   @id
+  raceId    String
+  scope     String
+  status    String
+  evidence  String
+  createdAt DateTime @default(now())
+  race      Race     @relation(fields: [raceId], references: [id], onDelete: Cascade)
+}
+
+model Incident {
+  id                String   @id
+  raceId            String
+  occurredAt        DateTime
+  impact            String
+  affectedRolesJson String
+  action            String
+  fallbackTriggered Boolean
+  rollback          Boolean
+  followUp          String
+  race              Race     @relation(fields: [raceId], references: [id], onDelete: Cascade)
+}
+
+model ReleaseChecklistItem {
+  id        String    @id
+  raceId    String
+  itemKey   String
+  label     String
+  status    String
+  evidence  String
+  updatedAt DateTime?
+  race      Race      @relation(fields: [raceId], references: [id], onDelete: Cascade)
+
+  @@unique([raceId, itemKey])
+}

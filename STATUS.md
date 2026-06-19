@@ -14,6 +14,7 @@
 * `app/domain.test.js`已提供关键领域回归测试并通过本地Node验证。
 * 下一步应进入正式工程化，补真实后端、数据库迁移、服务端鉴权、GitHub OAuth、真实CAConnector、浏览器自动化和部署流水线。
 * 当前尚未建立生产级应用框架、后端、数据库迁移、真实OAuth、生产CA接入或部署配置；`app/`是无依赖本地MVP实现。
+* 已新增`web/`正式集成应用入口：Next.js App Router、Prisma、SQLite、GitHub OAuth路由、服务端权限上下文、Public API和Console/Ops服务端动作；DEV-2/DEV-3高保真页面闭环已迁入正式应用。
 
 ## 任务看板
 
@@ -31,6 +32,7 @@
 | `DEV-7` Report / Review / Results | 已交付 | 本地MVP已实现Award/Leaderboard发布、Report生成失败记录、重跑/编辑/发布，以及Public Results/Review/Works公开读取边界。 | `app/index.html#reports`、`app/index.html#public`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
 | `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 本地MVP已交付 | 已提供P0回归按钮、发布检查项和go/no-go证据记录；真实staging/production灰度和正式发布待基础设施接入。 | `app/index.html#ops`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
 | `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 本地MVP已交付 | 已提供备份记录、事故记录、fallback记录和赛后归档入口；真实值守、回滚和生产归档待部署环境接入。 | `app/index.html#ops`、`app/domain.js`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `WEB-1` 高保真前端 + 服务端领域动作正式集成 | DEV-2/DEV-3已迁入 | `web/`已建立Next.js全栈工程，迁入Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口，并接入Prisma/SQLite、OAuth fallback、服务端领域动作、Public API和领域测试。 | `web/README.md`、`web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
 
 ## 证据索引
 
@@ -80,6 +82,8 @@
 | UX-1 收尾 v2 Race Page in_progress 详情态通过 Node 语法检查 | `node --check design-prototype/script.js`（绝对路径） |
 | UX-1 收尾 v2 Work Page Judge 视角通过 Node 语法检查 | `node --check design-prototype/script.js`（绝对路径） |
 | UX-1 收尾 v2 移动端 UX 静态审计未修改任何 `app/` 或 `design-prototype/` 源代码 | `docs/ary-mobile-ux-review.md`、`app/` `git diff` 为空、`design-prototype/` 仅 t2a/t2b 任务相关改动 |
+| WEB-1 已继承 DEV-2/DEV-3 页面闭环：Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口均在 Next.js 应用中渲染并接入服务端数据/动作 | `web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts`、`web/README.md` |
+| WEB-1 验证通过：TypeScript、9个领域测试、Next build、本地浏览器烟测均通过 | `cd web && tsc --noEmit`、`python scripts/init-sqlite.py`、`tsx prisma/seed.ts`、`tsx tests/domain.test.ts`、`next build`、`http://127.0.0.1:3000` |
 
 ## 领域测试映射表
 
@@ -106,6 +110,7 @@
 | 项目 | 状态 |
 | --- | --- |
 | 生产级应用框架、数据库迁移、后端接口、真实OAuth和部署配置尚未建立 | 本轮以`app/`本地MVP完成后续任务演示和领域测试；正式工程化仍需启动 |
+| `web/` 真实OAuth和生产部署仍需外部配置 | 当前已提供GitHub OAuth路由；未配置OAuth环境变量时使用本地演示账号回调，真实生产需配置GitHub OAuth App和`AUTH_SECRET` |
 | ReviewFlag处理状态、CAConnection新增截止窗口和违规作品处理仍需产品化 | 当前本地MVP已实现open/resolved基础状态和风险可见性，正式实现需补细粒度处理流 |
 | `design-prototype/`和`app/`均不具备服务端权限控制 | 真实实现时必须按`docs/ary-dev-1-dev-3-delivery.md`、`docs/ary-dev-4-to-ops-delivery.md`和`docs/ary-permission-matrix.md`做服务端鉴权 |
-| 浏览器自动化截图验收仍未完成 | 当前环境缺少可用Playwright浏览器链路；已用Node语法、领域测试和静态入口检查替代 |
+| 浏览器自动化截图验收仍未完成 | 已完成内置浏览器烟测；后续仍需补正式E2E截图基线和CI化浏览器自动化 |

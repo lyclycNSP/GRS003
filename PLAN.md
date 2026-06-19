@@ -8,6 +8,7 @@
 | --- | --- |
 | DEV-1到OPS-1本地MVP交付收口 | 已输出DEV-1到DEV-3架构/原型交付，并新增`app/`本地MVP应用，覆盖DEV-4到DEV-7、REL-1和OPS-1的可运行闭环。 |
 | 正式工程化准备 | 下一阶段进入真实应用技术栈、服务端鉴权、数据库迁移、OAuth、真实CAConnector和部署流水线确认。 |
+| WEB-1正式集成应用 | 新增`web/` Next.js + Prisma + SQLite 工程，作为高保真前端与服务端领域动作集成入口；DEV-2/DEV-3高保真页面闭环已迁入，旧`app/`和`design-prototype/`保留归档。 |
 
 ## 近期任务
 
@@ -26,6 +27,7 @@
 | `DEV-7` Report / Review / Results | 已完成本地MVP实现：Award/Leaderboard发布、Report生成/失败/编辑/发布、Results/Review/Public Works联动。 | `app/index.html#reports`、`app/index.html#public`、`app/domain.test.js` |
 | `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 已完成本地MVP演练入口：P0回归按钮、发布检查项和go/no-go证据记录；真实staging/production发布待正式工程化。 | `app/index.html#ops`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
 | `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 已完成本地MVP运维入口：备份、事故、fallback、归档记录；真实值守和回滚待生产环境接入。 | `app/index.html#ops`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `WEB-1` 高保真前端 + 服务端领域动作正式集成 | 已迁入DEV-2/DEV-3页面闭环：Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口，并接入Prisma数据、OAuth fallback、Server Actions和领域测试。 | `web/README.md`、`web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
 
 ## 近期里程碑
 
@@ -37,9 +39,9 @@
 
 ## 下一步
 
-1. 选择正式应用技术栈，建立服务端、数据库迁移、路由、权限中间件和测试命令。
-2. 将`app/domain.js`中的领域动作迁移为后端领域服务或共享领域包，并用数据库唯一约束落实Registration、RaceProject和Work不变量。
-3. 接入真实GitHub OAuth和CAConnector，补齐connector凭证、HTTP snapshot fetch、服务端幂等和审计日志。
+1. 使用`web/`继续推进正式工程化：细化真实OAuth会话、真实CAConnector、浏览器E2E自动化和生产部署流水线。
+2. 配置真实GitHub OAuth App、回调地址和会话密钥，并验证跨会话登录。
+3. 接入真实CAConnector，补齐connector凭证、HTTP snapshot fetch、服务端幂等和审计日志。
 4. 建立staging/production发布流水线，补齐浏览器自动化、P0回归、回滚演练和生产监控。
 
 ## 执行纪律
