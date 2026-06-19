@@ -3,6 +3,26 @@
 
 本文用于帮助 Agent 和开发者快速找到当前权威文档。根目录 `PLAN.md` 负责近期任务窗口，根目录 `STATUS.md` 负责任务瞬时看板。
 
+## 当前正式工程入口
+
+正式集成应用位于 `web/`：
+
+```bash
+cd web
+npm install
+npm run prisma:generate
+npm run prisma:push
+npm run seed
+npm run dev
+```
+
+访问：`http://127.0.0.1:3000`
+
+历史产物仍保留：
+
+* `design-prototype/`：UX-1 高保真静态原型。
+* `app/`：DEV-4 到 OPS-1 本地 MVP 领域闭环。
+
 ## 文档路由
 
 | 文档 | 作用 |
