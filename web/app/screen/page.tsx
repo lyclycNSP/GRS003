@@ -8,9 +8,16 @@ export default async function ScreenConsolePage() {
   const ctx = await getAuthContext();
   const snapshot = await getScreenSnapshot();
   if (!snapshot) return <section className="route-page"><h1>No race seeded</h1></section>;
-  const { race, stableProjection, failedProjection, screenState } = snapshot;
+  const { race, works, stableProjection, failedProjection, screenState } = snapshot;
   const payload = fromJson<Record<string, unknown>>(stableProjection?.payloadJson, {});
   const modes = ["live", "leaderboard", "works", "announcement", "fallback"];
+  const modeSummary: Record<string, string> = {
+    live: "展示实时 Riding Signal、过程指标和事件流。",
+    leaderboard: "展示最终奖项和榜单。",
+    works: `轮播 ${works.length} 个公开作品。`,
+    announcement: "展示现场公告和下一轮提醒。",
+    fallback: "Projection 异常时使用稳定版本或静态公告。"
+  };
 
   return (
     <section className="route-page">
@@ -23,6 +30,12 @@ export default async function ScreenConsolePage() {
         <div className="app-stack">
           <section className="form-card">
             <h2>Display Mode</h2>
+            <div className="screen-preview-card">
+              <span>Current output</span>
+              <b>{screenState.mode}</b>
+              <p>{modeSummary[screenState.mode] ?? "等待选择展示模式。"}</p>
+              <em>{screenState.fallbackEnabled ? "fallback enabled" : "primary projection"}</em>
+            </div>
             <div className="screen-mode-grid">
               {modes.map((mode) => (
                 <form action={switchScreenModeAction} key={mode}>

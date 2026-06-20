@@ -142,12 +142,37 @@ async function main() {
       caConnectionId: connection!.id,
       idempotencyKey: "good-key",
       caSessionId: "good-session",
+      attestation: {
+        source: "ocr_desktop_app",
+        signingKeyId: `ocr_key_${connection!.connectorId}`,
+        signature: `dev-signature:${connection!.connectorId}:good-key`,
+        signedAt: new Date().toISOString()
+      },
       progressPercent: 100,
       tokens: 12000
     });
     assert.equal(result.ok, true);
     const evidence = await prisma.evidence.findMany({ where: { registrationId: "reg_mira" } });
     assert.ok(evidence.length >= 1);
+  });
+
+  await test("forged CA signal without attestation is rejected", async () => {
+    const registered = await registerCAConnection(rider, "rp_mira");
+    assert.equal(registered.ok, true);
+    await prisma.cAConnection.update({ where: { id: registered.id! }, data: { handshakeAt: new Date() } });
+    const result = await ingestRidingSignal({
+      raceId: "race_bay_2026",
+      registrationId: "reg_mira",
+      raceProjectId: "rp_mira",
+      caConnectionId: registered.id!,
+      idempotencyKey: "forged-key",
+      caSessionId: "forged-session",
+      progressPercent: 100,
+      tokens: 22000
+    });
+    assert.equal(result.ok, false);
+    const flags = await prisma.reviewFlag.findMany({ where: { registrationId: "reg_mira", type: "ingestion_exception" } });
+    assert.ok(flags.some((flag) => flag.judgeVisibleSummary.includes("认证声明")));
   });
 
 

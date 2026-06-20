@@ -11,7 +11,7 @@
 * `UX-1` 第一轮高保真原型已验收通过，可作为 `M2` 架构设计输入。
 * `DEV-1`已输出聚合边界、数据模型草案和接口鉴权规则；`DEV-2`和`DEV-3`已补齐静态高保真可走查闭环。
 * `DEV-4`到`DEV-7`、`REL-1`和`OPS-1`已新增`app/`本地MVP应用，覆盖报名、RaceProject、Work、Judge、CA、Projection、Screen、Report、Results、发布检查、备份、事故和归档闭环。
-* `app/domain.test.js`已提供关键领域回归测试并通过本地Node验证。
+* `app/domain.test.js`已提供关键领域回归测试并通过本地Node验证；当前已补充 CA 防伪 / 防篡改 attestation 用例，缺少 OCR Desktop App / connector 认证声明的信号会被隔离。
 * 下一步应进入正式工程化，补真实后端、数据库迁移、服务端鉴权、GitHub OAuth、真实CAConnector、浏览器自动化和部署流水线。
 * 当前尚未建立生产级应用框架、后端、数据库迁移、真实OAuth、生产CA接入或部署配置；`app/`是无依赖本地MVP实现。
 * 已新增`web/`正式集成应用入口：Next.js App Router、Prisma、SQLite、GitHub OAuth路由、服务端权限上下文、Public API和Console/Ops服务端动作；DEV-2/DEV-3高保真页面闭环已迁入正式应用。
@@ -27,7 +27,7 @@
 | `DEV-2` Public Site 静态闭环 | 已交付 | 公开端已覆盖Home、Race Page、Live Hall、Works、Work Page、Results、Review、Rider Profile、Cooperation；公众浏览路径可用mock/样例数据走查。 | `design-prototype/index.html`、`design-prototype/script.js`、`design-prototype/styles.css`、`design-prototype/README.md` |
 | `DEV-3` 登录 / 角色 / Race Console | 已交付 | 已补齐模拟GitHub登录、资料补全、Workspace入口、Organizer/Rider/Judge/Admin视图切换、Admin用户资料状态和`User.roles`维护演示。 | `design-prototype/index.html`、`design-prototype/script.js`、`design-prototype/styles.css`、`docs/ary-dev-1-dev-3-delivery.md` |
 | `DEV-4` 报名 / RaceProject / Work / Judge 结构流程 | 已交付 | 本地MVP已实现Race发布、报名、审核、RaceProject幂等生成、Work提交、JudgeAssignment和JudgingRecord结构流程，并覆盖重复报名和幂等测试。 | `app/index.html#race`、`app/domain.js`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
-| `DEV-5` CA 接入 / Projection / Live Hall | 已交付 | 本地MVP已实现CAConnection登记与握手、合法信号接入、非法信号隔离、接入失败ReviewFlag、Projection生成和失败隔离；CA失败不阻断提交、评审和Award。 | `app/index.html#ca`、`app/domain.js`、`app/domain.test.js`、`docs/ary-ca-integration-spec.md`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `DEV-5` CA 接入 / Projection / Live Hall | 已交付 | 本地MVP已实现CAConnection登记与握手、OCR Desktop App / connector attestation、防伪签名校验、伪造/篡改信号隔离、接入失败ReviewFlag、Projection生成和失败隔离；CA失败不阻断提交、评审和Award。 | `app/index.html#ca`、`app/domain.js`、`app/domain.test.js`、`docs/ary-ca-integration-spec.md`、`docs/ary-dev-4-to-ops-delivery.md` |
 | `DEV-6` Screen Console / 大屏联调 | 已交付 | 本地MVP已实现live、leaderboard、works、announcement、fallback模式切换，fallback读取稳定Projection或静态展示。 | `app/index.html#screen`、`app/app.js`、`docs/ary-dev-4-to-ops-delivery.md` |
 | `DEV-7` Report / Review / Results | 已交付 | 本地MVP已实现Award/Leaderboard发布、Report生成失败记录、重跑/编辑/发布，以及Public Results/Review/Works公开读取边界。 | `app/index.html#reports`、`app/index.html#public`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
 | `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 本地MVP已交付 | 已提供P0回归按钮、发布检查项和go/no-go证据记录；真实staging/production灰度和正式发布待基础设施接入。 | `app/index.html#ops`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
@@ -74,10 +74,10 @@
 | DEV-4到OPS-1本地MVP应用已新增，覆盖后续任务的可运行闭环 | `app/index.html`、`app/domain.js`、`app/app.js`、`app/styles.css`、`app/README.md` |
 | DEV-4到OPS-1交付记录已落盘，包含实现范围、验收测试、未完成项和后续工程化判断 | `docs/ary-dev-4-to-ops-delivery.md` |
 | DEV-4报名/RaceProject/Work/Judge关键不变量通过领域测试 | `node app/domain.test.js` |
-| DEV-5 CA合法/非法接入、失败不阻断、Projection失败隔离通过领域测试 | `node app/domain.test.js` |
+| DEV-5 CA合法/非法接入、防伪 attestation 隔离、失败不阻断、Projection失败隔离通过领域测试 | `node app/domain.test.js` |
 | DEV-7 Report公开边界和REL/OPS P0回归通过领域测试 | `node app/domain.test.js` |
 | 本地MVP应用脚本通过Node语法检查 | `node --check app/domain.js`、`node --check app/app.js` |
-| `app/domain.test.js` 9 个用例 ↔ 任务 ↔ 代码动作 ↔ 文档证据 映射清晰 | 见下方"领域测试映射表" |
+| `app/domain.test.js` 10 个用例 ↔ 任务 ↔ 代码动作 ↔ 文档证据 映射清晰 | 见下方"领域测试映射表" |
 | UX-1 收尾 v2 已完成：Race Page in_progress 详情态（leaderboard + event-stream 两张 glass-card 子面板）、Work Page Judge 视角评审态（5 work-judge hooks + renderWorkJudge() + .assigned-work-card span 副作用修复）、`app/` 移动端 UX 静态审计（0 P0 + 5 P1 + 4 P2）三件事一并交付 | `design-prototype/index.html`、`design-prototype/script.js`、`design-prototype/styles.css`、`design-prototype/ary-v0.4-race-detail.png`、`design-prototype/ary-v0.4-work-judge.png`、`docs/ary-mobile-ux-review.md` |
 | UX-1 收尾 v2 Race Page in_progress 详情态通过 Node 语法检查 | `node --check design-prototype/script.js`（绝对路径） |
 | UX-1 收尾 v2 Work Page Judge 视角通过 Node 语法检查 | `node --check design-prototype/script.js`（绝对路径） |
@@ -87,7 +87,7 @@
 
 ## 领域测试映射表
 
-`app/domain.test.js` 当前 9 个 P0 用例与交付任务、领域动作和文档证据的对应关系如下，作为代码 ↔ 测试 ↔ 任务的统一口径：
+`app/domain.test.js` 当前 10 个 P0 用例与交付任务、领域动作和文档证据的对应关系如下，作为代码 ↔ 测试 ↔ 任务的统一口径：
 
 | 测试用例 | 对应任务 | 主要代码动作 | 文档证据 |
 |---|---|---|---|
@@ -95,6 +95,7 @@
 | DEV-4 approved Registration ensures exactly one RaceProject | DEV-4 | `approveRegistration` → `ensureRaceProject` | `docs/ary-dev-4-to-ops-delivery.md` §3.1 |
 | DEV-5 invalid CA signal is quarantined and does not create evidence | DEV-5 | `ingestRidingSignal` 校验失败路径 | `docs/ary-dev-4-to-ops-delivery.md` §4.1 |
 | DEV-5 accepted CA signal creates active projection input and duplicate is ignored | DEV-5 | `ingestRidingSignal` + `rebuildProjection` + `idempotencyKey` | `docs/ary-dev-4-to-ops-delivery.md` §4.1 §4.2 |
+| DEV-5 forged CA signal without attestation is quarantined | DEV-5 | `ingestRidingSignal` attestation 防伪校验 | `docs/ary-ca-integration-spec.md` §5.3、`docs/ary-dev-4-to-ops-delivery.md` §4.1 |
 | DEV-5 CA failed does not block Work, Judge, or Award | DEV-5 | `disableCAConnection` / ReviewFlag `ingestion_exception` | `docs/ary-dev-4-to-ops-delivery.md` §4.1 |
 | DEV-5 projection failure is isolated from facts and keeps stable fallback | DEV-5 | `rebuildProjection` 失败分支 | `docs/ary-dev-4-to-ops-delivery.md` §4.2 |
 | DEV-7 report visibility keeps rider_report private and public review published | DEV-7 | `generateReport` / `publishReport` | `docs/ary-dev-4-to-ops-delivery.md` §6 |

@@ -21,6 +21,23 @@ http://127.0.0.1:3000
 
 如果没有配置 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`，`/api/auth/github` 会进入本地演示账号回调，便于本地走通 Console。
 
+## 验证
+
+不依赖安装包的工程骨架检查：
+
+```bash
+npm.cmd run check:static
+```
+
+完整本地验证：
+
+```bash
+npm.cmd test
+npm.cmd run build
+```
+
+如果 PowerShell 拦截 `npm`，使用 `npm.cmd`。
+
 ## 覆盖范围
 
 * Public：Home、Race Detail、Live Hall、Works、Work Detail、Results、Review、Rider Profile、Cooperation。

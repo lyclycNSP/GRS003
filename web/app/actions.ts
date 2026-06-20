@@ -95,13 +95,21 @@ export async function handshakeCAAction(formData: FormData) {
 }
 
 export async function ingestSignalAction(formData: FormData) {
+  const idempotencyKey = `ui:${Date.now()}`;
+  const connectorId = value(formData, "connectorId") || "codex-ui";
   const result = await ingestRidingSignal({
     raceId: value(formData, "raceId"),
     registrationId: value(formData, "registrationId"),
     raceProjectId: value(formData, "raceProjectId"),
     caConnectionId: value(formData, "caConnectionId"),
-    idempotencyKey: `ui:${Date.now()}`,
+    idempotencyKey,
     caSessionId: value(formData, "caSessionId") || "ui-session",
+    attestation: {
+      source: "ocr_desktop_app",
+      signingKeyId: `ocr_key_${connectorId}`,
+      signature: `dev-signature:${connectorId}:${idempotencyKey}`,
+      signedAt: new Date().toISOString()
+    },
     progressPercent: Number(value(formData, "progressPercent") || 100),
     tokens: Number(value(formData, "tokens") || 12000)
   });

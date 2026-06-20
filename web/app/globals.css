@@ -28,7 +28,8 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background:
     radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.95) 0 24%, transparent 46%),
     linear-gradient(115deg, rgba(18, 119, 255, 0.08), transparent 38%),
@@ -2946,13 +2947,34 @@ body {
 
 .table-row {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr auto;
+  grid-template-columns: minmax(0, 1.15fr) minmax(90px, 0.55fr) minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   padding: 14px;
   border: 1px solid rgba(34, 107, 230, 0.16);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.72);
+}
+
+.table-row > span,
+.table-row > b,
+.table-row > em,
+.table-row > a,
+.table-row > form {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.table-row > em {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.table-row > form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .route-page {
@@ -3064,6 +3086,202 @@ body {
   inset: auto;
 }
 
+.console-layout .console-main {
+  min-width: 0;
+}
+
+.console-layout .role-entry-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.console-layout .ops-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.console-layout .form-card,
+.console-layout .table-list,
+.console-layout .table-row,
+.app-grid,
+.app-stack {
+  min-width: 0;
+}
+
+.console-flow-strip,
+.console-signal-bar,
+.release-readiness-panel {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.console-flow-strip {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.console-flow-strip article,
+.console-signal-bar article,
+.release-readiness-panel article,
+.screen-preview-card,
+.ca-attestation-panel,
+.empty-state {
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 12px 28px rgba(11, 57, 150, 0.08);
+}
+
+.console-flow-strip article {
+  position: relative;
+  min-height: 118px;
+  padding: 14px;
+  overflow: hidden;
+}
+
+.console-flow-strip article::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: rgba(83, 102, 141, 0.28);
+}
+
+.console-flow-strip article.done::before {
+  background: #12a66a;
+}
+
+.console-flow-strip article.active::before {
+  background: #f4aa24;
+}
+
+.console-flow-strip span,
+.console-signal-bar span,
+.release-readiness-panel span,
+.screen-preview-card span,
+.ca-attestation-panel span {
+  color: var(--blue-700);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.console-flow-strip b,
+.console-signal-bar b,
+.release-readiness-panel b,
+.screen-preview-card b,
+.ca-attestation-panel b {
+  display: block;
+  margin: 8px 0 5px;
+  color: var(--blue-950);
+  font-size: 18px;
+}
+
+.console-flow-strip p,
+.console-signal-bar p,
+.release-readiness-panel p,
+.screen-preview-card p,
+.ca-attestation-panel p,
+.empty-state {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.console-signal-bar,
+.release-readiness-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.release-readiness-panel {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.console-signal-bar article,
+.release-readiness-panel article,
+.screen-preview-card,
+.ca-attestation-panel,
+.empty-state {
+  padding: 16px;
+}
+
+.release-readiness-panel article.ready {
+  border-color: rgba(18, 166, 106, 0.34);
+  background: rgba(238, 255, 247, 0.84);
+}
+
+.release-readiness-panel article.pending {
+  border-color: rgba(244, 170, 36, 0.34);
+  background: rgba(255, 249, 235, 0.86);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 10px;
+  border: 1px solid rgba(83, 102, 141, 0.24);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.status-pill.good {
+  border-color: rgba(18, 166, 106, 0.28);
+  color: #087545;
+  background: rgba(231, 255, 243, 0.86);
+}
+
+.status-pill.warn {
+  border-color: rgba(244, 170, 36, 0.3);
+  color: #8a5a00;
+  background: rgba(255, 247, 224, 0.86);
+}
+
+.status-pill.risk {
+  border-color: rgba(218, 55, 64, 0.3);
+  color: #a51624;
+  background: rgba(255, 235, 238, 0.88);
+}
+
+.ca-row em {
+  display: grid;
+  gap: 3px;
+}
+
+.ca-row em strong {
+  color: var(--blue-950);
+  font-size: 13px;
+}
+
+.ca-attestation-panel {
+  margin: 14px 0;
+}
+
+.screen-preview-card {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+  background:
+    linear-gradient(135deg, rgba(7, 91, 236, 0.1), rgba(48, 216, 255, 0.1)),
+    rgba(255, 255, 255, 0.78);
+}
+
+.screen-preview-card b {
+  font-size: 32px;
+  font-style: italic;
+}
+
+.screen-preview-card em {
+  color: var(--blue-700);
+  font-style: normal;
+  font-weight: 900;
+}
+
 .console-sidebar a {
   display: block;
   width: 100%;
@@ -3079,15 +3297,20 @@ body {
 .role-row em {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 12px;
   align-items: center;
 }
 
 .role-row label {
   display: inline-flex;
-  gap: 4px;
+  gap: 5px;
   align-items: center;
   font-style: normal;
+  white-space: nowrap;
+}
+
+.role-row input[type="checkbox"] {
+  width: auto;
 }
 
 .profile-form-grid label {
@@ -3143,6 +3366,9 @@ body {
   .rider-cockpit-grid,
   .judge-review-layout,
   .ops-grid,
+  .console-flow-strip,
+  .console-signal-bar,
+  .release-readiness-panel,
   .cooperation-grid {
     grid-template-columns: 1fr;
   }

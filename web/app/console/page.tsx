@@ -30,6 +30,20 @@ function hasRole(roles: string[], role: string) {
   return roles.includes("admin") || roles.includes(role);
 }
 
+function toneFor(value?: string | null) {
+  if (!value) return "muted";
+  if (["active", "approved", "published", "submitted", "done", "complete", "connected"].includes(value)) return "good";
+  if (["failed", "disabled", "rejected", "needs profile"].some((item) => value.includes(item))) return "risk";
+  if (["open", "draft", "not_configured", "pending"].includes(value)) return "warn";
+  return "muted";
+}
+
+function stepState(done: boolean, active: boolean) {
+  if (done) return "done";
+  if (active) return "active";
+  return "todo";
+}
+
 export default async function ConsolePage() {
   const ctx = await getAuthContext();
   if (!ctx) {
@@ -61,6 +75,22 @@ export default async function ConsolePage() {
   const ownRegistration = ownRegistrations[0];
   const ownProject = ownRegistration?.raceProject;
   const ownConnection = ownProject?.caConnections[0];
+  const approvedCount = registrations.filter((registration) => registration.status === "approved").length;
+  const projectCount = registrations.filter((registration) => registration.raceProject).length;
+  const connectionCount = allConnections.length;
+  const verifiedConnectionCount = allConnections.filter(({ connection }) => connection.handshakeAt && !connection.disabledAt).length;
+  const activeConnectionCount = allConnections.filter(({ connection }) => connection.ingestionStatus === "active" && !connection.disabledAt).length;
+  const workCount = registrations.filter((registration) => registration.work).length;
+  const publicReportCount = race.reports.filter((report) => report.status === "published" && report.visibility === "public").length;
+  const riskFlags = registrations.flatMap((registration) => registration.reviewFlags);
+  const workflowSteps = [
+    { label: "Registration", detail: `${approvedCount}/${registrations.length} approved`, done: approvedCount > 0, active: registrations.length > 0 },
+    { label: "RaceProject", detail: `${projectCount} generated`, done: projectCount > 0, active: approvedCount > 0 },
+    { label: "CA verified", detail: `${verifiedConnectionCount}/${connectionCount} attested`, done: verifiedConnectionCount > 0, active: connectionCount > 0 },
+    { label: "Projection", detail: `${activeConnectionCount} active`, done: activeConnectionCount > 0, active: verifiedConnectionCount > 0 },
+    { label: "Work", detail: `${workCount} submitted`, done: workCount > 0, active: activeConnectionCount > 0 },
+    { label: "Report", detail: `${publicReportCount} public`, done: publicReportCount > 0, active: workCount > 0 }
+  ];
 
   return (
     <section className="route-page console-layout">
@@ -77,6 +107,27 @@ export default async function ConsolePage() {
       <section className="console-main">
         <p className="section-kicker">Console / {race.title} / {roles.join(", ")}</p>
         <h1>{race.title} 指挥席</h1>
+        <section className="console-flow-strip" aria-label="MVP workflow">
+          {workflowSteps.map((step) => (
+            <article className={stepState(step.done, step.active)} key={step.label}>
+              <span>{step.label}</span>
+              <b>{step.done ? "ready" : step.active ? "in progress" : "waiting"}</b>
+              <p>{step.detail}</p>
+            </article>
+          ))}
+        </section>
+        <section className="console-signal-bar">
+          <article>
+            <span>CA Trust</span>
+            <b>{verifiedConnectionCount > 0 ? "attestation visible" : "waiting for OCR / connector"}</b>
+            <p>CA 信号必须带 OCR Desktop App / registered connector 签名，伪造或篡改会进入隔离。</p>
+          </article>
+          <article>
+            <span>Review Risk</span>
+            <b>{riskFlags.length} flags</b>
+            <p>{riskFlags[0]?.judgeVisibleSummary ?? "当前没有评审前风险提示。"}</p>
+          </article>
+        </section>
         <section className="role-entry-grid">
           {["organizer", "rider", "judge", "admin"].map((role) => (
             <a href={hasRole(roles, role) ? `#${role}` : "#"} className={hasRole(roles, role) ? "active" : ""} key={role}>
@@ -128,17 +179,20 @@ export default async function ConsolePage() {
             <section className="form-card">
               <h2>CAConnection 状态</h2>
               <div className="table-list">
-                {allConnections.map(({ connection, registration }) => (
-                  <div className="table-row" key={connection.id}>
+                {allConnections.length > 0 ? allConnections.map(({ connection, registration }) => (
+                  <div className="table-row ca-row" key={connection.id}>
                     <span>{registration.user.displayName}</span>
-                    <b>{connection.ingestionStatus}{connection.disabledAt ? "/disabled" : ""}</b>
-                    <em>{connection.connectorId} / {connection.externalProjectRef}</em>
+                    <b className={`status-pill ${toneFor(connection.disabledAt ? "disabled" : connection.ingestionStatus)}`}>{connection.ingestionStatus}{connection.disabledAt ? "/disabled" : ""}</b>
+                    <em>
+                      <strong>{connection.handshakeAt && !connection.disabledAt ? "Verified by OCR / connector" : "Attestation pending"}</strong>
+                      {connection.connectorId} / {connection.externalProjectRef}
+                    </em>
                     <form action={disableCAConnectionAction}>
                       <input type="hidden" name="caConnectionId" value={connection.id} />
                       <button type="submit">Disable</button>
                     </form>
                   </div>
-                ))}
+                )) : <div className="empty-state">暂无 CAConnection。Rider 审核通过后先登记并握手，再接入带 attestation 的 CA Signal。</div>}
               </div>
             </section>
             <section className="form-card">
@@ -201,9 +255,14 @@ export default async function ConsolePage() {
           <section id="rider" className="form-card">
             <h2>Rider View</h2>
             <div className="rider-cockpit-grid">
-              <article className="rider-status-card"><span>Registration</span><b>{ownRegistration?.status ?? "none"}</b><p>{ownRegistration?.race.title ?? "选择 Race 后报名"}</p></article>
-              <article className="rider-status-card"><span>RaceProject</span><b>{ownProject?.aggregateIngestionStatus ?? "not_configured"}</b><p>{ownProject?.connectionHealth ?? "等待审核生成"}</p></article>
-              <article className="rider-status-card"><span>Work</span><b>{ownRegistration?.work?.status ?? "none"}</b><p>{ownRegistration?.work?.title ?? "尚未提交作品"}</p></article>
+              <article className="rider-status-card"><span>Registration</span><b className={`status-pill ${toneFor(ownRegistration?.status)}`}>{ownRegistration?.status ?? "none"}</b><p>{ownRegistration?.race.title ?? "选择 Race 后报名"}</p></article>
+              <article className="rider-status-card"><span>RaceProject</span><b className={`status-pill ${toneFor(ownProject?.aggregateIngestionStatus)}`}>{ownProject?.aggregateIngestionStatus ?? "not_configured"}</b><p>{ownProject?.connectionHealth ?? "等待审核生成"}</p></article>
+              <article className="rider-status-card"><span>Work</span><b className={`status-pill ${toneFor(ownRegistration?.work?.status)}`}>{ownRegistration?.work?.status ?? "none"}</b><p>{ownRegistration?.work?.title ?? "尚未提交作品"}</p></article>
+            </div>
+            <div className="ca-attestation-panel">
+              <span>CA anti-forgery</span>
+              <b>{ownConnection?.handshakeAt ? "OCR / connector signature required" : "waiting for CA handshake"}</b>
+              <p>{ownConnection ? `connectorId: ${ownConnection.connectorId}. 合法信号会携带 dev-signature:${ownConnection.connectorId}:<idempotencyKey>。` : "登记 CAConnection 后，系统会展示签名来源和接入状态。"}</p>
             </div>
             {!ownRegistration ? (
               <div className="console-empty-actions">
@@ -231,6 +290,7 @@ export default async function ConsolePage() {
                       <input type="hidden" name="registrationId" value={ownRegistration!.id} />
                       <input type="hidden" name="raceProjectId" value={ownProject.id} />
                       <input type="hidden" name="caConnectionId" value={ownConnection.id} />
+                      <input type="hidden" name="connectorId" value={ownConnection.connectorId} />
                       <input name="caSessionId" defaultValue="session-ui" />
                       <input name="progressPercent" defaultValue="100" />
                       <input name="tokens" defaultValue="12000" />
@@ -255,13 +315,13 @@ export default async function ConsolePage() {
           <section id="judge" className="form-card">
             <h2>Judge View</h2>
             <div className="table-list">
-              {(currentUser?.judgeAssignments ?? assignments).map((assignment) => (
+              {(currentUser?.judgeAssignments ?? assignments).length > 0 ? (currentUser?.judgeAssignments ?? assignments).map((assignment) => (
                 <div className="table-row" key={assignment.id}>
                   <span>{assignment.work.title}</span>
-                  <b>{assignment.status}</b>
+                  <b className={`status-pill ${toneFor(assignment.status)}`}>{assignment.status}</b>
                   <Link href={`/works/${assignment.work.slug}/judge`}>Open Judge View</Link>
                 </div>
-              ))}
+              )) : <div className="empty-state">暂无分配作品。Organizer 发布 Work 后可分配 Judge。</div>}
             </div>
           </section>
         ) : null}

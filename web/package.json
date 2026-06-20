@@ -11,7 +11,8 @@
     "prisma:push": "prisma db push",
     "db:init": "python scripts/init-sqlite.py",
     "seed": "tsx prisma/seed.ts",
-    "test": "tsx tests/domain.test.ts"
+    "test": "tsx tests/domain.test.ts",
+    "check:static": "node scripts/static-smoke.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",

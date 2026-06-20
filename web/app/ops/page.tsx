@@ -6,12 +6,33 @@ export default async function OpsPage() {
   const ctx = await getAuthContext();
   const { race } = await getConsoleSnapshot();
   if (!race) return <section className="route-page"><h1>No race seeded</h1></section>;
+  const doneItems = race.releaseItems.filter((item) => item.status === "done");
+  const releaseTotal = race.releaseItems.length;
+  const releaseReady = releaseTotal > 0 && doneItems.length === releaseTotal;
+  const remainingItems = race.releaseItems.filter((item) => item.status !== "done");
   return (
     <section className="route-page">
       <section className="module-title">
         <p className="section-kicker">Release / Ops / {ctx?.roles.join(", ") || "未登录"}</p>
         <h1>{race.title} 运维与发布检查</h1>
         <p className="module-summary">P0回归、发布检查项、备份、事故和归档入口已经接入服务端动作。</p>
+      </section>
+      <section className="release-readiness-panel">
+        <article className={releaseReady ? "ready" : "pending"}>
+          <span>Release readiness</span>
+          <b>{doneItems.length}/{releaseTotal}</b>
+          <p>{releaseReady ? "本地 checkpoint 发布证据已齐，可以进入汇报或下一阶段演练。" : `还剩 ${remainingItems.length} 个检查项需要补证据。`}</p>
+        </article>
+        <article>
+          <span>Evidence</span>
+          <b>{race.backups.length + race.incidents.length}</b>
+          <p>备份、事故、回滚和归档证据会在这里沉淀。</p>
+        </article>
+        <article>
+          <span>Next action</span>
+          <b>{remainingItems[0]?.label ?? "go/no-go"}</b>
+          <p>{remainingItems[0] ? "优先补齐这个检查项的证据。" : "可以记录最终 go / no-go 决策。"}</p>
+        </article>
       </section>
       <section className="app-grid">
         <div className="app-stack">
@@ -31,7 +52,7 @@ export default async function OpsPage() {
                   <input type="hidden" name="itemKey" value={item.itemKey} />
                   <input type="hidden" name="label" value={item.label} />
                   <span>{item.label}</span>
-                  <b>{item.status}</b>
+                  <b className={`status-pill ${item.status === "done" ? "good" : "warn"}`}>{item.status}</b>
                   <input name="evidence" defaultValue={item.evidence || "local rehearsal evidence recorded"} />
                   <button type="submit">Mark done</button>
                 </form>

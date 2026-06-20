@@ -97,6 +97,12 @@ run("DEV-5 accepted CA signal creates active projection input and duplicate is i
       caProjectId: "ca-test-project",
       caSessionId: "session-a",
     },
+    attestation: {
+      source: "ocr_desktop_app",
+      signingKeyId: "ocr_key_codex-test",
+      signature: "dev-signature:codex-test:good-key",
+      signedAt: "2026-06-18T10:10:00Z",
+    },
     signal: { kind: "event", type: "task_completed", phase: "finished", taskStatus: "completed", progressPercent: 100 },
     counters: { tokens: 12000, messageCount: 80, toolCallCount: 20 },
   };
@@ -108,6 +114,43 @@ run("DEV-5 accepted CA signal creates active projection input and duplicate is i
   assert.strictEqual(project.aggregateIngestionStatus, "active");
   assert.strictEqual(state.sessions.length, 1);
   assert.strictEqual(state.evidences.length, 1);
+});
+
+run("DEV-5 forged CA signal without attestation is quarantined", () => {
+  const state = domain.createInitialState();
+  domain.actions.approveRegistration(state, { registrationId: "reg_mira", actorId: "user_org_1" });
+  const project = domain.selectors.getRaceProjectForRegistration(state, "reg_mira");
+  const registered = domain.actions.registerCAConnection(state, {
+    raceProjectId: project.id,
+    actorId: "user_rider_1",
+    caType: "codex",
+    connectorId: "codex-anti-forgery",
+    externalProjectRef: "ca-anti-forgery-project",
+  });
+  domain.actions.handshakeCAConnection(state, { caConnectionId: registered.caConnectionId, actorId: "user_rider_1" });
+  const beforeEvidence = state.evidences.length;
+  const result = domain.actions.ingestRidingSignal(state, {
+    schemaVersion: "ary.ca.riding_signal.v0.1",
+    messageId: "forged-message",
+    idempotencyKey: "forged-key",
+    timestamp: "2026-06-18T10:15:00Z",
+    race: { raceId: "race_bay_2026", taskId: "DEV-12" },
+    rider: { registrationId: "reg_mira", raceProjectId: project.id },
+    ca: {
+      caConnectionId: registered.caConnectionId,
+      caType: "codex",
+      connectorId: "codex-anti-forgery",
+      connectorVersion: "0.1.0",
+      caProjectId: "ca-anti-forgery-project",
+      caSessionId: "session-forged",
+    },
+    signal: { kind: "event", type: "task_completed", phase: "finished", taskStatus: "completed", progressPercent: 100 },
+    counters: { tokens: 20000, messageCount: 99, toolCallCount: 30 },
+  });
+  assert.strictEqual(result.ok, false);
+  assert.strictEqual(result.quarantined, true);
+  assert.strictEqual(state.evidences.length, beforeEvidence);
+  assert.ok(state.quarantinedSignals[0].reason.includes("认证声明"));
 });
 
 run("DEV-5 CA failed does not block Work, Judge, or Award", () => {
@@ -137,6 +180,12 @@ run("DEV-5 CA failed does not block Work, Judge, or Award", () => {
       connectorVersion: "0.1.0",
       caProjectId: "ca-failing-project",
       caSessionId: "session-failing",
+    },
+    attestation: {
+      source: "registered_ca_connector",
+      signingKeyId: "connector_key_codex-failing",
+      signature: "dev-signature:codex-failing:fail-key",
+      signedAt: "2026-06-18T10:20:00Z",
     },
     signal: { kind: "event", type: "risk_detected", phase: "paused", taskStatus: "blocked" },
     ingestion: { status: "failed", statusReason: "connector_timeout" },

@@ -199,6 +199,12 @@ export async function ingestRidingSignal(input: {
   caConnectionId: string;
   idempotencyKey: string;
   caSessionId: string;
+  attestation?: {
+    source: string;
+    signingKeyId: string;
+    signature: string;
+    signedAt: string;
+  };
   progressPercent?: number;
   tokens?: number;
 }): Promise<Result> {
@@ -224,6 +230,19 @@ export async function ingestRidingSignal(input: {
       sourceRef: { idempotencyKey: input.idempotencyKey }
     });
     return fail("CA信号非法，已隔离");
+  }
+  const attestation = verifyRidingSignalAttestation(input, connection.connectorId);
+  if (!attestation.ok) {
+    await createReviewFlag({
+      raceId: input.raceId,
+      registrationId: input.registrationId,
+      raceProjectId: input.raceProjectId,
+      type: "ingestion_exception",
+      severity: "high",
+      summary: attestation.message,
+      sourceRef: { idempotencyKey: input.idempotencyKey }
+    });
+    return fail("CA信号认证失败，已隔离");
   }
   const session = await prisma.session.upsert({
     where: { caConnectionId_externalSessionRef: { caConnectionId: input.caConnectionId, externalSessionRef: input.caSessionId } },
@@ -265,6 +284,27 @@ export async function ingestRidingSignal(input: {
     }
   });
   return ok("CA信号已接入", session.id);
+}
+
+function verifyRidingSignalAttestation(
+  input: { idempotencyKey: string; attestation?: { source: string; signingKeyId: string; signature: string; signedAt: string } },
+  connectorId: string
+) {
+  const attestation = input.attestation;
+  if (!attestation) return { ok: false, message: "缺少CA/OCR Desktop App认证声明，信号已隔离。" };
+  if (!["ocr_desktop_app", "registered_ca_connector"].includes(attestation.source)) {
+    return { ok: false, message: "CA信号来源不是OCR Desktop App或已登记connector，信号已隔离。" };
+  }
+  if (!attestation.signingKeyId || !attestation.signature || !attestation.signedAt) {
+    return { ok: false, message: "CA信号认证字段不完整，信号已隔离。" };
+  }
+  if (!attestation.signingKeyId.includes(connectorId)) {
+    return { ok: false, message: "CA信号签名密钥与connector不匹配，信号已隔离。" };
+  }
+  if (attestation.signature !== `dev-signature:${connectorId}:${input.idempotencyKey}`) {
+    return { ok: false, message: "CA信号签名校验失败，疑似伪造或篡改，信号已隔离。" };
+  }
+  return { ok: true, message: "ok" };
 }
 
 
@@ -615,13 +655,21 @@ export async function runP0Regression(ctx: AuthContext | null, raceId: string): 
   const connectionId = connectionResult.ok ? connectionResult.id! : (await prisma.cAConnection.findFirst({ where: { raceProjectId: project.id } }))?.id;
   if (connectionId) {
     await handshakeCAConnection({ ...ctx!, userId: rider.id, roles: ["rider"] }, connectionId);
+    const connection = await prisma.cAConnection.findUnique({ where: { id: connectionId } });
+    const idempotencyKey = makeId("p0");
     await ingestRidingSignal({
       raceId,
       registrationId: registration.id,
       raceProjectId: project.id,
       caConnectionId: connectionId,
-      idempotencyKey: makeId("p0"),
+      idempotencyKey,
       caSessionId: "session-p0",
+      attestation: {
+        source: "ocr_desktop_app",
+        signingKeyId: `ocr_key_${connection?.connectorId ?? "unknown"}`,
+        signature: `dev-signature:${connection?.connectorId ?? "unknown"}:${idempotencyKey}`,
+        signedAt: new Date().toISOString()
+      },
       progressPercent: 100,
       tokens: 18000
     });

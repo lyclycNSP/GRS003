@@ -22,7 +22,7 @@
 | `DEV-2` Public Site 静态闭环 | 已完成：Home、Race Page、Live Hall、Works、Work Page、Results、Review、Rider Profile、Cooperation可用样例数据走查。 | `design-prototype/index.html`、`design-prototype/README.md` |
 | `DEV-3` 登录 / 角色 / Race Console | 已完成：模拟GitHub登录、资料补全、角色入口、Organizer/Rider/Judge/Admin视图和Admin角色维护演示。 | `design-prototype/index.html`、`docs/ary-dev-1-dev-3-delivery.md` |
 | `DEV-4` 报名 / RaceProject / Work / Judge 结构流程 | 已完成本地MVP实现：Race发布、报名审核、RaceProject幂等生成、Work提交、JudgeAssignment和JudgingRecord可运行并有领域测试。 | `app/index.html`、`app/domain.js`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
-| `DEV-5` CA 接入 / Projection / Live Hall | 已完成本地MVP实现：CAConnection登记握手、合法信号接入、非法信号隔离、ReviewFlag、Projection生成和失败隔离、Live Hall稳定读取。 | `app/index.html#ca`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `DEV-5` CA 接入 / Projection / Live Hall | 已完成本地MVP实现：CAConnection登记握手、OCR Desktop App / connector attestation、防伪签名校验、非法信号隔离、ReviewFlag、Projection生成和失败隔离、Live Hall稳定读取。 | `app/index.html#ca`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
 | `DEV-6` Screen Console / 大屏联调 | 已完成本地MVP实现：live、leaderboard、works、announcement和fallback模式可切换。 | `app/index.html#screen`、`docs/ary-dev-4-to-ops-delivery.md` |
 | `DEV-7` Report / Review / Results | 已完成本地MVP实现：Award/Leaderboard发布、Report生成/失败/编辑/发布、Results/Review/Public Works联动。 | `app/index.html#reports`、`app/index.html#public`、`app/domain.test.js` |
 | `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 已完成本地MVP演练入口：P0回归按钮、发布检查项和go/no-go证据记录；真实staging/production发布待正式工程化。 | `app/index.html#ops`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
@@ -35,7 +35,7 @@
 | --- | --- |
 | `M1` 文档基线可作为架构入口 | PRD、领域、IA、权限、QA、计划、OPS、CA 草案无高优先级冲突。 |
 | `M2` 架构设计输入就绪 | DEV-1已输出领域边界、权限规则和数据模型草案；UX/UI原型已覆盖DEV-2/DEV-3关键页面状态；DEV-4到OPS-1本地MVP已提供可迁移的领域动作和验收测试。 |
-| `M3` 本地MVP闭环可演示 | `app/`可直接打开并运行P0回归，覆盖报名、CA、Projection、大屏、报告、发布检查和运维归档。`app/domain.test.js` 9 个用例已覆盖 M3 对应的不变量。 |
+| `M3` 本地MVP闭环可演示 | `app/`可直接打开并运行P0回归，覆盖报名、CA、Projection、大屏、报告、发布检查和运维归档。`app/domain.test.js` 10 个用例已覆盖 M3 对应的不变量，并补充 CA 防伪 / 防篡改隔离验收。 |
 
 ## 下一步
 

@@ -310,6 +310,26 @@
     );
   }
 
+  function verifyRidingSignalAttestation(message, connection) {
+    const attestation = message && message.attestation;
+    if (!attestation) return { ok: false, reason: "缺少CA/OCR Desktop App认证声明，信号已隔离" };
+    const allowedSources = ["ocr_desktop_app", "registered_ca_connector"];
+    if (!allowedSources.includes(attestation.source)) {
+      return { ok: false, reason: "CA信号来源不是OCR Desktop App或已登记connector，信号已隔离" };
+    }
+    if (!attestation.signingKeyId || !attestation.signature || !attestation.signedAt) {
+      return { ok: false, reason: "CA信号认证字段不完整，信号已隔离" };
+    }
+    if (!attestation.signingKeyId.includes(connection.connectorId)) {
+      return { ok: false, reason: "CA信号签名密钥与connector不匹配，信号已隔离" };
+    }
+    const expectedDevSignature = `dev-signature:${connection.connectorId}:${message.idempotencyKey}`;
+    if (attestation.signature !== expectedDevSignature) {
+      return { ok: false, reason: "CA信号签名校验失败，疑似伪造或篡改，信号已隔离" };
+    }
+    return { ok: true };
+  }
+
   function logAudit(state, actorId, type, message, resource) {
     state.auditLog.unshift({
       id: nextId(state, "audit"),
@@ -764,6 +784,8 @@
         return reject("RaceProject或Registration归属错误，信号已隔离");
       }
       if (incomingRaceId !== registration.raceId) return reject("Race归属错误，信号已隔离");
+      const attestation = verifyRidingSignalAttestation(message, connection);
+      if (!attestation.ok) return reject(attestation.reason);
 
       state.ingestionKeys.push(idempotencyKey);
       state.ingestionKeys = state.ingestionKeys.slice(-500);
@@ -1264,12 +1286,13 @@
         connection = findById(state.caConnections, registered.caConnectionId);
       }
       pushStep("握手CAConnection", actions.handshakeCAConnection(state, { caConnectionId: connection.id, actorId: rider }));
+      const p0IdempotencyKey = `p0:${raceId}:${registration.id}:${connection.id}:${Date.now()}`;
       pushStep(
         "接收实时CA信号",
         actions.ingestRidingSignal(state, {
           schemaVersion: "ary.ca.riding_signal.v0.1",
           messageId: nextId(state, "msg"),
-          idempotencyKey: `p0:${raceId}:${registration.id}:${connection.id}:${Date.now()}`,
+          idempotencyKey: p0IdempotencyKey,
           sequence: 1,
           timestamp: now(),
           race: { raceId, taskId: race.taskId },
@@ -1281,6 +1304,12 @@
             connectorVersion: connection.connectorVersion,
             caProjectId: connection.externalProjectRef,
             caSessionId: "session-p0-regression",
+          },
+          attestation: {
+            source: "ocr_desktop_app",
+            signingKeyId: `ocr_key_${connection.connectorId}`,
+            signature: `dev-signature:${connection.connectorId}:${p0IdempotencyKey}`,
+            signedAt: now(),
           },
           signal: {
             kind: "event",

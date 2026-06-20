@@ -18,7 +18,7 @@
 | 任务 | 本轮产物 | 完成判断 |
 |---|---|---|
 | `DEV-4`报名/RaceProject/Work/Judge结构流程 | Race发布、报名、审核、RaceProject幂等生成、Work提交、JudgeAssignment和JudgingRecord | 可用浏览器和领域测试走通 |
-| `DEV-5`CA接入/Projection/Live Hall | CAConnection登记与握手、合法信号接入、非法信号隔离、ReviewFlag、Projection生成和失败隔离 | 可验证“合法进入投影、非法进入隔离、失败不污染事实” |
+| `DEV-5`CA接入/Projection/Live Hall | CAConnection登记与握手、OCR Desktop App / connector attestation、防伪签名校验、非法信号隔离、ReviewFlag、Projection生成和失败隔离 | 可验证“合法认证信号进入投影、伪造/篡改信号隔离、失败不污染事实” |
 | `DEV-6`Screen Console/大屏联调 | live、leaderboard、works、announcement、fallback五种大屏模式 | 可在本地界面切换和验证稳定Projection fallback |
 | `DEV-7`Report/Review/Results | Award/Leaderboard、Report生成/失败/编辑/发布、Results/Review/Public Works联动 | 可验证未发布Report不公开、`rider_report`默认私有 |
 | `REL-1`赛事彩排/灰度/正式发布 | P0回归按钮、发布检查项、release-ready快照 | 可形成本地彩排和go/no-go证据记录 |
@@ -106,6 +106,7 @@
 | 未登记CAConnection | 进入`quarantinedSignals`，不生成Evidence。 |
 | 未握手CAConnection | 进入`quarantinedSignals`，不进入Projection。 |
 | RaceProject或Registration归属错误 | 进入`quarantinedSignals`。 |
+| 缺少OCR Desktop App / connector attestation或签名不匹配 | 进入`quarantinedSignals`，不生成Evidence，不进入Projection。 |
 | CAConnection失败 | 更新连接状态，生成`ingestion_exception` ReviewFlag，不阻断Work、评审和Award。 |
 | 重复`idempotencyKey` | 幂等忽略，不重复生成事实。 |
 
@@ -223,6 +224,7 @@ node app/layout-check.js
 | DEV-4审核后RaceProject幂等生成 | 通过 |
 | DEV-5非法CA信号隔离且不生成Evidence | 通过 |
 | DEV-5合法CA信号进入Session/Evidence，重复信号幂等忽略 | 通过 |
+| DEV-5缺少attestation的伪造CA信号被隔离且不生成Evidence | 通过 |
 | DEV-5CA失败不阻断Work、Judge、Award | 通过 |
 | DEV-5Projection失败隔离并保留稳定fallback | 通过 |
 | DEV-7`rider_report`私有、`review_summary`公开 | 通过 |
