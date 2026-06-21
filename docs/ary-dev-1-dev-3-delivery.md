@@ -6,7 +6,7 @@
 关联任务：`DEV-1`、`DEV-2`、`DEV-3`
 上游入口：`ary-mvp.prd.md`、`ary-domain-analysis.v0.3.md`、`ary-permission-matrix.md`、`ary-mvp.ia.md`、`ary-ca-integration-spec.md`
 演示入口：`../design-prototype/index.html`
-后续接入：`../app/`（`app/domain.js` 已将本轮聚合边界和接口鉴权规则落地为可运行领域动作）
+后续接入：`../web/`（根目录旧 `app/` 静态 MVP 已删除；当前聚合边界和接口鉴权规则由 `web/lib/domain.ts`、`web/lib/auth.ts` 和 `web/tests/domain.test.ts` 承接）
 
 ---
 

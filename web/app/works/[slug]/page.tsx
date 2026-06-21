@@ -10,16 +10,17 @@ export default async function WorkPage({ params }: { params: Promise<{ slug: str
   const rider = work.registration.user;
 
   return (
-    <section className="route-page">
+    <section className="route-page page-work-detail">
       <section className="work-detail-hero route-hero">
         <p className="section-kicker">{race.title} / {rider.displayName}</p>
         <h1>{work.title}</h1>
         <p className="module-summary">{work.summary}</p>
         <div className="work-detail-actions">
-          <a href={work.demoUrl ?? "#"}>打开 Demo</a>
-          <a href={work.repoUrl ?? "#"}>查看 Repo</a>
+          <a href={work.demoUrl ?? "#"} className={!work.demoUrl ? "is-disabled" : undefined}>打开 Demo</a>
+          <a href={work.repoUrl ?? "#"} className={!work.repoUrl ? "is-disabled" : undefined}>查看 Repo</a>
           <Link href={`/riders/${rider.slug}`}>Rider Profile</Link>
-          <Link href={`/races/${race.slug}`}>返回 Race</Link>
+          <Link href={`/races/${race.slug}`}>Race Page</Link>
+          <Link href="/works">返回 Works</Link>
         </div>
       </section>
 

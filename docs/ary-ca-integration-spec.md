@@ -5,7 +5,7 @@
 状态：已与 PRD-1 基线对齐；真实 connector HTTP 接入契约待生产工程化补齐
 上游入口：`ary-mvp.prd.md`
 领域基线：`ary-domain-analysis.v0.3.md`
-本地 MVP 实现参考：`../app/domain.js`（`registerCAConnection`、`handshakeCAConnection`、`ingestRidingSignal`、`rebuildProjection`）
+当前实现参考：`../web/lib/domain.ts`、`../web/tests/domain.test.ts`（`registerCAConnection`、`handshakeCAConnection`、`ingestRidingSignal`、`rebuildProjection` 对应的领域动作与回归测试）
 
 ---
 

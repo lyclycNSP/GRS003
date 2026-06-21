@@ -1,14 +1,16 @@
 import Link from "next/link";
-import { getAuthContext } from "@/lib/auth";
+import { canManageRace, getAuthContext } from "@/lib/auth";
 import { fromJson } from "@/lib/json";
 import { getScreenSnapshot } from "@/lib/queries";
 import { publishAnnouncementAction, switchScreenModeAction, toggleScreenFallbackAction } from "@/app/actions";
 
-export default async function ScreenConsolePage() {
+export default async function ScreenConsolePage({ searchParams }: { searchParams?: Promise<{ error?: string }> }) {
   const ctx = await getAuthContext();
+  const { error } = (await searchParams) ?? {};
   const snapshot = await getScreenSnapshot();
   if (!snapshot) return <section className="route-page"><h1>No race seeded</h1></section>;
   const { race, works, stableProjection, failedProjection, screenState } = snapshot;
+  const canManage = canManageRace(ctx, race.id);
   const payload = fromJson<Record<string, unknown>>(stableProjection?.payloadJson, {});
   const modes = ["live", "leaderboard", "works", "announcement", "fallback"];
   const modeSummary: Record<string, string> = {
@@ -24,7 +26,8 @@ export default async function ScreenConsolePage() {
       <section className="module-title">
         <p className="section-kicker">Screen Console / {ctx?.roles.join(", ") || "未登录"}</p>
         <h1>{race.title} 大屏控制台</h1>
-        <p className="module-summary">切换现场大屏模式，Projection 异常时可落到稳定版本或静态公告。</p>
+        <p className="module-summary">{canManage ? "切换现场大屏模式，Projection 异常时可落到稳定版本或静态公告。" : "当前账号只能查看大屏状态；控制入口仅 Organizer / Admin 可用。"}</p>
+        {error ? <p className="status-pill risk">Screen action rejected: {error}</p> : null}
       </section>
       <section className="app-grid">
         <div className="app-stack">
@@ -36,23 +39,29 @@ export default async function ScreenConsolePage() {
               <p>{modeSummary[screenState.mode] ?? "等待选择展示模式。"}</p>
               <em>{screenState.fallbackEnabled ? "fallback enabled" : "primary projection"}</em>
             </div>
-            <div className="screen-mode-grid">
-              {modes.map((mode) => (
-                <form action={switchScreenModeAction} key={mode}>
+            {canManage ? (
+              <>
+                <div className="screen-mode-grid">
+                  {modes.map((mode) => (
+                    <form action={switchScreenModeAction} key={mode}>
+                      <input type="hidden" name="raceId" value={race.id} />
+                      <input type="hidden" name="mode" value={mode} />
+                      <button className={screenState.mode === mode ? "active" : ""} type="submit">{mode}</button>
+                    </form>
+                  ))}
+                </div>
+                <form action={toggleScreenFallbackAction}>
                   <input type="hidden" name="raceId" value={race.id} />
-                  <input type="hidden" name="mode" value={mode} />
-                  <button className={screenState.mode === mode ? "active" : ""} type="submit">{mode}</button>
+                  <input type="hidden" name="enabled" value={screenState.fallbackEnabled ? "false" : "true"} />
+                  <button type="submit">{screenState.fallbackEnabled ? "关闭 fallback" : "开启 fallback"}</button>
                 </form>
-              ))}
-            </div>
-            <form action={toggleScreenFallbackAction}>
-              <input type="hidden" name="raceId" value={race.id} />
-              <input type="hidden" name="enabled" value={screenState.fallbackEnabled ? "false" : "true"} />
-              <button type="submit">{screenState.fallbackEnabled ? "关闭 fallback" : "开启 fallback"}</button>
-            </form>
+              </>
+            ) : (
+              <p>只读模式：当前角色不能切换 Display Mode 或 fallback。</p>
+            )}
             <Link className="inline-action" href="/screen/display">打开 Screen Display</Link>
           </section>
-          <section className="form-card">
+          {canManage ? <section className="form-card">
             <h2>Announcement</h2>
             <form action={publishAnnouncementAction}>
               <input type="hidden" name="raceId" value={race.id} />
@@ -60,7 +69,7 @@ export default async function ScreenConsolePage() {
               <textarea name="body" defaultValue="下一轮展示即将开始。" />
               <button type="submit">发布公告并切到 announcement</button>
             </form>
-          </section>
+          </section> : null}
         </div>
         <aside className="form-card">
           <h2>Projection Health</h2>

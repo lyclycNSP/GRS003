@@ -32,9 +32,9 @@ export default async function RaceReviewPage({ params }: { params: Promise<{ slu
         {race.publicEvidence.map((evidence) => (
           <article className="glass-card" key={evidence.id}>
             <span>{evidence.type}</span>
-            <b>{evidence.workTitle}</b>
+            <b>{evidence.title}</b>
             <p>{evidence.summary}</p>
-            <em>{evidence.riderName}</em>
+            <em>{evidence.riderName} / {evidence.workTitle}</em>
           </article>
         ))}
       </section>

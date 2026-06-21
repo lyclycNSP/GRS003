@@ -4,7 +4,7 @@
 文档类型：Permission Matrix
 上游入口：`ary-mvp.prd.md`
 领域基线：`ary-domain-analysis.v0.3.md`
-本地 MVP 实现参考：`../app/domain.js`
+当前实现参考：`../web/lib/auth.ts`、`../web/lib/domain.ts`、`../web/app/console/page.tsx`、`../web/tests/domain.test.ts`
 
 ---
 
@@ -259,25 +259,25 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 
 ---
 
-# 5. 当前实现状态（本地 MVP 口径，截至 v0.4）
+# 5. 当前实现状态（正式集成应用口径）
 
-本权限矩阵是 ARY MVP 的资源动作级规范，是后续**服务端鉴权**的输入。当前阶段（`DEV-4`到`OPS-1`）在 `app/` 形成本地 MVP，权限落地状态如下：
+本权限矩阵是 ARY MVP 的资源动作级规范，是服务端鉴权和 Console 入口可见性的输入。根目录旧 `app/` 静态 MVP 已移除；当前实现以 `web/` 为准，权限落地状态如下：
 
 | 权限实现维度 | 当前状态 | 代码 / UI 入口 |
 |---|---|---|
-| 角色身份 | 通过 `app/index.html` 顶部 `user-select` 和 `role-select` 选择器模拟，存于内存 `state.currentUserId` 和 `state.currentRole` | `app/app.js` 顶部 select 监听 |
-| Server-side 鉴权 | **未实现**；当前所有动作通过 UI 入口控制可见性，调用方传入 `actorId` 后由 domain actions 校验 | — |
-| 已落地的 actor 校验 | `submitJudgingRecord` 校验 `assignment.judgeUserId===actorId`；`archiveRace` 等运维动作校验 `actor.roles` 包含 `organizer`（managed race）或 `admin` | `app/domain.js` 各 action 入口 |
-| 公开端访问控制 | UI 上无登录即可访问 `Public Reports` / `Public Works` 视图；domain 层 `publicReports` selector 仅返回 `visibility=public` 的 Report | `app/domain.js` `selectors.publicReports` |
-| 数据可见性 | `rider_report` 强制带 `subjectRegistrationId` 且发布后仍为 `private`；`race_report` / `review_summary` 不带 subject 才允许公开 | `app/domain.js` `actions.publishReport` |
-| 跨用户隔离 | `app/localStorage` 仅持有本地状态，无多用户并发；UI 顶部选择器用于演示不同 actor | `app/app.js` |
+| 角色身份 | GitHub OAuth 会话读取用户；本地调试可通过 `/debug-login` 写入单角色覆盖 cookie，隔离 Organizer / Admin / Rider / Judge | `web/lib/auth.ts`、`web/app/debug-login/page.tsx` |
+| Server-side 鉴权 | Server Actions 从服务端 auth context 读取 actor，领域动作执行角色、所有权和 race 范围校验 | `web/app/actions.ts`、`web/lib/domain.ts` |
+| 已落地的 actor 校验 | Judge 评分校验 assignment 归属；Organizer/Admin 才能管理当前 Race、Screen、Award、Report；Rider 只能操作自己的 Registration / RaceProject / Work | `web/lib/domain.ts`、`web/tests/domain.test.ts` |
+| 公开端访问控制 | 公开 Works / Results / Review 只读取已发布和公开资源；非公开 Work detail 不返回公开详情 | `web/lib/queries.ts`、`web/tests/domain.test.ts` |
+| 数据可见性 | `rider_report` 保持 private；`race_report` / `review_summary` 可发布为 public；Award 校验 registration/work 属于当前 Race | `web/lib/domain.ts` |
+| 跨用户隔离 | 生产路径依赖服务端会话；debug login 每次覆盖旧调试角色，避免多角色串扰 | `web/lib/auth.ts` |
 
 **正式工程化启动时必须补齐**：
 
-1. 服务端会话与 OAuth（GitHub）落地，actor 来自服务端鉴权而非 UI 选择。
-2. 接口层按本矩阵逐条实现拒绝逻辑（不止 UI 隐藏入口）。
-3. 数据库迁移时把权限判定所需的关系字段（`Race.organizerUserIds`、`Registration.userId`、`Work.registrationId`、`JudgeAssignment.judgeUserId` 等）落到唯一约束和外键上。
-4. 跨设备、跨会话的角色切换与会话失效。
+1. 将本地 SQLite / seed 调试路径替换为生产数据库和正式 OAuth 配置。
+2. 为接口层继续补齐越权请求审计和错误响应一致性。
+3. 数据库迁移时持续校验权限判定所需的关系字段（`Race.organizerUserIds`、`Registration.userId`、`Work.registrationId`、`JudgeAssignment.judgeUserId` 等）对应唯一约束和外键。
+4. 完成跨设备、跨会话的角色切换、会话失效和审计日志策略。
 5. 审计日志：记录被拒绝的越权请求，便于 QA 和安全复盘。
 
 正式权限测试需在服务端鉴权接入后，按本矩阵全量回归；本节当前只反映本地 MVP 实现口径。

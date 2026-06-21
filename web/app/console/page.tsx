@@ -27,7 +27,7 @@ import { fromJson } from "@/lib/json";
 import { getConsoleSnapshotForUser } from "@/lib/queries";
 
 function hasRole(roles: string[], role: string) {
-  return roles.includes("admin") || roles.includes(role);
+  return roles.includes(role);
 }
 
 function toneFor(value?: string | null) {
@@ -44,7 +44,7 @@ function stepState(done: boolean, active: boolean) {
   return "todo";
 }
 
-export default async function ConsolePage() {
+export default async function ConsolePage({ searchParams }: { searchParams?: Promise<{ raceId?: string }> }) {
   const ctx = await getAuthContext();
   if (!ctx) {
     return (
@@ -60,7 +60,8 @@ export default async function ConsolePage() {
   }
   if (!ctx.profileCompleted) redirect("/profile");
 
-  const { race, users, assignments, currentUser } = await getConsoleSnapshotForUser(ctx.userId);
+  const { raceId } = (await searchParams) ?? {};
+  const { race, users, assignments, currentUser, availableRaces } = await getConsoleSnapshotForUser(ctx.userId, raceId);
   if (!race) return <section className="route-page"><h1>No race seeded</h1></section>;
 
   const roles = ctx.roles;
@@ -72,7 +73,7 @@ export default async function ConsolePage() {
   const firstWork = registrations.find((registration) => registration.work)?.work;
   const judge = users.find((user) => fromJson<string[]>(user.rolesJson, []).includes("judge"));
   const ownRegistrations = currentUser?.registrations ?? [];
-  const ownRegistration = ownRegistrations[0];
+  const ownRegistration = ownRegistrations.find((registration) => registration.raceId === race.id);
   const ownProject = ownRegistration?.raceProject;
   const ownConnection = ownProject?.caConnections[0];
   const approvedCount = registrations.filter((registration) => registration.status === "approved").length;
@@ -82,6 +83,7 @@ export default async function ConsolePage() {
   const activeConnectionCount = allConnections.filter(({ connection }) => connection.ingestionStatus === "active" && !connection.disabledAt).length;
   const workCount = registrations.filter((registration) => registration.work).length;
   const publicReportCount = race.reports.filter((report) => report.status === "published" && report.visibility === "public").length;
+  const canManageCurrentRace = ctx.roles.includes("admin") || ctx.managedRaceIds.includes(race.id);
   const riskFlags = registrations.flatMap((registration) => registration.reviewFlags);
   const workflowSteps = [
     { label: "Registration", detail: `${approvedCount}/${registrations.length} approved`, done: approvedCount > 0, active: registrations.length > 0 },
@@ -100,6 +102,8 @@ export default async function ConsolePage() {
         {hasRole(roles, "rider") ? <a href="#rider">Rider View</a> : null}
         {hasRole(roles, "judge") ? <a href="#judge">Judge View</a> : null}
         {hasRole(roles, "admin") ? <a href="#admin">Admin Console</a> : null}
+        {canManageCurrentRace ? <Link href="/screen">Screen Console</Link> : null}
+        <Link href="/screen/display">Screen Display</Link>
         <Link href="/profile">Profile</Link>
         <Link href="/ops">Ops</Link>
       </aside>
@@ -107,6 +111,22 @@ export default async function ConsolePage() {
       <section className="console-main">
         <p className="section-kicker">Console / {race.title} / {roles.join(", ")}</p>
         <h1>{race.title} 指挥席</h1>
+        <section className="console-signal-bar">
+          <article>
+            <span>Current Race</span>
+            <b>{race.status}</b>
+            <p>{race.visibility} / {race.slug}</p>
+          </article>
+          <article>
+            <span>Race switch</span>
+            <b>{availableRaces.length} races</b>
+            <p>
+              {availableRaces.map((item) => (
+                <Link className="inline-action" href={`/console?raceId=${item.id}`} key={item.id}>{item.title}</Link>
+              ))}
+            </p>
+          </article>
+        </section>
         <section className="console-flow-strip" aria-label="MVP workflow">
           {workflowSteps.map((step) => (
             <article className={stepState(step.done, step.active)} key={step.label}>
@@ -142,13 +162,23 @@ export default async function ConsolePage() {
           <section id="organizer" className="console-view-panel active">
             <section className="form-card">
               <h2>Race 管理</h2>
-              <form action={createRaceAction}>
-                <input name="title" defaultValue="本地演示 Race" />
-                <input name="challenge" defaultValue="用 Agent 完成一次可演示的赛事闭环。" />
-                <textarea name="summary" defaultValue="DEV-4 到 REL-1 本地演示 Race。" />
+              <p className="form-hint">创建一场新的 Race。带 * 的字段为必填；发布按钮会把当前 Race 设置为公开运行状态。</p>
+              <form className="console-field-form race-create-form" action={createRaceAction}>
+                <label>
+                  <span>赛事名 <strong>*</strong></span>
+                  <input name="title" defaultValue="本地演示 Race" required />
+                </label>
+                <label>
+                  <span>挑战说明 <strong>*</strong></span>
+                  <input name="challenge" defaultValue="用 Agent 完成一次可演示的赛事闭环。" required />
+                </label>
+                <label>
+                  <span>赛事摘要</span>
+                  <textarea name="summary" defaultValue="DEV-4 到 REL-1 本地演示 Race。" />
+                </label>
                 <button type="submit">创建 Race</button>
               </form>
-              <form action={publishRaceAction}>
+              <form className="console-action-row" action={publishRaceAction}>
                 <input type="hidden" name="raceId" value={race.id} />
                 <button type="submit">发布当前 Race</button>
               </form>
@@ -165,7 +195,7 @@ export default async function ConsolePage() {
               <h2>报名审核</h2>
               <div className="table-list">
                 {registrations.map((registration) => (
-                  <div className="table-row" key={registration.id}>
+                  <div className="table-row registration-row" key={registration.id}>
                     <span>{registration.user.displayName}</span>
                     <b>{registration.status}</b>
                     <form action={approveRegistrationAction}>
@@ -197,44 +227,79 @@ export default async function ConsolePage() {
             </section>
             <section className="form-card">
               <h2>发布与报告</h2>
+              <p className="form-hint">先处理作品和评审分配，再发布 Award 或生成 Report。Report 类型决定公开边界：race_report / review_summary 可公开，rider_report 默认私有且需要 registrationId。</p>
               {firstWork ? (
-                <>
-                  <form action={publishWorkAction}>
-                    <input type="hidden" name="workId" value={firstWork.id} />
-                    <button type="submit">公开 Work</button>
-                  </form>
-                  {judge ? (
-                    <form action={assignJudgeAction}>
+                <div className="organizer-publish-stack">
+                  <section className="rider-step-card organizer-step-card">
+                    <span>Work</span>
+                    <h3>公开作品与分配评审</h3>
+                    <p>公开 Work 后会进入公开作品墙；分配 Judge 后评审员可在 Judge View 提交评分。</p>
+                    <div className="console-action-row">
+                      <form action={publishWorkAction}>
+                        <input type="hidden" name="workId" value={firstWork.id} />
+                        <button type="submit">公开 Work</button>
+                      </form>
+                      {judge ? (
+                        <form action={assignJudgeAction}>
+                          <input type="hidden" name="workId" value={firstWork.id} />
+                          <input type="hidden" name="judgeUserId" value={judge.id} />
+                          <button type="submit">分配 Judge</button>
+                        </form>
+                      ) : null}
+                    </div>
+                  </section>
+                  <section className="rider-step-card organizer-step-card">
+                    <span>Award</span>
+                    <h3>发布 Award</h3>
+                    <p>为当前 Race 下的已审核报名和作品发布奖项。Rank 用数字表示榜单名次，Reason 会显示为获奖理由。</p>
+                    <form className="console-field-form award-form" action={publishAwardAction}>
+                      <input type="hidden" name="raceId" value={race.id} />
+                      <input type="hidden" name="registrationId" value={firstApproved?.id ?? ""} />
                       <input type="hidden" name="workId" value={firstWork.id} />
-                      <input type="hidden" name="judgeUserId" value={judge.id} />
-                      <button type="submit">分配 Judge</button>
+                      <label>
+                        <span>奖项名 <strong>*</strong></span>
+                        <input name="awardName" defaultValue="Grand Prize" required />
+                      </label>
+                      <label>
+                        <span>Rank <strong>*</strong></span>
+                        <input name="rank" defaultValue="1" required />
+                      </label>
+                      <label>
+                        <span>获奖理由</span>
+                        <textarea name="reason" defaultValue="Best combined result and riding evidence package." />
+                      </label>
+                      <button type="submit">发布 Award</button>
                     </form>
-                  ) : null}
-                  <form action={publishAwardAction}>
-                    <input type="hidden" name="raceId" value={race.id} />
-                    <input type="hidden" name="registrationId" value={firstApproved?.id ?? ""} />
-                    <input type="hidden" name="workId" value={firstWork.id} />
-                    <input name="awardName" defaultValue="Grand Prize" />
-                    <input name="rank" defaultValue="1" />
-                    <textarea name="reason" defaultValue="Best combined result and riding evidence package." />
-                    <button type="submit">发布 Award</button>
-                  </form>
-                </>
+                  </section>
+                </div>
               ) : <p>需要先提交 Work。</p>}
-              <form action={rebuildProjectionAction}>
-                <input type="hidden" name="raceId" value={race.id} />
-                <button type="submit">重建 Projection</button>
-              </form>
-              <form action={generateReportAction}>
-                <input type="hidden" name="raceId" value={race.id} />
-                <select name="type" defaultValue="race_report">
-                  <option value="race_report">race_report</option>
-                  <option value="review_summary">review_summary</option>
-                  <option value="rider_report">rider_report</option>
-                </select>
-                <input name="subjectRegistrationId" placeholder="rider_report registrationId" />
-                <button type="submit">生成 Report</button>
-              </form>
+              <section className="rider-step-card organizer-step-card">
+                <span>Projection & Report</span>
+                <h3>重建 Projection / 生成 Report</h3>
+                <p>Projection 用于 Live Hall 和大屏稳定展示；Report 用于赛后公开总结或私有 Rider 报告。</p>
+                <div className="console-action-row">
+                  <form action={rebuildProjectionAction}>
+                    <input type="hidden" name="raceId" value={race.id} />
+                    <button type="submit">重建 Projection</button>
+                  </form>
+                </div>
+                <form className="console-field-form report-form" action={generateReportAction}>
+                  <input type="hidden" name="raceId" value={race.id} />
+                  <label>
+                    <span>Report 类型 <strong>*</strong></span>
+                    <select name="type" defaultValue="race_report" required>
+                      <option value="race_report">race_report：赛事公开总结</option>
+                      <option value="review_summary">review_summary：评审公开摘要</option>
+                      <option value="rider_report">rider_report：单个 Rider 私有报告</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Rider registrationId</span>
+                    <input name="subjectRegistrationId" placeholder="仅 rider_report 需要填写" />
+                  </label>
+                  <button type="submit">生成 Report</button>
+                </form>
+              </section>
               <div className="table-list">
                 {race.reports.map((report) => (
                   <div className="table-row" key={report.id}>
@@ -274,39 +339,80 @@ export default async function ConsolePage() {
                 <Link className="inline-action" href={`/races/${race.slug}`}>查看 Race Page</Link>
               </div>
             ) : ownProject ? (
-              <>
-                <form action={registerCAAction}>
-                  <input type="hidden" name="raceProjectId" value={ownProject.id} />
-                  <button type="submit">新增 CAConnection</button>
-                </form>
+              <div className="rider-action-stack">
+                <section className="rider-step-card">
+                  <span>Step 1</span>
+                  <h3>登记 CAConnection</h3>
+                  <p>为当前 RaceProject 建立一个可接入的 CA 连接。登记后再完成握手，系统才会接受实时信号。</p>
+                  <form action={registerCAAction}>
+                    <input type="hidden" name="raceProjectId" value={ownProject.id} />
+                    <button type="submit">新增 CAConnection</button>
+                  </form>
+                </section>
                 {ownConnection ? (
                   <>
-                    <form action={handshakeCAAction}>
-                      <input type="hidden" name="caConnectionId" value={ownConnection.id} />
-                      <button type="submit">握手 CAConnection</button>
-                    </form>
-                    <form action={ingestSignalAction}>
-                      <input type="hidden" name="raceId" value={ownRegistration!.raceId} />
-                      <input type="hidden" name="registrationId" value={ownRegistration!.id} />
-                      <input type="hidden" name="raceProjectId" value={ownProject.id} />
-                      <input type="hidden" name="caConnectionId" value={ownConnection.id} />
-                      <input type="hidden" name="connectorId" value={ownConnection.connectorId} />
-                      <input name="caSessionId" defaultValue="session-ui" />
-                      <input name="progressPercent" defaultValue="100" />
-                      <input name="tokens" defaultValue="12000" />
-                      <button type="submit">接入合法 CA Signal</button>
-                    </form>
+                    <section className="rider-step-card">
+                      <span>Step 2</span>
+                      <h3>握手并验证来源</h3>
+                      <p>模拟 OCR Desktop App / connector 完成握手。握手后，后续信号会带 connector 签名并进入 Evidence。</p>
+                      <form action={handshakeCAAction}>
+                        <input type="hidden" name="caConnectionId" value={ownConnection.id} />
+                        <button type="submit">握手 CAConnection</button>
+                      </form>
+                    </section>
+                    <section className="rider-step-card">
+                      <span>Step 3</span>
+                      <h3>接入合法 CA Signal</h3>
+                      <p>填写一次骑行会话快照。Session ID 用于幂等，Progress 是完成进度，Tokens 是本次 Agent 输出量。</p>
+                      <form className="ca-signal-form" action={ingestSignalAction}>
+                        <input type="hidden" name="raceId" value={race.id} />
+                        <input type="hidden" name="registrationId" value={ownRegistration!.id} />
+                        <input type="hidden" name="raceProjectId" value={ownProject.id} />
+                        <input type="hidden" name="caConnectionId" value={ownConnection.id} />
+                        <input type="hidden" name="connectorId" value={ownConnection.connectorId} />
+                        <label>
+                          <span>Session ID</span>
+                          <input name="caSessionId" defaultValue="session-ui" />
+                        </label>
+                        <label>
+                          <span>Progress %</span>
+                          <input name="progressPercent" defaultValue="100" />
+                        </label>
+                        <label>
+                          <span>Tokens</span>
+                          <input name="tokens" defaultValue="12000" />
+                        </label>
+                        <button type="submit">接入合法 CA Signal</button>
+                      </form>
+                    </section>
                   </>
                 ) : null}
-                <form action={submitWorkAction}>
-                  <input type="hidden" name="registrationId" value={ownRegistration!.id} />
-                  <input name="title" defaultValue={ownRegistration?.work?.title ?? "Adaptive Bay Route Agent"} />
-                  <textarea name="summary" defaultValue={ownRegistration?.work?.summary ?? "A route planner that replans around live constraints and explains tradeoffs."} />
-                  <input name="demoUrl" defaultValue={ownRegistration?.work?.demoUrl ?? "https://demo.example.com/adaptive-bay-route-agent"} />
-                  <input name="repoUrl" defaultValue={ownRegistration?.work?.repoUrl ?? "https://github.com/example/adaptive-bay-route-agent"} />
-                  <button type="submit">提交 Work</button>
-                </form>
-              </>
+                <section className="rider-step-card">
+                  <span>Step 4</span>
+                  <h3>提交 Work</h3>
+                  <p>提交作品标题、摘要、Demo 和 Repo。CA 信号会作为过程证据，作品本身仍由 Organizer/Judge 后续处理。</p>
+                  <form className="work-submit-form" action={submitWorkAction}>
+                    <input type="hidden" name="registrationId" value={ownRegistration!.id} />
+                    <label>
+                      <span>Title</span>
+                      <input name="title" defaultValue={ownRegistration?.work?.title ?? "Adaptive Bay Route Agent"} />
+                    </label>
+                    <label>
+                      <span>Summary</span>
+                      <textarea name="summary" defaultValue={ownRegistration?.work?.summary ?? "A route planner that replans around live constraints and explains tradeoffs."} />
+                    </label>
+                    <label>
+                      <span>Demo URL</span>
+                      <input name="demoUrl" defaultValue={ownRegistration?.work?.demoUrl ?? "https://demo.example.com/adaptive-bay-route-agent"} />
+                    </label>
+                    <label>
+                      <span>Repo URL</span>
+                      <input name="repoUrl" defaultValue={ownRegistration?.work?.repoUrl ?? "https://github.com/example/adaptive-bay-route-agent"} />
+                    </label>
+                    <button type="submit">提交 Work</button>
+                  </form>
+                </section>
+              </div>
             ) : <p>需要 Organizer 审核报名后生成 RaceProject。</p>}
           </section>
         ) : null}
@@ -319,6 +425,7 @@ export default async function ConsolePage() {
                 <div className="table-row" key={assignment.id}>
                   <span>{assignment.work.title}</span>
                   <b className={`status-pill ${toneFor(assignment.status)}`}>{assignment.status}</b>
+                  <em>{assignment.work.registration.race.title}</em>
                   <Link href={`/works/${assignment.work.slug}/judge`}>Open Judge View</Link>
                 </div>
               )) : <div className="empty-state">暂无分配作品。Organizer 发布 Work 后可分配 Judge。</div>}

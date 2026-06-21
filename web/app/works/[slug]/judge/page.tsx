@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import { getWorkBySlug } from "@/lib/queries";
 import { submitJudgingRecordAction } from "@/app/actions";
 
-export default async function WorkJudgePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function WorkJudgePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ saved?: string }> }) {
   const { slug } = await params;
-  const work = await getWorkBySlug(slug);
+  const { saved } = (await searchParams) ?? {};
+  const work = await getWorkBySlug(slug, { includeReviewOnly: true });
   if (!work) notFound();
   const race = work.registration.race;
   const rider = work.registration.user;
@@ -17,6 +18,7 @@ export default async function WorkJudgePage({ params }: { params: Promise<{ slug
         <p className="section-kicker">{race.title} / {work.title} / Judge View</p>
         <h1>{work.title}</h1>
         <p className="module-summary">评审席视角：{rider.displayName} 的作品已提交，Demo、Repo 与 Riding Evidence 摘要可被评审席查看。</p>
+        {saved === "1" ? <p className="status-pill good">JudgingRecord 已保存，Assignment 状态已更新。</p> : null}
         <div className="work-detail-actions work-judge-actions">
           <a href={work.demoUrl ?? "#"}>打开 Demo</a>
           <a href={work.repoUrl ?? "#"}>查看 Repo</a>
@@ -38,6 +40,8 @@ export default async function WorkJudgePage({ params }: { params: Promise<{ slug
         <form className="score-form-card work-judge-form" action={submitJudgingRecordAction}>
           <span>Score Form</span>
           <input type="hidden" name="assignmentId" value={assignment?.id ?? ""} />
+          <input type="hidden" name="redirectTo" value={`/works/${work.slug}/judge`} />
+          {review ? <p className="status-pill good">当前记录：{assignment?.status} / submitted</p> : null}
           <label>score_result<input type="number" min="0" max="100" name="scoreResult" defaultValue={review?.scoreResult ?? 86} /></label>
           <label>score_riding<input type="number" min="0" max="100" name="scoreRiding" defaultValue={review?.scoreRiding ?? 91} /></label>
           <label>comments<textarea name="comments" defaultValue={review?.comments ?? "路线表达清楚，纠偏记录完整。"} /></label>

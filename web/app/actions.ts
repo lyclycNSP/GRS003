@@ -152,6 +152,7 @@ export async function assignJudgeAction(formData: FormData) {
 
 export async function submitJudgingRecordAction(formData: FormData) {
   const ctx = await getAuthContext();
+  const redirectTo = value(formData, "redirectTo");
   const result = await submitJudgingRecord(ctx, value(formData, "assignmentId"), {
     scoreResult: Number(value(formData, "scoreResult") || 0),
     scoreRiding: Number(value(formData, "scoreRiding") || 0),
@@ -159,6 +160,7 @@ export async function submitJudgingRecordAction(formData: FormData) {
   });
   refresh("/console");
   if (!result.ok) throw new Error(result.message);
+  if (redirectTo.startsWith("/works/")) redirect(`${redirectTo}?saved=1`);
 }
 
 export async function publishAwardAction(formData: FormData) {
@@ -251,14 +253,14 @@ export async function switchScreenModeAction(formData: FormData) {
   const ctx = await getAuthContext();
   const result = await switchScreenMode(ctx, value(formData, "raceId"), value(formData, "mode"));
   refresh("/screen");
-  if (!result.ok) throw new Error(result.message);
+  if (!result.ok) redirect(`/screen?error=${encodeURIComponent(result.message)}`);
 }
 
 export async function toggleScreenFallbackAction(formData: FormData) {
   const ctx = await getAuthContext();
   const result = await toggleScreenFallback(ctx, value(formData, "raceId"), value(formData, "enabled") === "true");
   refresh("/screen");
-  if (!result.ok) throw new Error(result.message);
+  if (!result.ok) redirect(`/screen?error=${encodeURIComponent(result.message)}`);
 }
 
 export async function publishAnnouncementAction(formData: FormData) {
@@ -269,7 +271,7 @@ export async function publishAnnouncementAction(formData: FormData) {
     body: value(formData, "body")
   });
   refresh("/screen");
-  if (!result.ok) throw new Error(result.message);
+  if (!result.ok) redirect(`/screen?error=${encodeURIComponent(result.message)}`);
 }
 export async function updateRolesAction(formData: FormData) {
   const ctx = await getAuthContext();

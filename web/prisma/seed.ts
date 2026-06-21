@@ -122,7 +122,8 @@ async function main() {
   await prisma.registration.createMany({
     data: [
       { id: "reg_mira", raceId: "race_bay_2026", userId: "user_rider_1", status: "approved", submittedAt: new Date("2026-06-18T09:00:00Z"), approvedAt: new Date("2026-06-18T09:20:00Z") },
-      { id: "reg_ana", raceId: "race_bay_2026", userId: "user_rider_2", status: "approved", submittedAt: new Date("2026-06-18T09:12:00Z"), approvedAt: new Date("2026-06-18T09:24:00Z") }
+      { id: "reg_ana", raceId: "race_bay_2026", userId: "user_rider_2", status: "approved", submittedAt: new Date("2026-06-18T09:12:00Z"), approvedAt: new Date("2026-06-18T09:24:00Z") },
+      { id: "reg_genesis_mira", raceId: "race_genesis_2026", userId: "user_rider_1", status: "approved", submittedAt: new Date("2026-06-01T09:00:00Z"), approvedAt: new Date("2026-06-01T09:20:00Z") }
     ]
   });
 
@@ -166,6 +167,19 @@ async function main() {
         demoUrl: "mock://demo/localjoy-agent",
         repoUrl: "mock://repo/localjoy-agent",
         submittedAt: new Date()
+      },
+      {
+        id: "work-genesis-mira",
+        registrationId: "reg_genesis_mira",
+        slug: "ary-self-dogfood-agent",
+        title: "ARY Self Dogfood Agent",
+        summary: "第一场创世赛中沉淀出的平台自举作品。",
+        status: "published",
+        visibility: "public",
+        demoUrl: "mock://demo/ary-self-dogfood",
+        repoUrl: "mock://repo/ary-self-dogfood",
+        submittedAt: new Date("2026-06-02T10:00:00Z"),
+        publishedAt: new Date("2026-06-03T10:00:00Z")
       }
     ]
   });
@@ -196,7 +210,7 @@ async function main() {
   });
 
   await prisma.award.create({
-    data: { id: "award-genesis-001", raceId: "race_genesis_2026", registrationId: "reg_mira", workId: "work-gba-wander", awardName: "最佳自举作品", rank: 1, decisionReason: "第一场创世赛跑出了平台自己的起点。", status: "published", publishedAt: new Date() }
+    data: { id: "award-genesis-001", raceId: "race_genesis_2026", registrationId: "reg_genesis_mira", workId: "work-genesis-mira", awardName: "最佳自举作品", rank: 1, decisionReason: "第一场创世赛跑出了平台自己的起点。", status: "published", publishedAt: new Date() }
   });
 
   await prisma.projection.createMany({

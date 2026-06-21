@@ -40,7 +40,19 @@ async function createReviewFlag(input: {
   const existing = await prisma.reviewFlag.findFirst({
     where: { registrationId: input.registrationId, type: input.type, status: { not: "resolved" } }
   });
-  if (existing) return existing;
+  if (existing) {
+    return prisma.reviewFlag.update({
+      where: { id: existing.id },
+      data: {
+        raceId: input.raceId,
+        raceProjectId: input.raceProjectId ?? existing.raceProjectId,
+        workId: input.workId ?? existing.workId,
+        severity: input.severity,
+        judgeVisibleSummary: input.summary,
+        sourceRefJson: toJson(input.sourceRef ?? {})
+      }
+    });
+  }
   return prisma.reviewFlag.create({
     data: {
       id: makeId("flag"),
@@ -413,6 +425,14 @@ export async function submitJudgingRecord(ctx: AuthContext | null, assignmentId:
 
 export async function publishAward(ctx: AuthContext | null, input: { raceId: string; registrationId: string; workId?: string; awardName: string; rank: number; reason: string }): Promise<Result> {
   requireManagedRace(ctx, input.raceId);
+  const registration = await prisma.registration.findUnique({ where: { id: input.registrationId } });
+  if (!registration) return fail("Registration不存在");
+  if (registration.raceId !== input.raceId) return fail("Registration不属于当前Race");
+  if (input.workId) {
+    const work = await prisma.work.findUnique({ where: { id: input.workId } });
+    if (!work) return fail("Work不存在");
+    if (work.registrationId !== input.registrationId) return fail("Work不属于当前Registration");
+  }
   const award = await prisma.award.upsert({
     where: { raceId_awardName_rank: { raceId: input.raceId, awardName: input.awardName, rank: input.rank } },
     update: { registrationId: input.registrationId, workId: input.workId, decisionReason: input.reason, status: "published", publishedAt: new Date() },

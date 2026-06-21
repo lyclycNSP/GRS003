@@ -1,13 +1,13 @@
 # ARY Mobile UX Review v0.1
 
-> 审计对象：`app/index.html` + `app/styles.css` + `app/app.js` + `app/layout-check.js`
+> 历史审计对象：根目录旧 `app/index.html` + `app/styles.css` + `app/app.js` + `app/layout-check.js`。该静态 MVP 目录已从当前工作树删除；当前移动端体验以 `web/` 为准。
 > 范围：8 视图端到端交互走查（不修改任何代码）
 > 视口：360×640（mobile）/ 768×1024（tablet）
 > 工具：CSS @media 静态分析 + DOM 结构 + IA 规范对照
 
 ## 1. 走查范围与视口
 
-- **方法**：基于 `app/styles.css` 的 3 个断点（`@media (max-width: 1060px / 700px / 480px)`）+ `app/index.html` 的 8 个 `<section class="view">` 结构 + `app/app.js` 的 `renderEmpty` / `renderError` 调用点（39 处命中）做静态推导，不启动浏览器。
+- **方法**：历史上基于旧 `app/styles.css` 的 3 个断点（`@media (max-width: 1060px / 700px / 480px)`）+ 旧 `app/index.html` 的 8 个 `<section class="view">` 结构 + 旧 `app/app.js` 的 `renderEmpty` / `renderError` 调用点（39 处命中）做静态推导，不启动浏览器。
 - **命中规则**：
   - 360×640：触发全部三个断点（<1060 / <700 / <480）
   - 768×1024：仅触发第一个断点（<1060），处于断点 1 区间
@@ -79,6 +79,6 @@
 
 **走查人**：general agent (v0.1 static audit)
 **走查时间**：2026-06-19
-**改动**：仅新建 `docs/ary-mobile-ux-review.md`，未触碰 `app/` / `design-prototype/` 任何源文件。
+**改动**：仅新建 `docs/ary-mobile-ux-review.md`，当时未触碰旧 `app/` / `design-prototype/` 任何源文件。当前旧 `app/` 目录已删除。
 
 VERDICT: PASS

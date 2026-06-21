@@ -53,7 +53,7 @@ export default async function HomePage() {
             <h2>{race.title}</h2>
             <p>{race.summary}</p>
             <b>{String(race.metrics.riders ?? 0)} riders / {String(race.metrics.submittedWorks ?? 0)} works</b>
-            <div className="work-card-actions">
+            <div className="work-card-actions race-card-actions">
               <Link href={`/races/${race.slug}`}>Race Page</Link>
               <Link href={`/races/${race.slug}/works`}>Works</Link>
               <Link href={`/races/${race.slug}/results`}>Results</Link>

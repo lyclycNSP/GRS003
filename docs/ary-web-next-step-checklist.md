@@ -62,7 +62,7 @@ npm.cmd run dev
 # 5. 当前应避免的事
 
 * 不要重写 `docs/ary-mvp.prd.md` 的核心口径。
-* 不要删除 `app/`，它仍是 DEV-4 到 OPS-1 的本地 MVP 证据。
+* 根目录旧 `app/` 静态 MVP 已删除；DEV-4 到 OPS-1 的当前可运行证据以 `web/` 和 `docs/ary-dev-4-to-ops-delivery.md` 为准。
 * 不要删除 `design-prototype/`，它仍是 UX-1 和页面视觉来源。
 * 不要把 `.env`、GitHub Client Secret 或其他密钥提交到公开仓库。
 * 不要把 CA 接入失败改成参赛硬门禁；当前口径仍是评审前风险提示。

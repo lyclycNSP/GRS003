@@ -5,7 +5,7 @@
 上游入口：`ary-mvp.prd.md`
 领域基线：`ary-domain-analysis.v0.3.md`
 权限矩阵：`ary-permission-matrix.md`
-本地 MVP 测试入口：`../app/domain.test.js`
+当前测试入口：`../web/tests/domain.test.ts`（运行方式：`cd ../web && npm test`）
 
 ---
 
@@ -221,10 +221,10 @@ GitHub 登录
 
 本计划定义的测试场景在生产接入前分为**已通过本地 MVP 领域测试验证**和**待生产接入后验证**两类。下表区分当前实现状态，作为后续正式 QA 的起点：
 
-| 测试维度 | 本地 MVP 已覆盖（`app/domain.test.js`） | 待生产接入验证 |
+| 测试维度 | 当前集成应用已覆盖（`web/tests/domain.test.ts`） | 待生产接入验证 |
 |---|---|---|
 | 赛事生命周期 | `runP0Regression` 串联 14 步闭环（发布→报名→审核→RaceProject→CA 握手→信号→Projection→Work→Judge→Award→Report→屏幕→备份→检查项） | 端到端浏览器自动化、Playwright 截图回归 |
-| 角色路径 | UI 角色选择器模拟 Public/Rider/Judge/Organizer/Admin 入口；UI 上限制可见视图 | 服务端鉴权、JWT/Session、跨设备角色切换 |
+| 角色路径 | Debug Login 覆盖 Public/Rider/Judge/Organizer/Admin 调试入口；Console 根据服务端 auth context 限制角色视图 | 生产 OAuth、JWT/Session、跨设备角色切换 |
 | 权限 | `submitJudgingRecord` 校验 `assignment.judgeUserId===actorId`；`archiveRace` 等运维动作限制 managed race / system actor | 全矩阵服务端拒绝、越权请求审计 |
 | CA 接入 | 已覆盖：合法/非法信号接入、`idempotencyKey` 幂等、CA 失败不阻断 Work/Judge/Award | 真实 connector HTTP push、HTTP fetch snapshot、网络分区恢复 |
 | Projection | 已覆盖：`rebuildProjection` 成功生成稳定版本、失败时 `status=failed` 但保留最近稳定版本、事实表零修改 | 并发重建、回滚到稳定版本、Projection 版本对比 |

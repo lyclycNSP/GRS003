@@ -288,7 +288,7 @@ p {
   color: var(--blue-700);
   font-size: 22px;
   font-weight: 950;
-  letter-spacing: 2px;
+  letter-spacing: 0.6px;
 }
 
 .hero-copy {
@@ -438,10 +438,10 @@ p {
 .benefit-row article {
   display: grid;
   grid-template-columns: 70px minmax(0, 1fr);
-  gap: 14px;
+  gap: 18px;
   align-items: center;
   min-height: 128px;
-  padding: 16px 20px;
+  padding: 18px 22px;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.74);
@@ -465,10 +465,12 @@ p {
 }
 
 .benefit-row h2 {
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   color: var(--blue-800);
-  font-size: 22px;
-  font-weight: 950;
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(22px, 2.05vw, 28px);
+  font-weight: 900;
+  line-height: 1.08;
 }
 
 .benefit-row p,
@@ -476,8 +478,29 @@ p {
 .glass-card p {
   margin-bottom: 0;
   color: var(--muted);
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
   font-size: 15px;
-  line-height: 1.34;
+  line-height: 1.42;
+}
+
+.benefit-row a {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 0 12px;
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+  box-shadow: 0 12px 24px rgba(7, 91, 236, 0.18);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .benefit-row button,
@@ -1147,27 +1170,47 @@ p {
   gap: 10px;
 }
 
+.work-detail-actions {
+  margin-top: 24px;
+  gap: 10px 12px;
+}
+
 .work-detail-actions button,
+.work-detail-actions a,
 .auth-card button,
 .profile-form-panel button,
 .ca-connection-list button,
 .score-form-card button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 38px;
   padding: 0 14px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 999px;
   color: var(--blue-800);
   background: rgba(255, 255, 255, 0.78);
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
   font-size: 14px;
-  font-weight: 950;
+  font-weight: 850;
+  line-height: 1.1;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 10px 22px rgba(34, 107, 230, 0.08);
 }
 
 .work-detail-actions button:first-child,
+.work-detail-actions a:first-child,
 .auth-card button,
 .profile-form-panel button,
 .score-form-card button {
   color: #fff;
   background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+}
+
+.work-detail-actions .is-disabled {
+  pointer-events: none;
+  opacity: 0.54;
 }
 
 .work-story-grid {
@@ -1202,7 +1245,7 @@ p {
   color: var(--blue-700);
   font-size: 13px;
   font-weight: 950;
-  letter-spacing: 1px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
 }
 
@@ -1213,17 +1256,20 @@ p {
 }
 
 .work-story-card h2 {
-  margin: 16px 0 12px;
+  margin: 14px 0 12px;
   color: var(--blue-950);
-  font-size: 34px;
-  line-height: 1.06;
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(26px, 2.2vw, 34px);
+  line-height: 1.08;
+  letter-spacing: 0;
 }
 
 .work-story-card p {
   color: var(--muted);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 720;
-  line-height: 1.4;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .work-evidence-panel {
@@ -1350,27 +1396,34 @@ p {
 }
 
 .work-card {
-  padding: 22px;
+  padding: 24px;
 }
 
 .work-card h2 {
-  margin: 16px 0 12px;
+  margin: 14px 0 12px;
   color: var(--blue-950);
-  font-size: 34px;
-  line-height: 1;
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(28px, 2.6vw, 34px);
+  font-weight: 900;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
 }
 
 .work-card p {
   color: var(--muted);
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
   font-size: 17px;
-  line-height: 1.35;
+  line-height: 1.48;
 }
 
 .work-card b {
   display: block;
   margin-top: 14px;
   color: var(--blue-700);
-  font-size: 18px;
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.25;
 }
 
 .work-card button {
@@ -1872,6 +1925,172 @@ p {
   flex-basis: 100%;
   margin: 0;
 }
+
+.form-hint {
+  max-width: 84ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.console-field-form {
+  display: grid;
+  gap: 10px;
+}
+
+.console-field-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.console-field-form label span {
+  color: var(--blue-800);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.console-field-form label strong {
+  color: #d3263a;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.console-field-form input,
+.console-field-form select,
+.console-field-form textarea {
+  min-height: 40px;
+}
+
+.console-field-form textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.race-create-form,
+.award-form,
+.report-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.race-create-form label:nth-of-type(3),
+.race-create-form button,
+.award-form label:nth-of-type(3),
+.award-form button,
+.report-form button {
+  grid-column: 1 / -1;
+}
+
+.console-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.console-action-row form {
+  margin: 0;
+}
+
+.organizer-publish-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.organizer-step-card {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.rider-action-stack {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.rider-step-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(34, 107, 230, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 10px 24px rgba(11, 57, 150, 0.07);
+}
+
+.rider-step-card > span {
+  color: var(--blue-700);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.rider-step-card h3 {
+  margin: 0;
+  color: var(--blue-950);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.rider-step-card p {
+  max-width: 78ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.rider-step-card form {
+  display: grid;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.rider-step-card label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.rider-step-card label span {
+  color: var(--blue-800);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.rider-step-card input,
+.rider-step-card textarea {
+  min-height: 40px;
+}
+
+.rider-step-card textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.ca-signal-form {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+}
+
+.work-submit-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.work-submit-form label:nth-of-type(2),
+.work-submit-form button {
+  grid-column: 1 / -1;
+}
+
+.rider-step-card button {
+  width: fit-content;
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .rider-cockpit-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1879,15 +2098,16 @@ p {
 }
 
 .rider-status-card {
-  min-height: 160px;
-  padding: 18px;
+  min-height: 132px;
+  padding: 16px;
 }
 
 .rider-status-card b {
-  display: block;
-  margin: 16px 0 8px;
+  display: inline-flex;
+  margin: 14px 0 8px;
   color: var(--blue-950);
-  font-size: 34px;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .rider-status-card p,
@@ -1896,6 +2116,13 @@ p {
   font-size: 15px;
   font-weight: 760;
   line-height: 1.42;
+}
+
+.rider-status-card .status-pill {
+  min-height: 30px;
+  padding: 5px 12px;
+  font-size: 14px;
+  font-weight: 850;
 }
 
 .ca-connection-list {
@@ -2827,6 +3054,40 @@ p {
   margin-top: 12px;
 }
 
+.work-card-actions a {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 999px;
+  color: var(--blue-800);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 10px 22px rgba(11, 57, 150, 0.1);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.work-card-actions a:first-child {
+  color: #fff;
+  border-color: rgba(7, 91, 236, 0.2);
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+  box-shadow: 0 14px 28px rgba(7, 91, 236, 0.22);
+}
+
+.work-card-actions a:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(11, 57, 150, 0.14);
+}
+
+.race-card-actions {
+  margin-top: 18px;
+}
+
 .work-card-actions button {
   min-height: 34px;
   padding: 0 12px;
@@ -2858,15 +3119,76 @@ p {
 
 /* Next.js integrated app fixes */
 body {
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .deck-shell {
   width: min(100%, 1920px);
   height: auto;
   min-height: 100vh;
-  overflow: visible;
+  overflow-x: clip;
+  overflow-y: visible;
   transform: none;
+}
+
+.deck-header {
+  grid-template-columns: minmax(280px, 430px) minmax(260px, 1fr) auto;
+  gap: 24px;
+}
+
+.ia-nav {
+  position: relative;
+  isolation: isolate;
+  gap: 0;
+}
+
+.ia-nav::before,
+.ia-nav::after {
+  position: relative;
+  z-index: 0;
+  min-width: 38px;
+  opacity: 0.7;
+}
+
+.ia-nav .nav-link {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--blue-900);
+  background: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.workspace-entry {
+  position: relative;
+  right: auto;
+  top: auto;
+  justify-content: flex-end;
+}
+
+.workspace-entry a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 999px;
+  color: var(--blue-800);
+  background: rgba(255, 255, 255, 0.68);
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .next-page {
@@ -2893,7 +3215,7 @@ body {
 
 .app-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   gap: 24px;
   align-items: flex-start;
 }
@@ -2906,6 +3228,7 @@ body {
 .form-card {
   display: grid;
   gap: 12px;
+  min-width: 0;
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -2979,6 +3302,8 @@ body {
 
 .route-page {
   padding: 34px 42px 64px;
+  width: min(100%, 1320px);
+  margin: 0 auto;
 }
 
 .route-hero {
@@ -3022,15 +3347,217 @@ body {
 
 .route-page .work-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
+}
+
+.route-page .benefit-row {
+  margin-bottom: 30px;
+}
+
+.route-page .benefit-row + .work-grid {
+  margin-top: 34px;
+}
+
+.route-page .module-title + .work-grid {
+  margin-top: 30px;
+}
+
+.route-page .work-card {
+  display: grid;
+  align-content: start;
+  min-height: 260px;
+}
+
+.route-page .work-card span {
+  max-width: 100%;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.route-page .work-card p {
+  max-width: 58ch;
+}
+
+.route-page .hero-live-switcher {
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  height: auto;
+  margin: 6px auto 18px;
+}
+
+.route-page .hero-live-switcher a {
+  min-height: 24px;
+  color: var(--blue-700);
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.page-work-detail .work-detail-hero {
+  position: relative;
+  inset: auto;
+  width: min(100%, 960px);
+  margin-bottom: 30px;
+  z-index: 1;
+}
+
+.page-work-detail .work-detail-hero .section-kicker {
+  margin-bottom: 8px;
+  color: var(--blue-700);
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.page-work-detail .work-detail-hero h1 {
+  max-width: 860px;
+  margin: 8px 0 10px;
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(42px, 4vw, 58px);
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.page-work-detail .work-detail-hero .module-summary {
+  max-width: 720px;
+  color: var(--blue-950);
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.page-work-detail .app-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 370px);
+  gap: 28px;
+}
+
+.page-work-detail .work-story-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.2fr) repeat(2, minmax(220px, 0.9fr));
+  grid-template-rows: minmax(210px, auto) minmax(190px, auto);
+  gap: 18px;
+}
+
+.page-work-detail .work-story-card {
+  min-width: 0;
+  padding: 24px;
+}
+
+.page-work-detail .work-story-card.primary h2 {
+  max-width: 9em;
+  font-size: clamp(31px, 2.8vw, 42px);
+  line-height: 1.08;
+}
+
+.page-work-detail .work-story-card.primary p {
+  max-width: 27ch;
+}
+
+.page-work-detail .work-story-card:not(.primary) h2 {
+  font-size: clamp(27px, 2.1vw, 34px);
+}
+
+.page-work-detail .work-story-card:not(.primary) p {
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.page-work-detail .work-evidence-panel {
+  padding: 24px;
+}
+
+.page-work-detail .work-evidence-panel h2 {
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  font-size: 28px;
+  line-height: 1.12;
+}
+
+.page-work-detail .work-evidence-panel p {
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.debug-login-page {
+  display: grid;
+  gap: 22px;
+}
+
+.debug-login-hero {
+  position: relative;
+  inset: auto;
+  max-width: 880px;
+  margin: 0;
+  padding: 0;
+}
+
+.debug-login-hero h1 {
+  margin: 6px 0 8px;
+  color: var(--blue-950);
+  font-size: clamp(42px, 6vw, 82px);
+  font-style: italic;
+  font-weight: 950;
+  line-height: 0.92;
+}
+
+.debug-login-hero .hero-subtitle {
+  max-width: 760px;
+  color: var(--blue-900);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.route-page .debug-login-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: stretch;
+}
+
+.debug-role-card {
+  display: flex;
+  min-height: 230px;
+  flex-direction: column;
+}
+
+.debug-role-card h2 {
+  margin: 14px 0 10px;
+}
+
+.debug-role-card p {
+  flex: 1;
+}
+
+.debug-role-card a {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  padding: 0 14px;
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+  box-shadow: 0 14px 28px rgba(7, 91, 236, 0.2);
+  font-size: 14px;
+  font-weight: 950;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .route-page .race-content-grid,
 .route-page .award-grid,
 .route-page .review-card-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
 
@@ -3039,6 +3566,78 @@ body {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 18px;
+}
+
+.route-page .right-dashboard {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+}
+
+.route-page .right-dashboard a {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 0 12px;
+  border: 1px solid rgba(34, 107, 230, 0.18);
+  border-radius: 999px;
+  color: var(--blue-800);
+  background: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.route-page .right-dashboard a:first-of-type {
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue-800), var(--blue-500));
+  box-shadow: 0 14px 28px rgba(7, 91, 236, 0.18);
+}
+
+.route-page .live-header {
+  display: flex;
+  gap: 24px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.route-page .live-metrics {
+  display: grid;
+  gap: 14px;
+}
+
+.route-page .event-stream {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.route-page .event-stream article {
+  min-width: 0;
+}
+
+.route-page .profile-layout {
+  position: relative;
+  inset: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 26px;
+}
+
+.route-page .profile-card {
+  min-width: 0;
+  min-height: 176px;
+  padding: 22px;
+}
+
+.route-page .profile-card h2 {
+  font-size: 34px;
+  line-height: 1;
 }
 
 .nav-link {
@@ -3094,8 +3693,29 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
+.console-layout .section-kicker,
+.console-layout .role-entry-grid span,
+.console-layout .rider-status-card > span,
+.console-flow-strip span,
+.console-signal-bar span,
+.release-readiness-panel span,
+.screen-preview-card span,
+.ca-attestation-panel span,
+.rider-step-card > span {
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.7px;
+}
+
 .console-layout .ops-grid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(156px, 190px));
+  justify-content: start;
+  gap: 14px;
+  margin: 14px 0 18px;
+}
+
+.console-layout .ops-grid article {
+  min-height: 150px;
+  padding: 18px;
 }
 
 .console-layout .form-card,
@@ -3104,6 +3724,20 @@ body {
 .app-grid,
 .app-stack {
   min-width: 0;
+}
+
+.console-view-panel {
+  display: grid;
+  gap: 28px;
+}
+
+.console-layout .console-view-panel.active {
+  display: grid;
+  gap: 28px;
+}
+
+.console-view-panel > .form-card {
+  width: 100%;
 }
 
 .console-flow-strip,
@@ -3115,7 +3749,7 @@ body {
 }
 
 .console-flow-strip {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
 }
 
 .console-flow-strip article,
@@ -3192,6 +3826,13 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.console-signal-bar .inline-action {
+  min-height: 32px;
+  margin: 4px 6px 0 0;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
 .release-readiness-panel {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -3253,6 +3894,20 @@ body {
   gap: 3px;
 }
 
+.registration-row {
+  grid-template-columns: minmax(160px, 1fr) minmax(96px, 140px) max-content;
+}
+
+.registration-row > form {
+  justify-content: flex-end;
+}
+
+.registration-row button {
+  min-width: 0;
+  width: auto;
+  white-space: nowrap;
+}
+
 .ca-row em strong {
   color: var(--blue-950);
   font-size: 13px;
@@ -3280,6 +3935,31 @@ body {
   color: var(--blue-700);
   font-style: normal;
   font-weight: 900;
+}
+
+.app-grid > .form-card {
+  overflow: hidden;
+}
+
+.app-grid > .form-card .ops-grid.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.app-grid > .form-card .ops-grid.compact article {
+  min-height: 128px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.app-grid > .form-card .ops-grid.compact b {
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.app-grid > .form-card .ops-grid.compact p,
+.app-grid > .form-card .ops-grid.compact span {
+  overflow-wrap: anywhere;
 }
 
 .console-sidebar a {
@@ -3332,11 +4012,43 @@ body {
 }
 
 @media (max-width: 900px) {
+  body {
+    overflow-x: hidden;
+  }
+
   .deck-shell {
     width: 100%;
     height: auto;
-    padding: 18px;
+    padding: 16px 18px 28px;
+    overflow-x: clip;
     transform: none;
+  }
+
+  .deck-header {
+    grid-template-columns: 1fr;
+    height: auto;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand-emblem,
+  .brand-emblem img {
+    width: 46px;
+    height: 50px;
+  }
+
+  .brand strong {
+    font-size: 24px;
+    line-height: 0.92;
+  }
+
+  .brand small {
+    font-size: 13px;
+    line-height: 1.1;
   }
 
   .deck-header,
@@ -3352,14 +4064,263 @@ body {
 
   .ia-nav {
     flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .ia-nav::before,
+  .ia-nav::after {
+    display: none;
+  }
+
+  .ia-nav .nav-link {
+    min-height: 28px;
+    padding: 0 9px;
+    font-size: 12px;
+  }
+
+  .workspace-entry {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .workspace-entry a {
+    min-height: 28px;
+    font-size: 12px;
   }
 
   .route-page {
-    padding: 24px 0 48px;
+    padding: 22px 0 48px;
+    width: 100%;
+    overflow-x: clip;
+  }
+
+  .route-page .race-hero-panel {
+    margin-bottom: 20px;
+  }
+
+  .race-cta-row {
+    gap: 8px;
+  }
+
+  .race-cta-row,
+  .race-cta-row form {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .race-cta-row .inline-action {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .route-page .hero-live-switcher {
+    gap: 6px 10px;
+    max-width: 320px;
+  }
+
+  .route-page .hero-live-switcher a {
+    font-size: 12px;
+    white-space: normal;
+  }
+
+  .page-work-detail .work-detail-hero {
+    width: 100%;
+    margin-bottom: 28px;
+  }
+
+  .page-work-detail .work-detail-hero .section-kicker {
+    font-size: 18px;
+    line-height: 1.25;
+  }
+
+  .page-work-detail .work-detail-hero h1 {
+    max-width: 100%;
+    font-size: 40px;
+    line-height: 1.02;
+    overflow-wrap: anywhere;
+  }
+
+  .page-work-detail .work-detail-hero .module-summary {
+    max-width: 100%;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .page-work-detail .work-detail-actions {
+    gap: 10px;
+  }
+
+  .page-work-detail .work-detail-actions a {
+    min-height: 38px;
+    padding: 0 13px;
+    font-size: 13px;
+  }
+
+  .page-work-detail .app-grid,
+  .page-work-detail .work-story-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-work-detail .app-grid {
+    gap: 18px;
+  }
+
+  .page-work-detail .work-story-grid {
+    grid-template-rows: none;
+    gap: 14px;
+  }
+
+  .page-work-detail .work-story-card.primary {
+    grid-row: auto;
+    min-height: 260px;
+  }
+
+  .page-work-detail .work-story-card.primary h2 {
+    max-width: 10em;
+    font-size: 34px;
+  }
+
+  .page-work-detail .work-story-card:not(.primary) h2 {
+    font-size: 28px;
+  }
+
+  .page-work-detail .work-evidence-panel {
+    width: 100%;
+  }
+
+  .route-page .race-state-grid {
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .route-page .race-content-grid,
+  .route-page .award-grid,
+  .route-page .review-card-grid,
+  .route-page .work-grid,
+  .route-page .profile-layout {
+    gap: 14px;
+  }
+
+  .state-card,
+  .race-content-grid .glass-card,
+  .work-card,
+  .profile-card,
+  .right-dashboard,
+  .leaderboard-panel,
+  .event-stream article {
+    min-width: 0;
+  }
+
+  .state-card {
+    min-height: 112px;
+    padding: 16px;
+  }
+
+  .state-card b {
+    font-size: 25px;
+    line-height: 1.08;
+  }
+
+  .race-content-grid .glass-card {
+    min-height: 170px;
+  }
+
+  .route-page .right-dashboard {
+    min-height: auto;
+    padding: 18px;
+  }
+
+  .route-page .right-dashboard a {
+    margin-right: 6px;
+    margin-bottom: 6px;
+  }
+
+  .route-page .live-header {
+    display: grid;
+    gap: 14px;
+    align-items: start;
+  }
+
+  .route-page .live-header h1 {
+    font-size: 42px;
+    line-height: 0.98;
+    overflow-wrap: anywhere;
+  }
+
+  .route-page .live-score {
+    width: min(180px, 100%);
+    min-height: 108px;
+  }
+
+  .route-page .live-metrics {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .route-page .live-metrics article {
+    min-height: 112px;
+  }
+
+  .route-page .event-stream {
+    grid-template-columns: 1fr;
+  }
+
+  .leaderboard-panel li {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .leaderboard-panel li b {
+    overflow-wrap: anywhere;
+  }
+
+  .route-page .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .route-page .profile-card {
+    min-height: 150px;
+    padding: 18px;
+    text-align: left;
+  }
+
+  .route-page .profile-card p {
+    max-width: 32ch;
+    margin-left: 0;
+    text-align: left;
   }
 
   .table-row {
     grid-template-columns: 1fr;
+  }
+
+  .registration-row {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-row > form {
+    justify-content: flex-start;
+  }
+
+  .ca-signal-form,
+  .work-submit-form,
+  .race-create-form,
+  .award-form,
+  .report-form {
+    grid-template-columns: 1fr;
+  }
+
+  .work-submit-form label:nth-of-type(2),
+  .work-submit-form button,
+  .race-create-form label:nth-of-type(3),
+  .race-create-form button,
+  .award-form label:nth-of-type(3),
+  .award-form button,
+  .report-form button {
+    grid-column: auto;
   }
 
   .role-entry-grid,
@@ -3369,19 +4330,65 @@ body {
   .console-flow-strip,
   .console-signal-bar,
   .release-readiness-panel,
+  .benefit-row,
   .cooperation-grid {
     grid-template-columns: 1fr;
+  }
+
+  .benefit-row article {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 12px;
+    min-height: 116px;
+    padding: 14px;
+  }
+
+  .benefit-row h2 {
+    font-size: 20px;
+    line-height: 1.05;
+  }
+
+  .benefit-row p {
+    font-size: 14px;
   }
 
   .race-hero-panel h1,
   .module-title h1,
   .console-main h1 {
-    font-size: 42px;
+    font-size: 34px;
+    line-height: 0.98;
+    overflow-wrap: anywhere;
+  }
+
+  .section-kicker {
+    font-size: 16px;
+    letter-spacing: 0.4px;
+    overflow-wrap: anywhere;
+  }
+
+  .race-hero-panel p,
+  .module-title p,
+  .console-main p {
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  .form-card,
+  .console-flow-strip article,
+  .console-signal-bar article,
+  .release-readiness-panel article,
+  .screen-preview-card,
+  .ca-attestation-panel,
+  .empty-state {
+    border-radius: 14px;
+  }
+
+  .app-grid > .form-card .ops-grid.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 .screen-mode-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
 }
 

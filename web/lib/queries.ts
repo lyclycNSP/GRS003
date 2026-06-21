@@ -41,9 +41,12 @@ export async function getRaceBySlug(slug: string) {
   };
 }
 
-export async function getWorkBySlug(slug: string) {
-  return prisma.work.findUnique({
-    where: { slug },
+export async function getWorkBySlug(slug: string, options: { includeReviewOnly?: boolean } = {}) {
+  return prisma.work.findFirst({
+    where: {
+      slug,
+      ...(options.includeReviewOnly ? {} : { visibility: "public", status: "published" })
+    },
     include: {
       registration: { include: { race: true, user: true, raceProject: { include: { caConnections: true } } } },
       evidences: true,
@@ -58,6 +61,7 @@ export async function getPublicWorks(raceId?: string) {
   return prisma.work.findMany({
     where: {
       visibility: "public",
+      status: "published",
       ...(raceId
         ? {
             registration: {
@@ -93,6 +97,10 @@ export async function getRaceResults(slug: string) {
   if (!race) return null;
   return {
     ...race,
+    awards: race.awards.map((award) => ({
+      ...award,
+      work: award.work && award.work.visibility === "public" && award.work.status === "published" ? award.work : null
+    })),
     schedule: fromJson<Record<string, string>>(race.scheduleJson, {}),
     metrics: fromJson<Record<string, unknown>>(race.metricsJson, {}),
     resultReports: race.reports.filter((report) => report.type === "race_report")
@@ -150,21 +158,43 @@ export async function getCurrentUserProfile(userId: string) {
   return prisma.user.findUnique({ where: { id: userId } });
 }
 
-export async function getConsoleSnapshotForUser(userId?: string | null) {
-  const snapshot = await getConsoleSnapshot();
+export async function getConsoleSnapshotForUser(userId?: string | null, raceId?: string | null) {
+  const snapshot = await getConsoleSnapshot(raceId);
   const currentUser = userId ? await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      registrations: { include: { race: true, raceProject: { include: { caConnections: true } }, work: true, reviewFlags: true } },
-      judgeAssignments: { include: { work: { include: { registration: { include: { user: true, race: true } } } }, judgingRecord: true } }
+      registrations: {
+        where: snapshot.race ? { raceId: snapshot.race.id } : undefined,
+        include: { race: true, raceProject: { include: { caConnections: true } }, work: true, reviewFlags: true }
+      },
+      judgeAssignments: {
+        where: snapshot.race ? { raceId: snapshot.race.id } : undefined,
+        include: { work: { include: { registration: { include: { user: true, race: true } } } }, judgingRecord: true }
+      }
     }
   }) : null;
   return { ...snapshot, currentUser };
 }
 
-export async function getConsoleSnapshot() {
-  const race = await prisma.race.findFirst({
-    orderBy: { createdAt: "desc" },
+async function findConsoleRace(raceId?: string | null) {
+  if (raceId) {
+    const selected = await prisma.race.findUnique({ where: { id: raceId } });
+    if (selected) return selected;
+  }
+  const primary = await prisma.race.findUnique({ where: { id: "race_bay_2026" } });
+  if (primary) return primary;
+  const running = await prisma.race.findFirst({
+    where: { visibility: "public", status: "running" },
+    orderBy: { createdAt: "desc" }
+  });
+  if (running) return running;
+  return prisma.race.findFirst({ orderBy: { createdAt: "desc" } });
+}
+
+export async function getConsoleSnapshot(raceId?: string | null) {
+  const selectedRace = await findConsoleRace(raceId);
+  const race = selectedRace ? await prisma.race.findUnique({
+    where: { id: selectedRace.id },
     include: {
       registrations: { include: { user: true, raceProject: { include: { caConnections: true } }, work: true, reviewFlags: true } },
       releaseItems: true,
@@ -176,12 +206,17 @@ export async function getConsoleSnapshot() {
       awards: true,
       reports: true
     }
-  });
+  }) : null;
   const users = await prisma.user.findMany({ orderBy: { displayName: "asc" } });
+  const availableRaces = await prisma.race.findMany({
+    orderBy: { createdAt: "desc" },
+    select: { id: true, title: true, slug: true, status: true, visibility: true }
+  });
   const assignments = await prisma.judgeAssignment.findMany({
+    where: race ? { raceId: race.id } : undefined,
     include: { work: { include: { registration: { include: { user: true, race: true } } } }, judge: true, judgingRecord: true }
   });
-  return { race, users, assignments };
+  return { race, users, assignments, availableRaces };
 }
 
 export async function getScreenSnapshot(slug?: string) {

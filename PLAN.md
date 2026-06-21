@@ -6,28 +6,29 @@
 
 | 窗口 | 目标 |
 | --- | --- |
-| DEV-1到OPS-1本地MVP交付收口 | 已输出DEV-1到DEV-3架构/原型交付，并新增`app/`本地MVP应用，覆盖DEV-4到DEV-7、REL-1和OPS-1的可运行闭环。 |
+| DEV-1到OPS-1本地MVP交付收口 | 已输出DEV-1到DEV-3架构/原型交付；根目录旧 `app/` 静态 MVP 已删除，DEV-4到DEV-7、REL-1和OPS-1的当前可运行闭环由 `web/` 承接。 |
 | 正式工程化准备 | 下一阶段进入真实应用技术栈、服务端鉴权、数据库迁移、OAuth、真实CAConnector和部署流水线确认。 |
-| WEB-1正式集成应用 | 新增`web/` Next.js + Prisma + SQLite 工程，作为高保真前端与服务端领域动作集成入口；DEV-2/DEV-3高保真页面闭环已迁入，旧`app/`和`design-prototype/`保留归档。 |
+| WEB-1正式集成应用 | 新增`web/` Next.js + Prisma + SQLite 工程，作为高保真前端与服务端领域动作集成入口；DEV-2/DEV-3高保真页面闭环已迁入，根目录旧 `app/` 已删除，`design-prototype/` 保留归档。 |
 
 ## 近期任务
 
 | 任务 | 目标 | 下一入口 |
 | --- | --- | --- |
 | `PRD-1` 文档基线与范围确认 | `PRD-TEMP-1` 已并入正式基线；报名、RaceProject、CAConnection 和评审前风险提示口径可作为架构输入。 | `docs/ary.plan.md` |
-| `UX-1 收尾 v2` 设计原型细节态深化 + 移动端审计 | 已完成：Race Page in_progress 详情态（leaderboard + event-stream）+ Work Page Judge 视角评审态（5 hooks + renderWorkJudge）+ `app/` 移动端静态审计 0 P0 + 5 P1 + 4 P2。 | `design-prototype/ary-v0.4-race-detail.png`、`design-prototype/ary-v0.4-work-judge.png`、`docs/ary-mobile-ux-review.md` |
+| `UX-1 收尾 v2` 设计原型细节态深化 + 移动端审计 | 已完成：Race Page in_progress 详情态（leaderboard + event-stream）+ Work Page Judge 视角评审态（5 hooks + renderWorkJudge）+ 旧静态 MVP 移动端审计 0 P0 + 5 P1 + 4 P2。 | `design-prototype/ary-v0.4-race-detail.png`、`design-prototype/ary-v0.4-work-judge.png`、`docs/ary-mobile-ux-review.md` |
 | `PRD-TEMP-1` 报名 / RaceProject / CA 参赛语义整改 | 已完成并入：PRD、领域、CA 契约、IA、UX / 高保真原型、权限、QA、OPS 和计划文档已同步新口径。 | `docs/registration-ca-rules-alignment.taskbook.md` |
 | `UX-1` UX/UI 高保真原型与设计基线 | 第一轮 IA 对齐版 1080P 高密度高保真原型已验收通过，作为 `M2` 架构设计输入；后续页面按高保真页面工作流继续深化。 | `docs/ux-hifi.taskbook.md`、`.agents/skills/hifi-ui-page-workflow/SKILL.md`、`design-prototype/index.html` |
 | `DEV-1` 领域模型 + 权限 + 数据模型 | 已完成：输出聚合边界、逻辑数据模型草案、接口鉴权规则、领域事件和验收记录。 | `docs/ary-dev-1-dev-3-delivery.md` |
 | `DEV-2` Public Site 静态闭环 | 已完成：Home、Race Page、Live Hall、Works、Work Page、Results、Review、Rider Profile、Cooperation可用样例数据走查。 | `design-prototype/index.html`、`design-prototype/README.md` |
 | `DEV-3` 登录 / 角色 / Race Console | 已完成：模拟GitHub登录、资料补全、角色入口、Organizer/Rider/Judge/Admin视图和Admin角色维护演示。 | `design-prototype/index.html`、`docs/ary-dev-1-dev-3-delivery.md` |
-| `DEV-4` 报名 / RaceProject / Work / Judge 结构流程 | 已完成本地MVP实现：Race发布、报名审核、RaceProject幂等生成、Work提交、JudgeAssignment和JudgingRecord可运行并有领域测试。 | `app/index.html`、`app/domain.js`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
-| `DEV-5` CA 接入 / Projection / Live Hall | 已完成本地MVP实现：CAConnection登记握手、OCR Desktop App / connector attestation、防伪签名校验、非法信号隔离、ReviewFlag、Projection生成和失败隔离、Live Hall稳定读取。 | `app/index.html#ca`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
-| `DEV-6` Screen Console / 大屏联调 | 已完成本地MVP实现：live、leaderboard、works、announcement和fallback模式可切换。 | `app/index.html#screen`、`docs/ary-dev-4-to-ops-delivery.md` |
-| `DEV-7` Report / Review / Results | 已完成本地MVP实现：Award/Leaderboard发布、Report生成/失败/编辑/发布、Results/Review/Public Works联动。 | `app/index.html#reports`、`app/index.html#public`、`app/domain.test.js` |
-| `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 已完成本地MVP演练入口：P0回归按钮、发布检查项和go/no-go证据记录；真实staging/production发布待正式工程化。 | `app/index.html#ops`、`app/domain.test.js`、`docs/ary-dev-4-to-ops-delivery.md` |
-| `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 已完成本地MVP运维入口：备份、事故、fallback、归档记录；真实值守和回滚待生产环境接入。 | `app/index.html#ops`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `DEV-4` 报名 / RaceProject / Work / Judge 结构流程 | 已完成并迁入 `web/`：Race发布、报名审核、RaceProject幂等生成、Work提交、JudgeAssignment和JudgingRecord可运行并有领域测试。 | `web/app/console/page.tsx`、`web/lib/domain.ts`、`web/tests/domain.test.ts`、`docs/ary-dev-4-to-ops-delivery.md` |
+| `DEV-5` CA 接入 / Projection / Live Hall | 已完成并迁入 `web/`：CAConnection登记握手、OCR Desktop App / connector attestation、防伪签名校验、非法信号隔离、ReviewFlag、Projection生成和失败隔离、Live Hall稳定读取。 | `web/lib/domain.ts`、`web/tests/domain.test.ts`、`docs/ary-ca-integration-spec.md` |
+| `DEV-6` Screen Console / 大屏联调 | 已完成并迁入 `web/`：live、leaderboard、works、announcement和fallback模式可切换。 | `web/app/screen/page.tsx`、`web/app/screen/display/page.tsx` |
+| `DEV-7` Report / Review / Results | 已完成并迁入 `web/`：Award/Leaderboard发布、Report生成/失败/编辑/发布、Results/Review/Public Works联动。 | `web/lib/domain.ts`、`web/tests/domain.test.ts`、`web/app/races/[slug]/results/page.tsx` |
+| `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 已完成本地演练入口并迁入 `web/`：P0回归、发布检查项和go/no-go证据记录；真实staging/production发布待正式工程化。 | `web/app/ops/page.tsx`、`web/tests/domain.test.ts`、`docs/ary-release-ops-plan.md` |
+| `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 已完成运维入口并迁入 `web/`：备份、事故、fallback、归档记录；真实值守和回滚待生产环境接入。 | `web/app/ops/page.tsx`、`web/lib/domain.ts`、`docs/ary-release-ops-plan.md` |
 | `WEB-1` 高保真前端 + 服务端领域动作正式集成 | 已迁入DEV-2/DEV-3页面闭环：Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口，并接入Prisma数据、OAuth fallback、Server Actions和领域测试。 | `web/README.md`、`web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
+| `WEB-1 角色数据流与调试能力修正` | 已完成：Console 改为 Race-scoped，Debug Login 支持角色隔离，Award/Work/Results 公共边界和 Screen Console 权限已收口，Judge 提交有保存反馈。 | `docs/ary-role-flow-playwright-audit.md`、`web/app/console/page.tsx`、`web/lib/queries.ts`、`web/tests/domain.test.ts` |
 
 ## 近期里程碑
 
@@ -40,9 +41,10 @@
 ## 下一步
 
 1. 使用`web/`继续推进正式工程化：细化真实OAuth会话、真实CAConnector、浏览器E2E自动化和生产部署流水线。
-2. 配置真实GitHub OAuth App、回调地址和会话密钥，并验证跨会话登录。
-3. 接入真实CAConnector，补齐connector凭证、HTTP snapshot fetch、服务端幂等和审计日志。
-4. 建立staging/production发布流水线，补齐浏览器自动化、P0回归、回滚演练和生产监控。
+2. 将本地 Playwright 角色流验证固化为可重复 E2E 脚本，覆盖 Rider/Organizer/Judge/Admin 的 Race-scoped 数据流。
+3. 配置真实GitHub OAuth App、回调地址和会话密钥，并验证跨会话登录。
+4. 接入真实CAConnector，补齐connector凭证、HTTP snapshot fetch、服务端幂等和审计日志。
+5. 建立staging/production发布流水线，补齐浏览器自动化、P0回归、回滚演练和生产监控。
 
 ## 执行纪律
 

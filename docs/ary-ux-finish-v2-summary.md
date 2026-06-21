@@ -19,26 +19,26 @@
 
 | # | 任务 | 范围 | 产物 |
 | --- | --- | --- | --- |
-| **t1** | cross-view empty/error state 改造 | `app/` 8 视图 | `app/app.js` `app/styles.css` `app/README.md` |
+| **t1** | cross-view empty/error state 改造 | 旧静态 MVP 8 视图 | 旧 `app/app.js`、`app/styles.css`、`app/README.md`（当前源码已删除） |
 | **t2a** | Race Page in_progress 详情态 | `design-prototype/` Race Page | `design-prototype/index.html` `script.js` `styles.css` + 截图 |
 | **t2b** | Work Page Judge 视角评审态 | `design-prototype/` Work Page | 同上 + Judge 5 hooks + renderWorkJudge() |
-| **t3** | `app/` 移动端 UX 静态审计 | `app/` 8 视图 × 2 视口 | `docs/ary-mobile-ux-review.md`(纯审计,0 源码改动) |
+| **t3** | 旧静态 MVP 移动端 UX 静态审计 | 旧 `app/` 8 视图 × 2 视口 | `docs/ary-mobile-ux-review.md`(纯审计,0 源码改动；当前旧 `app/` 已删除) |
 | 同步 | 文档基线同步 | `STATUS.md` `PLAN.md` `AGENTS.md` + 6 份 `docs/*.md` 小改 | 任务看板 + 证据索引刷新 |
 
 ---
 
 ## 3. t1 — cross-view empty/error state 改造
 
-**问题**: `app/` 本地 MVP 早期版本的"空状态"是散落的字符串字面量(`"No registrations"` / `"No judge assignments"` 等),既没有一致的视觉模式,也不带引导文案,在评审演示里会让评审误以为功能缺失。
+**问题**: 旧 `app/` 本地 MVP 早期版本的"空状态"是散落的字符串字面量(`"No registrations"` / `"No judge assignments"` 等),既没有一致的视觉模式,也不带引导文案,在评审演示里会让评审误以为功能缺失。当前旧 `app/` 源码已删除，本文保留为历史 UX 记录。
 
 **改动**:
-- `app/app.js`: 引入 `renderEmpty(label, hint)` + `renderError(label, hint, retry?)` 两个辅助函数,替换 **19 处** `renderEmpty` 调用点 + **1 处** `renderError` 调用点,覆盖 Overview / Race / CA / Screen / Reports / Public / Ops / Admin 全部 8 视图。
-- `app/styles.css`: 新增 `.empty-state` / `.error-state` / `.empty-state-icon` / `.empty-state-label` / `.empty-state-hint` 统一样式块,响应式断点 `<480` 时 error retry 按钮自动改 100% width 避免溢出。
-- `app/README.md`: 补充 empty/error state 的设计口径与新增辅助函数说明。
+- 旧 `app/app.js`: 引入 `renderEmpty(label, hint)` + `renderError(label, hint, retry?)` 两个辅助函数,替换 **19 处** `renderEmpty` 调用点 + **1 处** `renderError` 调用点,覆盖 Overview / Race / CA / Screen / Reports / Public / Ops / Admin 全部 8 视图。
+- 旧 `app/styles.css`: 新增 `.empty-state` / `.error-state` / `.empty-state-icon` / `.empty-state-label` / `.empty-state-hint` 统一样式块,响应式断点 `<480` 时 error retry 按钮自动改 100% width 避免溢出。
+- 旧 `app/README.md`: 补充 empty/error state 的设计口径与新增辅助函数说明。
 
 **影响**:
 - ✅ 8 视图空态 / 错误态视觉一致,带引导文案,演示可读性显著提升
-- ✅ 不修改任何领域行为,纯展示层改造,`node app/domain.test.js` 9 个 P0 用例不受影响
+- ✅ 不修改任何领域行为,纯展示层改造,历史本地 MVP 9 个 P0 用例不受影响
 - ✅ 为 t3 移动端审计提供一个稳定的视觉基线(审计能基于"空态卡片能否在小屏居中显示"做判断)
 
 ---
@@ -82,9 +82,9 @@
 
 ---
 
-## 6. t3 — `app/` 移动端 UX 静态审计
+## 6. t3 — 旧静态 MVP 移动端 UX 静态审计
 
-**方法**: 基于 `app/styles.css` 的 3 个断点(`@media (max-width: 1060px / 700px / 480px)`) + `app/index.html` 8 个 `<section class="view">` + `app/app.js` 39 处 `renderEmpty` / `renderError` 调用点做静态推导,不动浏览器。
+**方法**: 历史上基于旧 `app/styles.css` 的 3 个断点(`@media (max-width: 1060px / 700px / 480px)`) + 旧 `app/index.html` 8 个 `<section class="view">` + 旧 `app/app.js` 39 处 `renderEmpty` / `renderError` 调用点做静态推导,不动浏览器。
 
 **视口**:
 - 360×640 (mobile,触发全部三个断点)
@@ -97,17 +97,17 @@
 **P1 清单**(影响体验,建议下轮修复):
 | # | 问题 | 位置 | 改法 |
 | --- | --- | --- | --- |
-| P1-1 | `.button` min-height 38px 未达 44pt 触达标准 | `app/styles.css:329` | 改 `min-height: 44px` 或加 `padding-block: 6px` |
-| P1-2 | `.nav-list a` min-height 38px 同上 | `app/styles.css:113` | 同上 |
-| P1-3 | mobile 下 side-rail 静态展开 ≈600px,首屏全是 chrome | `app/styles.css:854-876` | <700 时 nav 收为单行横向滚动条或加汉堡折叠 |
-| P1-4 | mobile 无 sticky 快捷导航,切换视图需滚顶 | `app/styles.css:822` | mobile 下加 bottom-fixed 简化 tab bar |
-| P1-5 | Race / Admin 表 `min-width: 780px`,360 视口必须横向滚动 | `app/styles.css:887-889` | <700 改 stacked-card 或保留横滚 + 顶部 "← →" 提示 |
+| P1-1 | `.button` min-height 38px 未达 44pt 触达标准 | 旧 `app/styles.css:329` | 改 `min-height: 44px` 或加 `padding-block: 6px` |
+| P1-2 | `.nav-list a` min-height 38px 同上 | 旧 `app/styles.css:113` | 同上 |
+| P1-3 | mobile 下 side-rail 静态展开 ≈600px,首屏全是 chrome | 旧 `app/styles.css:854-876` | <700 时 nav 收为单行横向滚动条或加汉堡折叠 |
+| P1-4 | mobile 无 sticky 快捷导航,切换视图需滚顶 | 旧 `app/styles.css:822` | mobile 下加 bottom-fixed 简化 tab bar |
+| P1-5 | Race / Admin 表 `min-width: 780px`,360 视口必须横向滚动 | 旧 `app/styles.css:887-889` | <700 改 stacked-card 或保留横滚 + 顶部 "← →" 提示 |
 
 **P2 清单**(nice-to-have,留待 backlog): primary CTA 视觉降权 / tablet 768 浪费横向空间 / 小按钮 32-34px / 暗色可读性
 
 **产物**:
 - `docs/ary-mobile-ux-review.md` (84 行,完整报告)
-- **0 源码改动**(纯审计),`app/` `git diff` 为空,`design-prototype/` 仅 t2a/t2b 任务相关改动
+- **0 源码改动**(纯审计),当时旧 `app/` `git diff` 为空,`design-prototype/` 仅 t2a/t2b 任务相关改动；当前旧 `app/` 已删除
 
 ---
 
@@ -145,7 +145,7 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| `app/` 不具备服务端权限控制 | 真实实现时按 `docs/ary-permission-matrix.md` 服务端鉴权 |
+| 旧静态 MVP 不具备服务端权限控制 | 当前 `web/` 已引入服务端权限上下文；生产实现仍需按 `docs/ary-permission-matrix.md` 补齐审计和生产会话 |
 | 浏览器自动化截图验收仍未完成 | Playwright 链路不通,本轮用静态 + 人工截图替代;下轮需先打通 headless Chrome |
 | 移动端 P1-3 / P1-4 需要设计草图决策 | 涉及 DOM 结构(side-rail 折叠 / bottom tab bar),下轮前需 UX 草图 |
 | 5 P1 + 4 P2 修复需排入下轮 | P1-1/2/5 是 CSS 一行级改动,可在下轮一并收口 |

@@ -18,10 +18,10 @@ npm run dev
 
 访问：`http://127.0.0.1:3000`
 
-历史产物仍保留：
+历史产物说明：
 
 * `design-prototype/`：UX-1 高保真静态原型。
-* `app/`：DEV-4 到 OPS-1 本地 MVP 领域闭环。
+* 根目录旧 `app/` 静态 MVP 已移除；DEV-4 到 OPS-1 的当前可运行闭环以 `web/`、`web/lib/domain.ts` 和 `web/tests/domain.test.ts` 为准。历史交付语义保留在 `docs/ary-dev-4-to-ops-delivery.md`。
 
 ## 文档路由
 

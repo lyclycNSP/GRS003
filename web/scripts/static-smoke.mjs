@@ -46,6 +46,7 @@ const routeFiles = [
   "app/console/page.tsx",
   "app/profile/page.tsx",
   "app/ops/page.tsx",
+  "app/debug-login/page.tsx",
   "app/screen/page.tsx",
   "app/screen/display/page.tsx",
   "app/cooperation/page.tsx",
@@ -63,6 +64,7 @@ const routeFiles = [
 const apiFiles = [
   "app/api/auth/github/route.ts",
   "app/api/auth/github/callback/route.ts",
+  "app/api/debug/login/route.ts",
   "app/api/console/action/route.ts",
   "app/api/public/races/route.ts",
   "app/api/public/races/[slug]/route.ts",
@@ -113,11 +115,30 @@ expectIncludes("lib/auth.ts", [
   "requireManagedRace"
 ]);
 
+expectIncludes("app/api/debug/login/route.ts", [
+  "ENABLE_DEBUG_LOGIN",
+  "user_org_1",
+  "user_rider_1",
+  "user_judge_1",
+  "setSession",
+  "Debug login is disabled"
+]);
+
+expectIncludes("app/debug-login/page.tsx", [
+  "Debug Role Login",
+  "/api/debug/login?user=organizer",
+  "/api/debug/login?user=rider",
+  "/api/debug/login?user=judge",
+  "/api/debug/login?user=admin"
+]);
+
 expectIncludes("app/console/page.tsx", [
   "Organizer View",
   "Rider View",
   "Judge View",
   "Admin Console",
+  "Screen Console",
+  "href=\"/screen\"",
   "console-flow-strip",
   "console-signal-bar",
   "ca-attestation-panel",

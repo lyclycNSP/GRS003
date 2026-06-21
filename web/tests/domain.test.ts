@@ -8,6 +8,7 @@ import {
   editReport,
   generateReport,
   ingestRidingSignal,
+  publishAward,
   publishRace,
   publishReport,
   regenerateReport,
@@ -23,6 +24,7 @@ import {
   updateUserRoles
 } from "../lib/domain";
 import type { AuthContext } from "../lib/auth";
+import { getConsoleSnapshotForUser, getRaceResults, getWorkBySlug } from "../lib/queries";
 
 const prisma = new PrismaClient();
 
@@ -116,6 +118,52 @@ async function main() {
     const saved = await prisma.judgingRecord.findUnique({ where: { assignmentId: assignment.id! } });
     assert.equal(saved?.status, "submitted");
   });
+
+  await test("Award publication rejects registration and work outside the Race", async () => {
+    const result = await publishAward(organizer, {
+      raceId: "race_genesis_2026",
+      registrationId: "reg_mira",
+      workId: "work-gba-wander",
+      awardName: "Cross Race Award",
+      rank: 1,
+      reason: "This should not be allowed."
+    });
+    assert.equal(result.ok, false);
+    assert.match(result.message, /Registration/);
+  });
+
+  await test("public Work detail only resolves published public Work", async () => {
+    const publicWork = await getWorkBySlug("ary-self-dogfood-agent");
+    const reviewOnlyWork = await getWorkBySlug("work-localjoy");
+    assert.equal(publicWork?.visibility, "public");
+    assert.equal(reviewOnlyWork, null);
+  });
+
+  await test("Console snapshot scopes registrations and judge assignments to selected Race", async () => {
+    const snapshot = await getConsoleSnapshotForUser("user_judge_1", "race_genesis_2026");
+    assert.equal(snapshot.race?.id, "race_genesis_2026");
+    assert.equal(snapshot.assignments.length, 0);
+    assert.equal(snapshot.currentUser?.judgeAssignments.length, 0);
+    assert.equal(snapshot.currentUser?.registrations.every((registration) => registration.raceId === "race_genesis_2026"), true);
+  });
+
+  await test("public Results do not link to non-public Work assets", async () => {
+    const race = await getRaceResults("bay-area-happy-trip");
+    assert.ok(race);
+    const result = await publishAward(organizer, {
+      raceId: "race_bay_2026",
+      registrationId: "reg_ana",
+      workId: "work-localjoy",
+      awardName: "Review Only Award",
+      rank: 2,
+      reason: "Award can be public while Work remains under review."
+    });
+    assert.equal(result.ok, true);
+    const updatedRace = await getRaceResults("bay-area-happy-trip");
+    const award = updatedRace?.awards.find((item) => item.id === result.id);
+    assert.equal(award?.work, null);
+  });
+
   await test("invalid CA signal is rejected and creates ReviewFlag", async () => {
     const result = await ingestRidingSignal({
       raceId: "race_bay_2026",
