@@ -16,8 +16,8 @@ cur.execute("PRAGMA foreign_keys=OFF")
 
 tables = [
     "ReleaseChecklistItem", "Incident", "Backup", "ScreenState", "Announcement", "Projection", "Report", "Award",
-    "JudgingRecord", "JudgeAssignment", "ReviewFlag", "Evidence", "Work", "Session", "CAConnection",
-    "RaceProject", "Registration", "Race", "AuthAccount", "User"
+    "JudgingRecord", "JudgeAssignment", "ReviewFlag", "Evidence", "Work", "CAIngestionReceipt", "Session", "CAConnection",
+    "RaceProject", "Registration", "Race", "AuthSession", "AuthAccount", "User"
 ]
 for table in tables:
     cur.execute(f'DROP TABLE IF EXISTS "{table}"')
@@ -44,6 +44,16 @@ CREATE TABLE "AuthAccount" (
   "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE UNIQUE INDEX "AuthAccount_provider_providerAccountId_key" ON "AuthAccount"("provider", "providerAccountId");
+CREATE TABLE "AuthSession" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "userId" TEXT NOT NULL,
+  "tokenHash" TEXT NOT NULL UNIQUE,
+  "expiresAt" DATETIME NOT NULL,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "lastSeenAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "AuthSession_userId_idx" ON "AuthSession"("userId");
+CREATE INDEX "AuthSession_expiresAt_idx" ON "AuthSession"("expiresAt");
 CREATE TABLE "Race" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "slug" TEXT NOT NULL UNIQUE,
@@ -86,6 +96,7 @@ CREATE TABLE "CAConnection" (
   "caType" TEXT NOT NULL,
   "connectorId" TEXT NOT NULL,
   "connectorVersion" TEXT NOT NULL,
+  "signingKeyId" TEXT NOT NULL,
   "externalProjectRef" TEXT NOT NULL,
   "ingestionStatus" TEXT NOT NULL,
   "registeredAt" DATETIME NOT NULL,
@@ -94,6 +105,18 @@ CREATE TABLE "CAConnection" (
   "lastSyncedAt" DATETIME
 );
 CREATE UNIQUE INDEX "CAConnection_raceProjectId_connectorId_externalProjectRef_key" ON "CAConnection"("raceProjectId", "connectorId", "externalProjectRef");
+CREATE TABLE "CAIngestionReceipt" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "caConnectionId" TEXT NOT NULL,
+  "messageId" TEXT NOT NULL,
+  "idempotencyKey" TEXT NOT NULL,
+  "payloadHash" TEXT NOT NULL,
+  "signedAt" DATETIME NOT NULL,
+  "receivedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX "CAIngestionReceipt_caConnectionId_messageId_key" ON "CAIngestionReceipt"("caConnectionId", "messageId");
+CREATE UNIQUE INDEX "CAIngestionReceipt_caConnectionId_idempotencyKey_key" ON "CAIngestionReceipt"("caConnectionId", "idempotencyKey");
+CREATE INDEX "CAIngestionReceipt_receivedAt_idx" ON "CAIngestionReceipt"("receivedAt");
 CREATE TABLE "Session" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "caConnectionId" TEXT NOT NULL,

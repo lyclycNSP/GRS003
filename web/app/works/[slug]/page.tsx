@@ -40,9 +40,6 @@ export default async function WorkPage({ params }: { params: Promise<{ slug: str
           {work.evidences.length ? work.evidences.map((evidence) => (
             <div key={evidence.id}><span>{evidence.type}</span><b>{evidence.title}</b><em>{evidence.visibility}</em></div>
           )) : <p>暂无公开 Evidence 摘要。</p>}
-          {work.reviewFlags.map((flag) => (
-            <div key={flag.id}><span>{flag.type}</span><b>{flag.severity}</b><em>{flag.judgeVisibleSummary}</em></div>
-          ))}
           <p>原始 CA Session 默认不公开；本页只展示公开摘要、作品材料和评审可引用信息。</p>
         </aside>
       </section>

@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { fromJson } from "@/lib/json";
@@ -13,38 +14,67 @@ export type AuthContext = {
   assignedWorkIds: string[];
 };
 
+const SESSION_COOKIE = "ary_session";
 const DEBUG_ROLE_COOKIE = "ary_debug_roles";
+const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const ROLES: Role[] = ["rider", "judge", "organizer", "admin"];
+
+function hashToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function cookieOptions(maxAge: number) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge
+  };
+}
 
 export async function getCurrentUserId(): Promise<string | null> {
   const store = await cookies();
-  return store.get("ary_session")?.value ?? null;
+  const token = store.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+
+  const session = await prisma.authSession.findUnique({ where: { tokenHash: hashToken(token) } });
+  if (!session || session.expiresAt <= new Date()) {
+    if (session) await prisma.authSession.delete({ where: { id: session.id } }).catch(() => undefined);
+    return null;
+  }
+
+  return session.userId;
 }
 
 export async function setSession(userId: string) {
-  const store = await cookies();
-  store.set("ary_session", userId, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 14
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
+  await prisma.authSession.create({
+    data: {
+      id: `auth_session_${randomBytes(16).toString("hex")}`,
+      userId,
+      tokenHash: hashToken(token),
+      expiresAt
+    }
   });
+  const store = await cookies();
+  store.set(SESSION_COOKIE, token, cookieOptions(SESSION_TTL_SECONDS));
 }
 
 export async function clearSession() {
   const store = await cookies();
-  store.delete("ary_session");
+  const token = store.get(SESSION_COOKIE)?.value;
+  if (token) {
+    await prisma.authSession.deleteMany({ where: { tokenHash: hashToken(token) } });
+  }
+  store.delete(SESSION_COOKIE);
   store.delete(DEBUG_ROLE_COOKIE);
 }
 
 export async function setDebugRoleOverride(roles: Role[]) {
   const store = await cookies();
-  store.set(DEBUG_ROLE_COOKIE, JSON.stringify(roles), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24
-  });
+  store.set(DEBUG_ROLE_COOKIE, JSON.stringify(roles), cookieOptions(60 * 60));
 }
 
 function debugLoginEnabled() {
@@ -70,10 +100,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   if (!userId) return null;
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: {
-      registrations: true,
-      judgeAssignments: true
-    }
+    include: { registrations: true, judgeAssignments: true }
   });
   if (!user) return null;
   const actualRoles = fromJson<Role[]>(user.rolesJson, []);

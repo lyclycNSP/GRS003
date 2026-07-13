@@ -25,6 +25,7 @@ import {
 } from "../lib/domain";
 import type { AuthContext } from "../lib/auth";
 import { getConsoleSnapshotForUser, getRaceResults, getWorkBySlug } from "../lib/queries";
+import { createRidingSignalAttestation, type RidingSignalPayload } from "../lib/ca-attestation";
 
 const prisma = new PrismaClient();
 
@@ -56,6 +57,23 @@ const rider: AuthContext = {
   approvedRegistrationIds: ["reg_mira"],
   assignedWorkIds: []
 };
+
+function signedSignal(connectorId: string, overrides: Partial<RidingSignalPayload> = {}) {
+  const payload: RidingSignalPayload = {
+    messageId: `message-${Date.now()}-${Math.random()}`,
+    idempotencyKey: `idempotency-${Date.now()}-${Math.random()}`,
+    timestamp: new Date().toISOString(),
+    raceId: "race_bay_2026",
+    registrationId: "reg_mira",
+    raceProjectId: "rp_mira",
+    caConnectionId: "missing",
+    caSessionId: "test-session",
+    progressPercent: 100,
+    tokens: 12000,
+    ...overrides
+  };
+  return { ...payload, attestation: createRidingSignalAttestation(connectorId, payload, "ocr_desktop_app") };
+}
 
 async function main() {
 
@@ -164,8 +182,11 @@ async function main() {
     assert.equal(award?.work, null);
   });
 
-  await test("invalid CA signal is rejected and creates ReviewFlag", async () => {
+  await test("unknown CA connection is rejected without writing attacker identifiers", async () => {
+    const before = await prisma.reviewFlag.count({ where: { registrationId: "reg_mira", type: "ingestion_exception" } });
     const result = await ingestRidingSignal({
+      messageId: "message-invalid",
+      timestamp: new Date().toISOString(),
       raceId: "race_bay_2026",
       registrationId: "reg_mira",
       raceProjectId: "rp_mira",
@@ -174,8 +195,7 @@ async function main() {
       caSessionId: "bad-session"
     });
     assert.equal(result.ok, false);
-    const flags = await prisma.reviewFlag.findMany({ where: { registrationId: "reg_mira", type: "ingestion_exception" } });
-    assert.ok(flags.length >= 1);
+    assert.equal(await prisma.reviewFlag.count({ where: { registrationId: "reg_mira", type: "ingestion_exception" } }), before);
   });
 
   await test("valid CA signal creates Session and Evidence", async () => {
@@ -183,22 +203,12 @@ async function main() {
     assert.equal(registered.ok, true);
     const connection = await prisma.cAConnection.findUnique({ where: { id: registered.id! } });
     await prisma.cAConnection.update({ where: { id: connection!.id }, data: { handshakeAt: new Date() } });
-    const result = await ingestRidingSignal({
-      raceId: "race_bay_2026",
-      registrationId: "reg_mira",
-      raceProjectId: "rp_mira",
+    const result = await ingestRidingSignal(signedSignal(connection!.connectorId, {
+      messageId: "message-valid-ca",
+      idempotencyKey: "good-key-valid",
       caConnectionId: connection!.id,
-      idempotencyKey: "good-key",
-      caSessionId: "good-session",
-      attestation: {
-        source: "ocr_desktop_app",
-        signingKeyId: `ocr_key_${connection!.connectorId}`,
-        signature: `dev-signature:${connection!.connectorId}:good-key`,
-        signedAt: new Date().toISOString()
-      },
-      progressPercent: 100,
-      tokens: 12000
-    });
+      caSessionId: "good-session"
+    }));
     assert.equal(result.ok, true);
     const evidence = await prisma.evidence.findMany({ where: { registrationId: "reg_mira" } });
     assert.ok(evidence.length >= 1);
@@ -209,6 +219,8 @@ async function main() {
     assert.equal(registered.ok, true);
     await prisma.cAConnection.update({ where: { id: registered.id! }, data: { handshakeAt: new Date() } });
     const result = await ingestRidingSignal({
+      messageId: "message-forged",
+      timestamp: new Date().toISOString(),
       raceId: "race_bay_2026",
       registrationId: "reg_mira",
       raceProjectId: "rp_mira",
@@ -223,6 +235,22 @@ async function main() {
     assert.ok(flags.some((flag) => flag.judgeVisibleSummary.includes("认证声明")));
   });
 
+  await test("tampered CA payload fails HMAC verification", async () => {
+    const registered = await registerCAConnection(rider, "rp_mira");
+    assert.equal(registered.ok, true);
+    const connection = await prisma.cAConnection.update({ where: { id: registered.id! }, data: { handshakeAt: new Date() } });
+    const signed = signedSignal(connection.connectorId, {
+      messageId: "message-tamper-protected",
+      idempotencyKey: "idempotency-tamper-protected",
+      caConnectionId: connection.id,
+      caSessionId: "tamper-session",
+      tokens: 100
+    });
+    const result = await ingestRidingSignal({ ...signed, tokens: 999999 });
+    assert.equal(result.ok, false);
+    assert.equal(await prisma.cAIngestionReceipt.count({ where: { messageId: "message-tamper-protected" } }), 0);
+  });
+
 
   await test("disabled CA signal is rejected", async () => {
     const registered = await registerCAConnection(rider, "rp_mira");
@@ -230,8 +258,25 @@ async function main() {
     await prisma.cAConnection.update({ where: { id: registered.id! }, data: { handshakeAt: new Date() } });
     const disabled = await disableCAConnection(rider, registered.id!);
     assert.equal(disabled.ok, true);
-    const result = await ingestRidingSignal({ raceId: "race_bay_2026", registrationId: "reg_mira", raceProjectId: "rp_mira", caConnectionId: registered.id!, idempotencyKey: "disabled-key", caSessionId: "disabled-session" });
+    const result = await ingestRidingSignal({ messageId: "message-disabled", timestamp: new Date().toISOString(), raceId: "race_bay_2026", registrationId: "reg_mira", raceProjectId: "rp_mira", caConnectionId: registered.id!, idempotencyKey: "disabled-key", caSessionId: "disabled-session" });
     assert.equal(result.ok, false);
+  });
+
+  await test("duplicate signed CA signal is ignored without duplicate Evidence", async () => {
+    const registered = await registerCAConnection(rider, "rp_mira");
+    assert.equal(registered.ok, true);
+    const connection = await prisma.cAConnection.update({ where: { id: registered.id! }, data: { handshakeAt: new Date() } });
+    const signal = signedSignal(connection.connectorId, {
+      messageId: "message-replay-protected",
+      idempotencyKey: "idempotency-replay-protected",
+      caConnectionId: connection.id,
+      caSessionId: "replay-session"
+    });
+    const before = await prisma.evidence.count();
+    assert.equal((await ingestRidingSignal(signal)).ok, true);
+    assert.equal((await ingestRidingSignal(signal)).ok, true);
+    assert.equal(await prisma.evidence.count(), before + 1);
+    assert.equal(await prisma.cAIngestionReceipt.count({ where: { caConnectionId: connection.id } }), 1);
   });
 
   await test("projection failure keeps stable projection", async () => {

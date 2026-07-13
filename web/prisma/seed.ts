@@ -148,9 +148,9 @@ async function main() {
 
   await prisma.cAConnection.createMany({
     data: [
-      { id: "conn_mira_codex", raceProjectId: "rp_mira", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", externalProjectRef: "gba-wander", ingestionStatus: "active", registeredAt: new Date(), handshakeAt: new Date(), lastSyncedAt: new Date() },
-      { id: "conn_ana_codex", raceProjectId: "rp_ana", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", externalProjectRef: "localjoy", ingestionStatus: "connected", registeredAt: new Date(), handshakeAt: new Date() },
-      ...(includeE2EFixtures ? [{ id: "conn_rider_e2e", raceProjectId: "rp_rider_e2e", caType: "codex", connectorId: "e2e-connector", connectorVersion: "0.1.0", externalProjectRef: "e2e-rider", ingestionStatus: "connected", registeredAt: new Date(), handshakeAt: new Date() }] : [])
+      { id: "conn_mira_codex", raceProjectId: "rp_mira", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", signingKeyId: "local-key-codex-demo", externalProjectRef: "gba-wander", ingestionStatus: "active", registeredAt: new Date(), handshakeAt: new Date(), lastSyncedAt: new Date() },
+      { id: "conn_ana_codex", raceProjectId: "rp_ana", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", signingKeyId: "local-key-codex-demo", externalProjectRef: "localjoy", ingestionStatus: "connected", registeredAt: new Date(), handshakeAt: new Date() },
+      ...(includeE2EFixtures ? [{ id: "conn_rider_e2e", raceProjectId: "rp_rider_e2e", caType: "codex", connectorId: "e2e-connector", connectorVersion: "0.1.0", signingKeyId: "local-key-e2e-connector", externalProjectRef: "e2e-rider", ingestionStatus: "connected", registeredAt: new Date(), handshakeAt: new Date() }] : [])
     ]
   });
 

@@ -5,11 +5,14 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
+    "prestart": "node scripts/check-production-config.mjs",
     "start": "next start --hostname 127.0.0.1",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
+    "prisma:generate:sqlite": "node scripts/generate-sqlite-client.mjs",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:push": "prisma db push",
-    "db:init": "python scripts/init-sqlite.py",
+    "db:init": "npm run prisma:generate:sqlite && python scripts/init-sqlite.py",
     "seed": "node --import tsx prisma/seed.ts",
     "test": "node --import tsx tests/domain.test.ts",
     "test:e2e": "npm run test:e2e:prepare && playwright test",
@@ -19,9 +22,11 @@
     "test:e2e:rider": "npm run test:e2e:prepare && playwright test e2e/rider.spec.ts",
     "test:e2e:organizer": "npm run test:e2e:prepare && playwright test e2e/organizer.spec.ts",
     "test:e2e:admin": "npm run test:e2e:prepare && playwright test e2e/admin.spec.ts",
+    "test:e2e:security": "npm run test:e2e:prepare && playwright test e2e/security.spec.ts",
     "test:e2e:prepare": "node scripts/e2e-prepare.mjs",
     "typecheck": "tsc --noEmit",
-    "check:static": "node scripts/static-smoke.mjs"
+    "check:static": "node scripts/static-smoke.mjs",
+    "check:production-config": "node scripts/check-production-config.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",

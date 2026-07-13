@@ -42,7 +42,20 @@ jobs:
       - run: npm run check:static
       - run: npm run typecheck
       - run: npm test
+      - name: Validate production security configuration
+        run: npm run check:production-config
+        env:
+          DATABASE_URL: postgresql://ary:test@db.invalid/ary
+          GITHUB_CLIENT_ID: ci-client
+          GITHUB_CLIENT_SECRET: ci-secret
+          NEXT_PUBLIC_APP_URL: https://ary.example.test
+          ENABLE_DEBUG_LOGIN: "false"
+          DEFAULT_CA_CONNECTOR_ID: ci-connector
+          CA_CONNECTOR_KEYS: '{"ci-connector":{"keyId":"ci-key","secret":"01234567890123456789012345678901"}}'
+      - run: npm run prisma:generate
       - run: npm run build
+        env:
+          DATABASE_URL: postgresql://ary:test@db.invalid/ary
 
   browser-e2e:
     name: Playwright browser E2E

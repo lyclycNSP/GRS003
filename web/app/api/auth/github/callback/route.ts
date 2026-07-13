@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { setSession } from "@/lib/auth";
 import { toJson } from "@/lib/json";
+import { getAppUrl, hasGithubOAuthConfig } from "@/lib/runtime-config";
 
 type GithubUser = { id: number; login: string; name?: string };
 
 async function fetchGithubUser(code: string): Promise<GithubUser | null> {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://127.0.0.1:3000";
+  const appUrl = getAppUrl();
   if (!clientId || !clientSecret) return null;
   const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
     method: "POST",
@@ -30,12 +32,19 @@ async function fetchGithubUser(code: string): Promise<GithubUser | null> {
 }
 
 export async function GET(request: NextRequest) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://127.0.0.1:3000";
+  const appUrl = getAppUrl();
   const code = request.nextUrl.searchParams.get("code");
-  const dev = request.nextUrl.searchParams.get("dev");
-  const githubUser = code ? await fetchGithubUser(code) : null;
-  const providerAccountId = githubUser ? String(githubUser.id) : "dev-local-user";
-  const login = githubUser?.login ?? (dev ? "ary-ops" : "ary-ops");
+  const state = request.nextUrl.searchParams.get("state");
+  const store = await cookies();
+  const expectedState = store.get("ary_oauth_state")?.value;
+  store.delete("ary_oauth_state");
+  if (!hasGithubOAuthConfig() || !code || !state || !expectedState || state !== expectedState) {
+    return NextResponse.json({ error: "invalid_oauth_callback" }, { status: 400 });
+  }
+  const githubUser = await fetchGithubUser(code);
+  if (!githubUser) return NextResponse.json({ error: "github_identity_failed" }, { status: 401 });
+  const providerAccountId = String(githubUser.id);
+  const login = githubUser.login;
   const displayName = githubUser?.name || login;
   const account = await prisma.authAccount.findUnique({
     where: { provider_providerAccountId: { provider: "github", providerAccountId } }
@@ -43,7 +52,9 @@ export async function GET(request: NextRequest) {
   let userId = account?.userId;
   let profileCompleted = true;
   if (!userId) {
-    const existingSeedUser = await prisma.user.findFirst({ where: { githubLogin: login } });
+    const existingSeedUser = process.env.NODE_ENV === "production"
+      ? null
+      : await prisma.user.findFirst({ where: { githubLogin: login } });
     const user = existingSeedUser ?? await prisma.user.create({
       data: {
         id: `user_${providerAccountId}`,

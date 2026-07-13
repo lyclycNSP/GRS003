@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getAuthContext } from "@/lib/auth";
+import { clearSession, getAuthContext } from "@/lib/auth";
+import { createRidingSignalAttestation, type RidingSignalPayload } from "@/lib/ca-attestation";
+import { makeId } from "@/lib/ids";
 import {
   approveRegistration,
   assignJudge,
@@ -46,6 +48,11 @@ function refresh(path = "/console") {
   revalidatePath("/console");
   revalidatePath("/ops");
   revalidatePath(path);
+}
+
+export async function logoutAction() {
+  await clearSession();
+  redirect("/");
 }
 
 
@@ -95,24 +102,22 @@ export async function handshakeCAAction(formData: FormData) {
 }
 
 export async function ingestSignalAction(formData: FormData) {
+  if (process.env.NODE_ENV === "production") throw new Error("浏览器模拟CA信号在生产环境中已禁用");
   const idempotencyKey = `ui:${Date.now()}`;
   const connectorId = value(formData, "connectorId") || "codex-ui";
-  const result = await ingestRidingSignal({
+  const payload: RidingSignalPayload = {
+    messageId: makeId("message"),
+    timestamp: new Date().toISOString(),
     raceId: value(formData, "raceId"),
     registrationId: value(formData, "registrationId"),
     raceProjectId: value(formData, "raceProjectId"),
     caConnectionId: value(formData, "caConnectionId"),
     idempotencyKey,
     caSessionId: value(formData, "caSessionId") || "ui-session",
-    attestation: {
-      source: "ocr_desktop_app",
-      signingKeyId: `ocr_key_${connectorId}`,
-      signature: `dev-signature:${connectorId}:${idempotencyKey}`,
-      signedAt: new Date().toISOString()
-    },
     progressPercent: Number(value(formData, "progressPercent") || 100),
     tokens: Number(value(formData, "tokens") || 12000)
-  });
+  };
+  const result = await ingestRidingSignal({ ...payload, attestation: createRidingSignalAttestation(connectorId, payload, "ocr_desktop_app") });
   refresh("/console");
   if (!result.ok) throw new Error(result.message);
 }

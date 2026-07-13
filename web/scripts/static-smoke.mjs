@@ -66,6 +66,7 @@ const apiFiles = [
   "app/api/auth/github/callback/route.ts",
   "app/api/debug/login/route.ts",
   "app/api/console/action/route.ts",
+  "app/api/ca/v1/signals/route.ts",
   "app/api/public/races/route.ts",
   "app/api/public/races/[slug]/route.ts",
   "app/api/public/races/[slug]/live/route.ts",
@@ -88,6 +89,7 @@ for (const file of [
   "e2e/rider.spec.ts",
   "e2e/organizer.spec.ts",
   "e2e/admin.spec.ts",
+  "e2e/security.spec.ts",
   "scripts/e2e-prepare.mjs"
 ]) expectFile(file);
 expectFile("../.github/workflows/web-ci.yml");
@@ -109,6 +111,7 @@ expectIncludes("package.json", [
   "test:e2e:rider",
   "test:e2e:organizer",
   "test:e2e:admin",
+  "test:e2e:security",
   "typecheck"
 ]);
 
@@ -116,7 +119,8 @@ expectIncludes(".env.example", [
   "DATABASE_URL",
   "GITHUB_CLIENT_ID",
   "GITHUB_CLIENT_SECRET",
-  "AUTH_SECRET",
+  "CA_CONNECTOR_KEYS",
+  "DEFAULT_CA_CONNECTOR_ID",
   "NEXT_PUBLIC_APP_URL"
 ]);
 
@@ -197,17 +201,17 @@ expectIncludes("app/screen/page.tsx", [
   "modeSummary"
 ]);
 
-expectIncludes("lib/domain.ts", [
-  "attestation",
+expectIncludes("lib/ca-attestation.ts", [
+  "createHmac",
   "ocr_desktop_app",
   "registered_ca_connector",
-  "dev-signature",
-  "CA信号签名校验失败"
+  "timingSafeEqual",
+  "CA信号HMAC校验失败"
 ]);
 
 expectIncludes("app/actions.ts", [
-  "attestation",
-  "dev-signature"
+  "createRidingSignalAttestation",
+  "浏览器模拟CA信号在生产环境中已禁用"
 ]);
 
 expectIncludes("app/ops/page.tsx", [
