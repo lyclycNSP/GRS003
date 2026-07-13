@@ -1,55 +1,54 @@
 # PLAN
 
-本文是 ARY 近期任务窗口，记录近期要推进的任务和里程碑。长期任务定义见 `docs/ary.plan.md`；任务瞬时状态见 `STATUS.md`。
+本文是 ARY 近期任务窗口，只记录当前阶段、近期主线、后续队列和质量门。长期任务定义见 `docs/ary.plan.md`；当前事实、完成证据和风险见 `STATUS.md`。
 
-## 近期窗口
+## 当前阶段
 
-| 窗口 | 目标 |
-| --- | --- |
-| DEV-1到OPS-1本地MVP交付收口 | 已输出DEV-1到DEV-3架构/原型交付；根目录旧 `app/` 静态 MVP 已删除，DEV-4到DEV-7、REL-1和OPS-1的当前可运行闭环由 `web/` 承接。 |
-| 正式工程化准备 | 下一阶段进入真实应用技术栈、服务端鉴权、数据库迁移、OAuth、真实CAConnector和部署流水线确认。 |
-| WEB-1正式集成应用 | 新增`web/` Next.js + Prisma + SQLite 工程，作为高保真前端与服务端领域动作集成入口；DEV-2/DEV-3高保真页面闭环已迁入，根目录旧 `app/` 已删除，`design-prototype/` 保留归档。 |
+ARY 已完成 PRD / UX / 领域模型 / 本地 MVP 闭环，并建立 `web/` Next.js + Prisma 正式工程入口。DEV-1 到 OPS-1 的本地交付、WEB-1 角色数据流修正以及全角色 Playwright E2E / CI 基线已经形成。
 
-## 近期任务
+当前从“本地 MVP 交付”切换到“正式工程化”，不再继续扩写旧阶段完成明细。
 
-| 任务 | 目标 | 下一入口 |
+## 当前主线
+
+| 优先级 | 工作项 | 目标 | 完成口径 | 下一入口 |
+| --- | --- | --- | --- | --- |
+| P0 | 正式工程化任务立项 | 将下一阶段的范围、依赖、验收和非目标写入长期计划 | `docs/ary.plan.md` 中形成可执行任务定义，并同步 `STATUS.md` | `docs/ary.plan.md`、`STATUS.md` |
+| P0 | 真实 GitHub OAuth 与生产会话闭环 | 用真实身份体系替代本地 fallback / debug login 作为正式业务入口 | OAuth 回调、用户绑定、服务端会话、安全 Cookie、跨会话登录和角色权限验证通过 | `web/lib/auth.ts`、`web/app/api/auth/`、`docs/ary-permission-matrix.md` |
+| P0 | Hosted CI 首次验证 | 确认已落盘的 GitHub Actions 在远端环境可重复执行 | 静态检查、领域测试、类型检查、构建和 Playwright E2E 均在 Hosted Runner 通过 | `.github/workflows/web-ci.yml`、`web/e2e/` |
+
+## 后续队列
+
+| 顺序 | 工作项 | 目标 |
 | --- | --- | --- |
-| `PRD-1` 文档基线与范围确认 | `PRD-TEMP-1` 已并入正式基线；报名、RaceProject、CAConnection 和评审前风险提示口径可作为架构输入。 | `docs/ary.plan.md` |
-| `UX-1 收尾 v2` 设计原型细节态深化 + 移动端审计 | 已完成：Race Page in_progress 详情态（leaderboard + event-stream）+ Work Page Judge 视角评审态（5 hooks + renderWorkJudge）+ 旧静态 MVP 移动端审计 0 P0 + 5 P1 + 4 P2。 | `design-prototype/ary-v0.4-race-detail.png`、`design-prototype/ary-v0.4-work-judge.png`、`docs/ary-mobile-ux-review.md` |
-| `PRD-TEMP-1` 报名 / RaceProject / CA 参赛语义整改 | 已完成并入：PRD、领域、CA 契约、IA、UX / 高保真原型、权限、QA、OPS 和计划文档已同步新口径。 | `docs/registration-ca-rules-alignment.taskbook.md` |
-| `UX-1` UX/UI 高保真原型与设计基线 | 第一轮 IA 对齐版 1080P 高密度高保真原型已验收通过，作为 `M2` 架构设计输入；后续页面按高保真页面工作流继续深化。 | `docs/ux-hifi.taskbook.md`、`.agents/skills/hifi-ui-page-workflow/SKILL.md`、`design-prototype/index.html` |
-| `DEV-1` 领域模型 + 权限 + 数据模型 | 已完成：输出聚合边界、逻辑数据模型草案、接口鉴权规则、领域事件和验收记录。 | `docs/ary-dev-1-dev-3-delivery.md` |
-| `DEV-2` Public Site 静态闭环 | 已完成：Home、Race Page、Live Hall、Works、Work Page、Results、Review、Rider Profile、Cooperation可用样例数据走查。 | `design-prototype/index.html`、`design-prototype/README.md` |
-| `DEV-3` 登录 / 角色 / Race Console | 已完成：模拟GitHub登录、资料补全、角色入口、Organizer/Rider/Judge/Admin视图和Admin角色维护演示。 | `design-prototype/index.html`、`docs/ary-dev-1-dev-3-delivery.md` |
-| `DEV-4` 报名 / RaceProject / Work / Judge 结构流程 | 已完成并迁入 `web/`：Race发布、报名审核、RaceProject幂等生成、Work提交、JudgeAssignment和JudgingRecord可运行并有领域测试。 | `web/app/console/page.tsx`、`web/lib/domain.ts`、`web/tests/domain.test.ts`、`docs/ary-dev-4-to-ops-delivery.md` |
-| `DEV-5` CA 接入 / Projection / Live Hall | 已完成并迁入 `web/`：CAConnection登记握手、OCR Desktop App / connector attestation、防伪签名校验、非法信号隔离、ReviewFlag、Projection生成和失败隔离、Live Hall稳定读取。 | `web/lib/domain.ts`、`web/tests/domain.test.ts`、`docs/ary-ca-integration-spec.md` |
-| `DEV-6` Screen Console / 大屏联调 | 已完成并迁入 `web/`：live、leaderboard、works、announcement和fallback模式可切换。 | `web/app/screen/page.tsx`、`web/app/screen/display/page.tsx` |
-| `DEV-7` Report / Review / Results | 已完成并迁入 `web/`：Award/Leaderboard发布、Report生成/失败/编辑/发布、Results/Review/Public Works联动。 | `web/lib/domain.ts`、`web/tests/domain.test.ts`、`web/app/races/[slug]/results/page.tsx` |
-| `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 已完成本地演练入口并迁入 `web/`：P0回归、发布检查项和go/no-go证据记录；真实staging/production发布待正式工程化。 | `web/app/ops/page.tsx`、`web/tests/domain.test.ts`、`docs/ary-release-ops-plan.md` |
-| `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 已完成运维入口并迁入 `web/`：备份、事故、fallback、归档记录；真实值守和回滚待生产环境接入。 | `web/app/ops/page.tsx`、`web/lib/domain.ts`、`docs/ary-release-ops-plan.md` |
-| `WEB-1` 高保真前端 + 服务端领域动作正式集成 | 已迁入DEV-2/DEV-3页面闭环：Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口，并接入Prisma数据、OAuth fallback、Server Actions和领域测试。 | `web/README.md`、`web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
-| `WEB-1 角色数据流与调试能力修正` | 已完成：Console 改为 Race-scoped，Debug Login 支持角色隔离，Award/Work/Results 公共边界和 Screen Console 权限已收口，Judge 提交有保存反馈。 | `docs/ary-role-flow-playwright-audit.md`、`web/app/console/page.tsx`、`web/lib/queries.ts`、`web/tests/domain.test.ts` |
-| `WEB-1 Judge / Public / Screen E2E` | 已完成：新增 6 个可重复 Playwright 场景，覆盖 Judge 未授权隔离与评审持久化、Public 主路径与 review-only 边界、Screen 只读权限、模式同步和 fallback；使用独立 `prisma/e2e.db`。 | `web/playwright.config.ts`、`web/e2e/`、`web/scripts/e2e-prepare.mjs`、`web/README.md` |
-| `WEB-1 Rider / Organizer / Admin E2E + CI` | 已完成：补齐 Rider CA/Work、Organizer Race 创建发布、Admin User.roles 持久化，Playwright 全量 9/9 通过；新增 GitHub Actions 静态/领域/构建与浏览器双 Job。 | `web/e2e/rider.spec.ts`、`web/e2e/organizer.spec.ts`、`web/e2e/admin.spec.ts`、`.github/workflows/web-ci.yml` |
-| `WEB-1 E2E / CI 阶段总结与 Riding Record` | 已完成：形成修改范围、意义、验证与边界总结，并以第一人称记录项目理解、任务引导、关键决策和 Agent 指挥过程。 | `docs/ary-web-e2e-ci-change-summary.md`、`riding_records/ARY_WEB_E2E_CI_Riding_Record_2026-07-13.md` |
+| 1 | 真实 CAConnector | 补齐 connector 凭证、登记握手、HTTP snapshot fetch、服务端幂等、防伪校验和审计日志 |
+| 2 | 生产数据库与迁移 | 将本地 SQLite 基线推进为可部署数据库，建立迁移、回滚、备份和测试数据隔离机制 |
+| 3 | 浏览器验收深化 | 在现有全角色 E2E 基础上补截图基线、移动端关键路径和权限负向用例 |
+| 4 | Staging / Production 流水线 | 建立部署、监控、发布检查、回滚演练和生产事故记录闭环 |
 
-## 近期里程碑
+## 当前质量门
 
-| 里程碑 | 完成口径 |
-| --- | --- |
-| `M1` 文档基线可作为架构入口 | PRD、领域、IA、权限、QA、计划、OPS、CA 草案无高优先级冲突。 |
-| `M2` 架构设计输入就绪 | DEV-1已输出领域边界、权限规则和数据模型草案；UX/UI原型已覆盖DEV-2/DEV-3关键页面状态；DEV-4到OPS-1本地MVP已提供可迁移的领域动作和验收测试。 |
-| `M3` 本地MVP闭环可演示 | `web/` 可启动并运行领域回归与浏览器 E2E，覆盖报名、CA、Projection、大屏、报告、发布检查和运维归档；`web/tests/domain.test.ts` 与 `web/e2e/` 提供当前自动化证据。 |
+进入下一项功能开发及合并前，至少确认：
 
-## 下一步
+* `npm.cmd run check:static` 通过。
+* `npm.cmd test` 领域测试通过。
+* `npm.cmd run typecheck` 通过。
+* `npm.cmd run build` 通过。
+* `npm.cmd run test:e2e` 全角色路径通过；若环境缺少浏览器或外部服务，必须明确记录阻塞原因。
+* 服务端权限符合 `docs/ary-permission-matrix.md`，Debug Login 在生产环境不可用。
+* `.env`、数据库、Cookie、OAuth Secret 和 connector 凭据不进入 Git。
 
-1. 使用`web/`继续推进正式工程化：细化真实OAuth会话、真实CAConnector和生产部署流水线。
-2. 在全角色 / Public / Screen 9 个 E2E 和 GitHub Actions CI 基础上，补截图基线、移动端关键路径与分支保护必需检查；推送后确认首次 hosted CI 结果。
-3. 配置真实GitHub OAuth App、回调地址和会话密钥，并验证跨会话登录。
-4. 接入真实CAConnector，补齐connector凭证、HTTP snapshot fetch、服务端幂等和审计日志。
-5. 建立staging/production发布流水线，补齐浏览器自动化、P0回归、回滚演练和生产监控。
+## 文档入口
+
+* 产品基线：`docs/ary-mvp.prd.md`
+* 长期任务定义：`docs/ary.plan.md`
+* 当前状态与风险：`STATUS.md`
+* 权限基线：`docs/ary-permission-matrix.md`
+* CA 契约：`docs/ary-ca-integration-spec.md`
+* 工程运行：`web/README.md`
+* WEB-1 E2E / CI 总结：`docs/ary-web-e2e-ci-change-summary.md`
 
 ## 执行纪律
 
-* 开工前读取对应任务在 `docs/ary.plan.md` 中的定义。
-* 近期窗口变化时更新本文；任务状态变化时更新 `STATUS.md`。
+* 开工前确认目标、产出、验收口径和不做事项。
+* 新增正式任务 ID、依赖或长期验收口径时，先更新 `docs/ary.plan.md`，再同步本文和 `STATUS.md`。
+* 完成任务、改变近期窗口或改变重要产物后，及时更新本文和 `STATUS.md`。

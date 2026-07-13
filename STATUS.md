@@ -19,6 +19,7 @@
 * `web/e2e/` 已新增 Judge、Public、Screen 三组 6 个 Playwright 场景并全部通过；E2E 使用独立 `prisma/e2e.db`，同时补齐 Judge 页面按 assignment 服务端授权。
 * Rider、Organizer、Admin E2E 已补齐，当前全量 9/9 通过；`.github/workflows/web-ci.yml` 已接入静态/领域/构建与浏览器 E2E 双 Job，托管 Runner 首次结果待推送后确认。
 * 本阶段修改说明和 Riding Record 已落盘，分别承接工程变更事实与第一人称理解、引导、决策和指挥过程。
+* `PLAN.md` 已从旧阶段完成清单收缩为正式工程化近期窗口；当前 P0 聚焦正式任务立项、真实 GitHub OAuth / 生产会话闭环和 Hosted CI 首次验证。
 
 ## 任务看板
 

@@ -2,6 +2,26 @@
 
 本文用于帮助 Agent 和开发者快速找到当前权威文档。根目录 `PLAN.md` 负责近期任务窗口，根目录 `STATUS.md` 负责任务瞬时看板。
 
+## 当前正式工程入口
+
+正式集成应用位于 `web/`：
+
+```bash
+cd web
+npm install
+npm run prisma:generate
+npm run prisma:push
+npm run seed
+npm run dev
+```
+
+访问：`http://127.0.0.1:3000`
+
+历史产物说明：
+
+* `design-prototype/`：UX-1 高保真静态原型。
+* 根目录旧 `app/` 静态 MVP 已移除；DEV-4 到 OPS-1 的当前可运行闭环以 `web/`、`web/lib/domain.ts` 和 `web/tests/domain.test.ts` 为准。历史交付语义保留在 `ary-dev-4-to-ops-delivery.md`。
+
 ## 文档路由
 
 | 文档 | 作用 |
@@ -17,6 +37,10 @@
 | `ary-dev-1-dev-3-delivery.md` | DEV-1 到 DEV-3 的聚合边界、数据模型草案、接口鉴权规则、静态闭环演示和验收记录。 |
 | `ary-dev-4-to-ops-delivery.md` | DEV-4 到 OPS-1 的本地 MVP 应用交付、流程实现、验收测试和边界记录。 |
 | `ary-web-e2e-ci-change-summary.md` | WEB-1 全角色 E2E 与 CI 阶段修改内容、范围、意义、验证结果和未完成边界。 |
+| `ary-web-next-step-checklist.md` | `web/` 正式工程化下一步检查清单。 |
+| `ary-role-flow-playwright-audit.md` | 角色数据流与浏览器审计记录。 |
+| `ary-mobile-ux-review.md` | 移动端 UX 静态审计记录。 |
+| `ary-ux-finish-v2-summary.md` | UX-1 收尾 v2 汇总记录。 |
 | `ux-hifi.taskbook.md` | UX-1 高保真原型任务书，定义视觉为主、体验为先的原型工作方式。 |
 | `registration-ca-rules-alignment.taskbook.md` | PRD-TEMP-1 整改任务书与并入记录，承接报名、RaceProject 自动生成、CAConnection 动态接入和评审前风险提示的一致性整改。 |
 
