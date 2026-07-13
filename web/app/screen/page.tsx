@@ -35,9 +35,9 @@ export default async function ScreenConsolePage({ searchParams }: { searchParams
             <h2>Display Mode</h2>
             <div className="screen-preview-card">
               <span>Current output</span>
-              <b>{screenState.mode}</b>
+              <b data-testid="screen-current-mode">{screenState.mode}</b>
               <p>{modeSummary[screenState.mode] ?? "等待选择展示模式。"}</p>
-              <em>{screenState.fallbackEnabled ? "fallback enabled" : "primary projection"}</em>
+              <em data-testid="screen-output-source">{screenState.fallbackEnabled ? "fallback enabled" : "primary projection"}</em>
             </div>
             {canManage ? (
               <>
@@ -46,20 +46,20 @@ export default async function ScreenConsolePage({ searchParams }: { searchParams
                     <form action={switchScreenModeAction} key={mode}>
                       <input type="hidden" name="raceId" value={race.id} />
                       <input type="hidden" name="mode" value={mode} />
-                      <button className={screenState.mode === mode ? "active" : ""} type="submit">{mode}</button>
+                      <button className={screenState.mode === mode ? "active" : ""} data-testid={`screen-mode-${mode}`} type="submit">{mode}</button>
                     </form>
                   ))}
                 </div>
                 <form action={toggleScreenFallbackAction}>
                   <input type="hidden" name="raceId" value={race.id} />
                   <input type="hidden" name="enabled" value={screenState.fallbackEnabled ? "false" : "true"} />
-                  <button type="submit">{screenState.fallbackEnabled ? "关闭 fallback" : "开启 fallback"}</button>
+                  <button data-testid="screen-fallback-toggle" type="submit">{screenState.fallbackEnabled ? "关闭 fallback" : "开启 fallback"}</button>
                 </form>
               </>
             ) : (
               <p>只读模式：当前角色不能切换 Display Mode 或 fallback。</p>
             )}
-            <Link className="inline-action" href="/screen/display">打开 Screen Display</Link>
+            <Link className="inline-action" data-testid="screen-display-link" href="/screen/display">打开 Screen Display</Link>
           </section>
           {canManage ? <section className="form-card">
             <h2>Announcement</h2>

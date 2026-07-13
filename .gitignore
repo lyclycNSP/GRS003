@@ -1,2 +1,4 @@
 .agents/
 .DS_Store
+.mavis/plans/plan.yaml
+.mavis/plans/plan-v2.yaml

@@ -10,8 +10,17 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "db:init": "python scripts/init-sqlite.py",
-    "seed": "tsx prisma/seed.ts",
-    "test": "tsx tests/domain.test.ts",
+    "seed": "node --import tsx prisma/seed.ts",
+    "test": "node --import tsx tests/domain.test.ts",
+    "test:e2e": "npm run test:e2e:prepare && playwright test",
+    "test:e2e:judge": "npm run test:e2e:prepare && playwright test e2e/judge.spec.ts",
+    "test:e2e:public": "npm run test:e2e:prepare && playwright test e2e/public.spec.ts",
+    "test:e2e:screen": "npm run test:e2e:prepare && playwright test e2e/screen.spec.ts",
+    "test:e2e:rider": "npm run test:e2e:prepare && playwright test e2e/rider.spec.ts",
+    "test:e2e:organizer": "npm run test:e2e:prepare && playwright test e2e/organizer.spec.ts",
+    "test:e2e:admin": "npm run test:e2e:prepare && playwright test e2e/admin.spec.ts",
+    "test:e2e:prepare": "node scripts/e2e-prepare.mjs",
+    "typecheck": "tsc --noEmit",
     "check:static": "node scripts/static-smoke.mjs"
   },
   "dependencies": {
@@ -22,6 +31,7 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.15.32",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",

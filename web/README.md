@@ -33,10 +33,42 @@ npm.cmd run check:static
 
 ```bash
 npm.cmd test
+npm.cmd run test:e2e
 npm.cmd run build
 ```
 
 如果 PowerShell 拦截 `npm`，使用 `npm.cmd`。
+
+### 全角色 / Public / Screen E2E
+
+首次运行前安装 Chromium：
+
+```bash
+npx playwright install chromium
+```
+
+全部 E2E 或按场景运行：
+
+```bash
+npm run test:e2e
+npm run test:e2e:judge
+npm run test:e2e:public
+npm run test:e2e:screen
+npm run test:e2e:rider
+npm run test:e2e:organizer
+npm run test:e2e:admin
+```
+
+E2E 使用独立的 `prisma/e2e.db`，每次执行会重建 schema 和 Seed 数据，不读写本地开发数据库。测试服务只在本地启用 Debug Login。
+
+### GitHub Actions CI
+
+`.github/workflows/web-ci.yml` 在 `web/**` 或 Workflow 变化时运行两个并行质量门：
+
+* `Static, domain and build`：安装依赖、初始化独立测试库、静态烟测、TypeScript、领域测试和 production build。
+* `Playwright browser E2E`：安装 Chromium 并运行全部 9 个浏览器场景；失败时上传 trace、截图和 HTML report，保留 7 天。
+
+CI 使用 Node.js 22、Python 3.13 和只读仓库权限。首次托管 Runner 结果需要在 Workflow 推送到 GitHub 后确认。
 
 ## 覆盖范围
 
@@ -86,5 +118,6 @@ DEV-2 / DEV-3 的高保真页面与交互已迁入 `web/`；DEV-4 到 REL-1 已�
 * Prisma + SQLite 覆盖 User、AuthAccount、Race、Registration、RaceProject、CAConnection、Session、Work、Evidence、ReviewFlag、JudgeAssignment、JudgingRecord、Award、Report、Projection、Announcement、ScreenState、Backup、Incident、ReleaseChecklistItem。
 * Public API 覆盖 races、race detail、live、works、results、review、screen、work detail、rider detail。
 * 领域测试覆盖 Race 创建/发布、重复报名、RaceProject 幂等、权限拒绝、Profile Completion、Admin roles、Work/Judge、CA 合法/非法/禁用接入、Projection 失败隔离、Screen mode、Report 可见性/失败重跑/编辑发布和 P0 回归。
+* Playwright E2E 共 9 个场景，覆盖 Rider CA/Work、Organizer Race 创建发布、Judge 分配与评审、Admin roles、Public Gallery / Live / Works / Results / Review 与 review-only 隔离，以及 Screen 只读权限、模式同步和 fallback。
 
 根目录旧 `app/` 静态 MVP 已删除；`design-prototype/` 保留为历史原型与视觉迁移来源。

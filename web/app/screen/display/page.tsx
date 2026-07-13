@@ -24,7 +24,7 @@ export default async function ScreenDisplayPage() {
         <Link href="/screen">Console</Link>
       </header>
       <main>
-        <p>{race.title} / {mode}</p>
+        <p data-testid="screen-display-mode">{race.title} / {mode}</p>
         <h1>{mode === "announcement" ? announcement?.title ?? race.title : race.title}</h1>
         {mode === "live" ? (
           <div className="screen-stat-grid">

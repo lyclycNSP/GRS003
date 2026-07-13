@@ -2,6 +2,10 @@ node_modules
 .next
 dev.db
 dev.db-journal
+e2e.db
+e2e.db-journal
 .env
 tsconfig.tsbuildinfo
 dev-server*.log
+playwright-report
+test-results

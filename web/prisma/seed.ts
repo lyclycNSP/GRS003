@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+const includeE2EFixtures = process.env.DATABASE_URL?.includes("e2e.db") ?? false;
 
 function json(value: unknown) {
   return JSON.stringify(value);
@@ -65,7 +66,16 @@ async function main() {
         profileCompleted: true,
         rolesJson: json(["judge"]),
         city: "Seattle"
-      }
+      },
+      ...(includeE2EFixtures ? [{
+        id: "user_rider_e2e",
+        slug: "e2e-rider",
+        displayName: "E2E Rider",
+        githubLogin: "e2e-rider",
+        profileCompleted: true,
+        rolesJson: json(["rider"]),
+        city: "Test Track"
+      }] : [])
     ]
   });
 
@@ -123,6 +133,7 @@ async function main() {
     data: [
       { id: "reg_mira", raceId: "race_bay_2026", userId: "user_rider_1", status: "approved", submittedAt: new Date("2026-06-18T09:00:00Z"), approvedAt: new Date("2026-06-18T09:20:00Z") },
       { id: "reg_ana", raceId: "race_bay_2026", userId: "user_rider_2", status: "approved", submittedAt: new Date("2026-06-18T09:12:00Z"), approvedAt: new Date("2026-06-18T09:24:00Z") },
+      ...(includeE2EFixtures ? [{ id: "reg_rider_e2e", raceId: "race_bay_2026", userId: "user_rider_e2e", status: "approved", submittedAt: new Date("2026-06-18T09:14:00Z"), approvedAt: new Date("2026-06-18T09:26:00Z") }] : []),
       { id: "reg_genesis_mira", raceId: "race_genesis_2026", userId: "user_rider_1", status: "approved", submittedAt: new Date("2026-06-01T09:00:00Z"), approvedAt: new Date("2026-06-01T09:20:00Z") }
     ]
   });
@@ -130,14 +141,16 @@ async function main() {
   await prisma.raceProject.createMany({
     data: [
       { id: "rp_mira", registrationId: "reg_mira", repoUrl: "mock://repo/gba-wandermate", aggregateIngestionStatus: "active", connectionHealth: "ok", metricsJson: json({ progressPercent: 92, tokens: 12000, messageCount: 80, toolCallCount: 20 }) },
-      { id: "rp_ana", registrationId: "reg_ana", repoUrl: "mock://repo/localjoy-agent", aggregateIngestionStatus: "connected", connectionHealth: "partial_failed", metricsJson: json({ progressPercent: 84, tokens: 9400, messageCount: 64, toolCallCount: 17 }) }
+      { id: "rp_ana", registrationId: "reg_ana", repoUrl: "mock://repo/localjoy-agent", aggregateIngestionStatus: "connected", connectionHealth: "partial_failed", metricsJson: json({ progressPercent: 84, tokens: 9400, messageCount: 64, toolCallCount: 17 }) },
+      ...(includeE2EFixtures ? [{ id: "rp_rider_e2e", registrationId: "reg_rider_e2e", repoUrl: "mock://repo/e2e-rider", aggregateIngestionStatus: "connected", connectionHealth: "ok", metricsJson: json({ progressPercent: 0, tokens: 0, messageCount: 0, toolCallCount: 0 }) }] : [])
     ]
   });
 
   await prisma.cAConnection.createMany({
     data: [
       { id: "conn_mira_codex", raceProjectId: "rp_mira", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", externalProjectRef: "gba-wander", ingestionStatus: "active", registeredAt: new Date(), handshakeAt: new Date(), lastSyncedAt: new Date() },
-      { id: "conn_ana_codex", raceProjectId: "rp_ana", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", externalProjectRef: "localjoy", ingestionStatus: "connected", registeredAt: new Date(), handshakeAt: new Date() }
+      { id: "conn_ana_codex", raceProjectId: "rp_ana", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", externalProjectRef: "localjoy", ingestionStatus: "connected", registeredAt: new Date(), handshakeAt: new Date() },
+      ...(includeE2EFixtures ? [{ id: "conn_rider_e2e", raceProjectId: "rp_rider_e2e", caType: "codex", connectorId: "e2e-connector", connectorVersion: "0.1.0", externalProjectRef: "e2e-rider", ingestionStatus: "connected", registeredAt: new Date(), handshakeAt: new Date() }] : [])
     ]
   });
 

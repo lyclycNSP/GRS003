@@ -112,10 +112,10 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
         <p className="section-kicker">Console / {race.title} / {roles.join(", ")}</p>
         <h1>{race.title} 指挥席</h1>
         <section className="console-signal-bar">
-          <article>
+          <article data-testid="console-current-race">
             <span>Current Race</span>
-            <b>{race.status}</b>
-            <p>{race.visibility} / {race.slug}</p>
+            <b data-testid="console-current-race-status">{race.status}</b>
+            <p data-testid="console-current-race-identity">{race.visibility} / {race.slug}</p>
           </article>
           <article>
             <span>Race switch</span>
@@ -163,7 +163,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
             <section className="form-card">
               <h2>Race 管理</h2>
               <p className="form-hint">创建一场新的 Race。带 * 的字段为必填；发布按钮会把当前 Race 设置为公开运行状态。</p>
-              <form className="console-field-form race-create-form" action={createRaceAction}>
+              <form className="console-field-form race-create-form" action={createRaceAction} data-testid="organizer-race-create-form">
                 <label>
                   <span>赛事名 <strong>*</strong></span>
                   <input name="title" defaultValue="本地演示 Race" required />
@@ -320,9 +320,9 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
           <section id="rider" className="form-card">
             <h2>Rider View</h2>
             <div className="rider-cockpit-grid">
-              <article className="rider-status-card"><span>Registration</span><b className={`status-pill ${toneFor(ownRegistration?.status)}`}>{ownRegistration?.status ?? "none"}</b><p>{ownRegistration?.race.title ?? "选择 Race 后报名"}</p></article>
-              <article className="rider-status-card"><span>RaceProject</span><b className={`status-pill ${toneFor(ownProject?.aggregateIngestionStatus)}`}>{ownProject?.aggregateIngestionStatus ?? "not_configured"}</b><p>{ownProject?.connectionHealth ?? "等待审核生成"}</p></article>
-              <article className="rider-status-card"><span>Work</span><b className={`status-pill ${toneFor(ownRegistration?.work?.status)}`}>{ownRegistration?.work?.status ?? "none"}</b><p>{ownRegistration?.work?.title ?? "尚未提交作品"}</p></article>
+              <article className="rider-status-card" data-testid="rider-registration-status"><span>Registration</span><b className={`status-pill ${toneFor(ownRegistration?.status)}`}>{ownRegistration?.status ?? "none"}</b><p>{ownRegistration?.race.title ?? "选择 Race 后报名"}</p></article>
+              <article className="rider-status-card" data-testid="rider-project-status"><span>RaceProject</span><b className={`status-pill ${toneFor(ownProject?.aggregateIngestionStatus)}`}>{ownProject?.aggregateIngestionStatus ?? "not_configured"}</b><p>{ownProject?.connectionHealth ?? "等待审核生成"}</p></article>
+              <article className="rider-status-card" data-testid="rider-work-status"><span>Work</span><b className={`status-pill ${toneFor(ownRegistration?.work?.status)}`}>{ownRegistration?.work?.status ?? "none"}</b><p>{ownRegistration?.work?.title ?? "尚未提交作品"}</p></article>
             </div>
             <div className="ca-attestation-panel">
               <span>CA anti-forgery</span>
@@ -364,7 +364,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
                       <span>Step 3</span>
                       <h3>接入合法 CA Signal</h3>
                       <p>填写一次骑行会话快照。Session ID 用于幂等，Progress 是完成进度，Tokens 是本次 Agent 输出量。</p>
-                      <form className="ca-signal-form" action={ingestSignalAction}>
+                      <form className="ca-signal-form" action={ingestSignalAction} data-testid="rider-signal-form">
                         <input type="hidden" name="raceId" value={race.id} />
                         <input type="hidden" name="registrationId" value={ownRegistration!.id} />
                         <input type="hidden" name="raceProjectId" value={ownProject.id} />
@@ -391,7 +391,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
                   <span>Step 4</span>
                   <h3>提交 Work</h3>
                   <p>提交作品标题、摘要、Demo 和 Repo。CA 信号会作为过程证据，作品本身仍由 Organizer/Judge 后续处理。</p>
-                  <form className="work-submit-form" action={submitWorkAction}>
+                  <form className="work-submit-form" action={submitWorkAction} data-testid="rider-work-form">
                     <input type="hidden" name="registrationId" value={ownRegistration!.id} />
                     <label>
                       <span>Title</span>
@@ -439,7 +439,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
             {users.map((user) => {
               const userRoles = fromJson<string[]>(user.rolesJson, []);
               return (
-                <form className="table-row role-row" action={updateRolesAction} key={user.id}>
+                <form className="table-row role-row" action={updateRolesAction} data-testid={`admin-user-${user.id}`} key={user.id}>
                   <input type="hidden" name="userId" value={user.id} />
                   <span>{user.displayName}</span>
                   <b>{user.profileCompleted ? "complete" : "needs profile"}</b>

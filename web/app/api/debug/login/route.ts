@@ -5,6 +5,7 @@ const DEBUG_USERS = {
   organizer: { userId: "user_org_1", roles: ["organizer"] },
   admin: { userId: "user_org_1", roles: ["admin"] },
   rider: { userId: "user_rider_1", roles: ["rider"] },
+  rider_e2e: { userId: "user_rider_e2e", roles: ["rider"] },
   judge: { userId: "user_judge_1", roles: ["judge"] }
 } as const;
 

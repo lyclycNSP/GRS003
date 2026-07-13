@@ -29,6 +29,9 @@
 | `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 已完成运维入口并迁入 `web/`：备份、事故、fallback、归档记录；真实值守和回滚待生产环境接入。 | `web/app/ops/page.tsx`、`web/lib/domain.ts`、`docs/ary-release-ops-plan.md` |
 | `WEB-1` 高保真前端 + 服务端领域动作正式集成 | 已迁入DEV-2/DEV-3页面闭环：Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口，并接入Prisma数据、OAuth fallback、Server Actions和领域测试。 | `web/README.md`、`web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
 | `WEB-1 角色数据流与调试能力修正` | 已完成：Console 改为 Race-scoped，Debug Login 支持角色隔离，Award/Work/Results 公共边界和 Screen Console 权限已收口，Judge 提交有保存反馈。 | `docs/ary-role-flow-playwright-audit.md`、`web/app/console/page.tsx`、`web/lib/queries.ts`、`web/tests/domain.test.ts` |
+| `WEB-1 Judge / Public / Screen E2E` | 已完成：新增 6 个可重复 Playwright 场景，覆盖 Judge 未授权隔离与评审持久化、Public 主路径与 review-only 边界、Screen 只读权限、模式同步和 fallback；使用独立 `prisma/e2e.db`。 | `web/playwright.config.ts`、`web/e2e/`、`web/scripts/e2e-prepare.mjs`、`web/README.md` |
+| `WEB-1 Rider / Organizer / Admin E2E + CI` | 已完成：补齐 Rider CA/Work、Organizer Race 创建发布、Admin User.roles 持久化，Playwright 全量 9/9 通过；新增 GitHub Actions 静态/领域/构建与浏览器双 Job。 | `web/e2e/rider.spec.ts`、`web/e2e/organizer.spec.ts`、`web/e2e/admin.spec.ts`、`.github/workflows/web-ci.yml` |
+| `WEB-1 E2E / CI 阶段总结与 Riding Record` | 已完成：形成修改范围、意义、验证与边界总结，并以第一人称记录项目理解、任务引导、关键决策和 Agent 指挥过程。 | `docs/ary-web-e2e-ci-change-summary.md`、`riding_records/ARY_WEB_E2E_CI_Riding_Record_2026-07-13.md` |
 
 ## 近期里程碑
 
@@ -36,12 +39,12 @@
 | --- | --- |
 | `M1` 文档基线可作为架构入口 | PRD、领域、IA、权限、QA、计划、OPS、CA 草案无高优先级冲突。 |
 | `M2` 架构设计输入就绪 | DEV-1已输出领域边界、权限规则和数据模型草案；UX/UI原型已覆盖DEV-2/DEV-3关键页面状态；DEV-4到OPS-1本地MVP已提供可迁移的领域动作和验收测试。 |
-| `M3` 本地MVP闭环可演示 | `app/`可直接打开并运行P0回归，覆盖报名、CA、Projection、大屏、报告、发布检查和运维归档。`app/domain.test.js` 10 个用例已覆盖 M3 对应的不变量，并补充 CA 防伪 / 防篡改隔离验收。 |
+| `M3` 本地MVP闭环可演示 | `web/` 可启动并运行领域回归与浏览器 E2E，覆盖报名、CA、Projection、大屏、报告、发布检查和运维归档；`web/tests/domain.test.ts` 与 `web/e2e/` 提供当前自动化证据。 |
 
 ## 下一步
 
-1. 使用`web/`继续推进正式工程化：细化真实OAuth会话、真实CAConnector、浏览器E2E自动化和生产部署流水线。
-2. 将本地 Playwright 角色流验证固化为可重复 E2E 脚本，覆盖 Rider/Organizer/Judge/Admin 的 Race-scoped 数据流。
+1. 使用`web/`继续推进正式工程化：细化真实OAuth会话、真实CAConnector和生产部署流水线。
+2. 在全角色 / Public / Screen 9 个 E2E 和 GitHub Actions CI 基础上，补截图基线、移动端关键路径与分支保护必需检查；推送后确认首次 hosted CI 结果。
 3. 配置真实GitHub OAuth App、回调地址和会话密钥，并验证跨会话登录。
 4. 接入真实CAConnector，补齐connector凭证、HTTP snapshot fetch、服务端幂等和审计日志。
 5. 建立staging/production发布流水线，补齐浏览器自动化、P0回归、回滚演练和生产监控。

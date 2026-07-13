@@ -2,23 +2,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getWorkBySlug } from "@/lib/queries";
 import { submitJudgingRecordAction } from "@/app/actions";
+import { getAuthContext } from "@/lib/auth";
 
 export default async function WorkJudgePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ saved?: string }> }) {
   const { slug } = await params;
   const { saved } = (await searchParams) ?? {};
+  const ctx = await getAuthContext();
   const work = await getWorkBySlug(slug, { includeReviewOnly: true });
-  if (!work) notFound();
+  if (!work || !ctx?.roles.includes("judge") || !ctx.assignedWorkIds.includes(work.id)) notFound();
   const race = work.registration.race;
   const rider = work.registration.user;
-  const assignment = work.assignments[0];
-  const review = assignment?.judgingRecord;
+  const assignment = work.assignments.find((item) => item.judgeUserId === ctx.userId);
+  if (!assignment) notFound();
+  const review = assignment.judgingRecord;
   return (
     <section className="route-page">
       <section className="work-detail-hero work-judge-hero" style={{ position: "relative", inset: "auto", marginBottom: 24 }}>
         <p className="section-kicker">{race.title} / {work.title} / Judge View</p>
         <h1>{work.title}</h1>
         <p className="module-summary">评审席视角：{rider.displayName} 的作品已提交，Demo、Repo 与 Riding Evidence 摘要可被评审席查看。</p>
-        {saved === "1" ? <p className="status-pill good">JudgingRecord 已保存，Assignment 状态已更新。</p> : null}
+        {saved === "1" ? <p className="status-pill good" data-testid="judge-save-confirmation">JudgingRecord 已保存，Assignment 状态已更新。</p> : null}
         <div className="work-detail-actions work-judge-actions">
           <a href={work.demoUrl ?? "#"}>打开 Demo</a>
           <a href={work.repoUrl ?? "#"}>查看 Repo</a>
@@ -27,7 +30,7 @@ export default async function WorkJudgePage({ params, searchParams }: { params: 
         </div>
       </section>
       <section className="judge-review-layout work-judge-layout" style={{ position: "relative", inset: "auto" }}>
-        <article className="assigned-work-card work-judge-summary">
+        <article className="assigned-work-card work-judge-summary" data-testid="judge-assigned-work">
           <span>Assigned Work</span>
           <h2>{work.title}</h2>
           <p>{work.summary}</p>
@@ -37,15 +40,15 @@ export default async function WorkJudgePage({ params, searchParams }: { params: 
             )) : <span className="review-flag"><b>无 ReviewFlag</b><em>当前没有评审前提示。</em></span>}
           </div>
         </article>
-        <form className="score-form-card work-judge-form" action={submitJudgingRecordAction}>
+        <form className="score-form-card work-judge-form" action={submitJudgingRecordAction} data-testid="judge-score-form">
           <span>Score Form</span>
-          <input type="hidden" name="assignmentId" value={assignment?.id ?? ""} />
+          <input type="hidden" name="assignmentId" value={assignment.id} />
           <input type="hidden" name="redirectTo" value={`/works/${work.slug}/judge`} />
-          {review ? <p className="status-pill good">当前记录：{assignment?.status} / submitted</p> : null}
+          {review ? <p className="status-pill good">当前记录：{assignment.status} / submitted</p> : null}
           <label>score_result<input type="number" min="0" max="100" name="scoreResult" defaultValue={review?.scoreResult ?? 86} /></label>
           <label>score_riding<input type="number" min="0" max="100" name="scoreRiding" defaultValue={review?.scoreRiding ?? 91} /></label>
           <label>comments<textarea name="comments" defaultValue={review?.comments ?? "路线表达清楚，纠偏记录完整。"} /></label>
-          <button type="submit" disabled={!assignment}>提交评审</button>
+          <button type="submit">提交评审</button>
         </form>
         <article className="work-evidence-panel work-judge-evidence">
           <h2>Riding Evidence</h2>

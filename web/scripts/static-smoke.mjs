@@ -80,6 +80,37 @@ const apiFiles = [
 
 for (const file of routeFiles) expectFile(file);
 for (const file of apiFiles) expectFile(file);
+for (const file of [
+  "playwright.config.ts",
+  "e2e/judge.spec.ts",
+  "e2e/public.spec.ts",
+  "e2e/screen.spec.ts",
+  "e2e/rider.spec.ts",
+  "e2e/organizer.spec.ts",
+  "e2e/admin.spec.ts",
+  "scripts/e2e-prepare.mjs"
+]) expectFile(file);
+expectFile("../.github/workflows/web-ci.yml");
+expectIncludes("../.github/workflows/web-ci.yml", [
+  "actions/checkout@v7",
+  "actions/setup-node@v6",
+  "actions/setup-python@v6",
+  "actions/upload-artifact@v7",
+  "npm run test:e2e",
+  "npm run typecheck",
+  "npm run build"
+]);
+
+expectIncludes("package.json", [
+  "test:e2e",
+  "test:e2e:judge",
+  "test:e2e:public",
+  "test:e2e:screen",
+  "test:e2e:rider",
+  "test:e2e:organizer",
+  "test:e2e:admin",
+  "typecheck"
+]);
 
 expectIncludes(".env.example", [
   "DATABASE_URL",
@@ -147,7 +178,11 @@ expectIncludes("app/console/page.tsx", [
   "connectorId",
   "接入合法 CA Signal",
   "发布 Award",
-  "重建 Projection"
+  "重建 Projection",
+  "organizer-race-create-form",
+  "rider-signal-form",
+  "rider-work-form",
+  "admin-user-"
 ]);
 
 expectIncludes("app/ops/page.tsx", [
@@ -188,7 +223,15 @@ expectIncludes("app/screen/page.tsx", [
   "Display Mode",
   "fallback",
   "Projection Health",
-  "打开 Screen Display"
+  "打开 Screen Display",
+  "screen-current-mode",
+  "screen-fallback-toggle"
+]);
+
+expectIncludes("app/works/[slug]/judge/page.tsx", [
+  "getAuthContext",
+  "assignedWorkIds.includes",
+  "judge-save-confirmation"
 ]);
 
 expectBalancedCss("app/globals.css");

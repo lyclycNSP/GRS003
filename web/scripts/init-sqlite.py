@@ -1,7 +1,13 @@
 import sqlite3
+import os
 from pathlib import Path
 
-db_path = Path(__file__).resolve().parents[1] / "prisma" / "dev.db"
+prisma_dir = Path(__file__).resolve().parents[1] / "prisma"
+database_url = os.environ.get("DATABASE_URL", "file:./dev.db")
+if not database_url.startswith("file:"):
+    raise ValueError("init-sqlite.py only supports SQLite file: DATABASE_URL values")
+database_name = database_url.removeprefix("file:").removeprefix("./")
+db_path = prisma_dir / database_name
 db_path.parent.mkdir(parents=True, exist_ok=True)
 
 conn = sqlite3.connect(db_path)
@@ -9,7 +15,7 @@ cur = conn.cursor()
 cur.execute("PRAGMA foreign_keys=OFF")
 
 tables = [
-    "ReleaseChecklistItem", "Incident", "Backup", "Announcement", "Projection", "Report", "Award",
+    "ReleaseChecklistItem", "Incident", "Backup", "ScreenState", "Announcement", "Projection", "Report", "Award",
     "JudgingRecord", "JudgeAssignment", "ReviewFlag", "Evidence", "Work", "Session", "CAConnection",
     "RaceProject", "Registration", "Race", "AuthAccount", "User"
 ]
@@ -200,6 +206,13 @@ CREATE TABLE "Announcement" (
   "body" TEXT NOT NULL,
   "visibility" TEXT NOT NULL,
   "publishedAt" DATETIME
+);
+CREATE TABLE "ScreenState" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "raceId" TEXT NOT NULL UNIQUE,
+  "mode" TEXT NOT NULL,
+  "fallbackEnabled" BOOLEAN NOT NULL DEFAULT false,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE "Backup" (
   "id" TEXT NOT NULL PRIMARY KEY,
