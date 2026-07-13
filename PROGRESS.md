@@ -1,5 +1,12 @@
 # PROGRESS
 
+## 2026-07-13 SQLite Prisma Client 生成脚本 Windows 兼容修正
+
+- 问题：安全基线分支中的 `generate-sqlite-client.mjs` 通过 `execFileSync("npx", ...)` 生成本地 SQLite Client；该写法在 Windows 找不到无扩展名的 `npx`，改用 `npx.cmd` 后又因 Node 24 不能直接 `execFileSync` 批处理文件而返回 `EINVAL`。
+- 解决方式：不再依赖 shell shim，改为使用 `process.execPath` 执行项目本地 `node_modules/prisma/build/index.js`，同时在静态烟测中增加跨平台命令入口约束。
+- 后续避免：跨平台 Node 脚本调用项目 CLI 时优先执行依赖的 JS 入口；不要假设 `npx`、`npm` 或 `.cmd` 能被 `execFileSync` 在所有平台直接解析。
+- git commit ID：`91d963a`。
+
 ## 2026-06-21 全站前端页面视觉审计
 
 - 问题：多处从高保真静态布局迁入的页面在移动端仍带有旧的横向尺寸假设，`body` 后续样式覆盖了 `overflow-x: hidden`，导致 Race、Live Hall、Rider、Console 等页面在窄屏出现横向空白、卡片窄列和文字拥挤。
