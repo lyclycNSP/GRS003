@@ -67,6 +67,8 @@ Live Hall、Works 和 Screen Display 已强制动态读取，不能把构建时�
 ## 3.2 权限与请求来源
 
 * 后台动作继续使用 `AuthContext`、role、managed race、own registration 和 assigned work 做服务端授权。
+* Ops 页面必须先完成认证，并且仅 `admin` 或当前 Race 的精确 Organizer 可读取发布检查、备份和事故数据；匿名和无关角色统一返回 404。
+* Race Organizer 归属通过 JSON 数组的精确用户 ID 匹配判断，不使用文本子串匹配，避免相邻用户 ID 产生越权。
 * `/api/console/action` 在 production 校验 `Origin` 必须等于 `NEXT_PUBLIC_APP_URL`。
 * Next.js Server Action 用于页面表单动作；生产反向代理不得改写 Host / Origin 到不可信值。
 

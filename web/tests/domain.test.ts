@@ -23,7 +23,7 @@ import {
   updateProfile,
   updateUserRoles
 } from "../lib/domain";
-import type { AuthContext } from "../lib/auth";
+import { isRaceOrganizer, type AuthContext } from "../lib/auth";
 import { getConsoleSnapshotForUser, getRaceResults, getWorkBySlug } from "../lib/queries";
 import { createRidingSignalAttestation, type RidingSignalPayload } from "../lib/ca-attestation";
 
@@ -76,6 +76,12 @@ function signedSignal(connectorId: string, overrides: Partial<RidingSignalPayloa
 }
 
 async function main() {
+
+  await test("organizer authorization requires an exact user ID match", async () => {
+    assert.equal(isRaceOrganizer('["user_123"]', "user_123"), true);
+    assert.equal(isRaceOrganizer('["user_123"]', "user_12"), false);
+    assert.equal(isRaceOrganizer('["user_123"]', "user_1234"), false);
+  });
 
   await test("organizer creates and publishes Race", async () => {
     const created = await createRace(organizer, { title: "本地补齐验收赛", challenge: "验证 DEV-4", summary: "Race 创建发布验收" });

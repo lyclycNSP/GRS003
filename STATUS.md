@@ -12,7 +12,7 @@
 * `DEV-1`已输出聚合边界、数据模型草案和接口鉴权规则；`DEV-2`和`DEV-3`已补齐静态高保真可走查闭环。
 * `DEV-4`到`DEV-7`、`REL-1`和`OPS-1`已迁入`web/`正式集成应用，覆盖报名、RaceProject、Work、Judge、CA、Projection、Screen、Report、Results、发布检查、备份、事故和归档闭环；根目录旧 `app/` 静态 MVP 已删除。
 * `web/tests/domain.test.ts`已提供关键领域回归测试；当前已补充 CA 防伪 / 防篡改 attestation 用例，缺少 OCR Desktop App / connector 认证声明的信号会被隔离。
-* `SEC-1` 代码级安全基线已完成：production Prisma datasource / migration 已切换 PostgreSQL；SQLite 仅保留本地和 E2E；会话、OAuth state、Public DTO、CA HMAC / 防重放、安全头和配置门禁已有自动化证据。
+* `SEC-1` 代码级安全基线已完成：production Prisma datasource / migration 已切换 PostgreSQL；SQLite 仅保留本地和 E2E；会话、OAuth state、Public DTO、CA HMAC / 防重放、安全头和配置门禁已有自动化证据。本轮已封闭匿名 / 无关角色对 Ops 数据的读取，并将 Organizer 授权改为精确 ID 匹配。
 * 当前尚未取得生产 TLS、托管 PostgreSQL、真实 OAuth App、正式 CA 凭证、备份恢复、WAF / 限流、监控和 staging 彩排证据；按真实赛事 go-live 口径仍为 no-go。
 * 已新增`web/`正式集成应用入口：Next.js App Router、Prisma、SQLite、GitHub OAuth路由、服务端权限上下文、Public API和Console/Ops服务端动作；DEV-2/DEV-3高保真页面闭环已迁入正式应用。
 * `web/` 本轮已完成角色数据流修正：Console 按 Race 取数，Debug Login 可隔离 Organizer/Admin/Rider/Judge，Screen Console 对非管理者只读，非公开 Work 不再公开详情，Judge 提交后有保存反馈。
@@ -41,7 +41,7 @@
 | `WEB-1 Judge / Public / Screen E2E` | 已完成 | 6 个 Playwright 场景覆盖 Judge 未授权 404、分配作品评审与持久化、Public Gallery/Live/Works/Results/Review、review-only 页面/API 隔离、Screen 只读权限、模式同步和 fallback。 | `web/playwright.config.ts`、`web/e2e/`、`web/scripts/e2e-prepare.mjs`、`web/README.md` |
 | `WEB-1 Rider / Organizer / Admin E2E + CI` | 已完成 | Rider 验证 CA Signal 与 Work 持久化，Organizer 验证 Race 创建/切换/发布及公共 API，Admin 验证 User.roles 持久化并恢复 Seed；CI 双 Job 已落盘。 | `web/e2e/rider.spec.ts`、`web/e2e/organizer.spec.ts`、`web/e2e/admin.spec.ts`、`.github/workflows/web-ci.yml` |
 | `WEB-1 E2E / CI 阶段总结与 Riding Record` | 已完成 | 修改说明覆盖内容、范围、意义、验证和未完成边界；Riding Record 展示第一人称项目理解、引导、关键决策和 Agent 指挥。 | `docs/ary-web-e2e-ci-change-summary.md`、`riding_records/ARY_WEB_E2E_CI_Riding_Record_2026-07-13.md` |
-| `SEC-1` 真实赛事安全与生产就绪基线 | 代码完成 / 环境待验收 | 已修复 OAuth fallback / state、裸 userId Cookie、公开 API 过量披露和 dev-signature；新增 PostgreSQL baseline migration、HMAC 防重放 CA API、安全响应头、production preflight 和 Security E2E。真实赛事需完成外部硬门禁后才能 go-live。 | `docs/ary-production-security-baseline.md`、`web/prisma/migrations/20260713_security_production_baseline/`、`web/e2e/security.spec.ts` |
+| `SEC-1` 真实赛事安全与生产就绪基线 | 代码完成 / 环境待验收 | 已修复 OAuth fallback / state、裸 userId Cookie、公开 API 过量披露、Ops 未授权读取、Organizer 子串授权和 dev-signature；新增 PostgreSQL baseline migration、HMAC 防重放 CA API、安全响应头、production preflight 和 Security E2E。真实赛事需完成外部硬门禁后才能 go-live。 | `docs/ary-production-security-baseline.md`、`web/lib/auth.ts`、`web/app/ops/page.tsx`、`web/e2e/security.spec.ts` |
 
 ## 证据索引
 

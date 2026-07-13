@@ -33,6 +33,19 @@ test.describe("Production security boundary", () => {
     }
   });
 
+  test("Ops data is unavailable without a managing role", async ({ page, request }) => {
+    const anonymous = await request.get("/ops");
+    expect(anonymous.status()).toBe(404);
+
+    await page.goto("/api/debug/login?user=rider");
+    const riderResponse = await page.goto("/ops");
+    expect(riderResponse?.status()).toBe(404);
+
+    await page.goto("/api/debug/login?user=organizer");
+    await page.goto("/ops");
+    await expect(page.getByRole("heading", { name: /运维与发布检查/ })).toBeVisible();
+  });
+
   test("CA ingestion API rejects unsigned input", async ({ request }) => {
     const response = await request.post("/api/ca/v1/signals", { data: { messageId: "unsigned-message" } });
     expect(response.status()).toBe(400);

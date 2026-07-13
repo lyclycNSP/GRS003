@@ -1,11 +1,13 @@
 import { getAuthContext } from "@/lib/auth";
 import { getConsoleSnapshot } from "@/lib/queries";
 import { createBackupAction, markCanaryReadyAction, markProductionReleasedAction, markReleaseChecklistItemAction, recordGoNoGoAction, runP0Action } from "@/app/actions";
+import { notFound } from "next/navigation";
 
-export default async function OpsPage() {
+export default async function OpsPage({ searchParams }: { searchParams?: Promise<{ raceId?: string }> }) {
   const ctx = await getAuthContext();
-  const { race } = await getConsoleSnapshot();
-  if (!race) return <section className="route-page"><h1>No race seeded</h1></section>;
+  const { raceId } = (await searchParams) ?? {};
+  const { race } = await getConsoleSnapshot(raceId);
+  if (!ctx || !race || (!ctx.roles.includes("admin") && !ctx.managedRaceIds.includes(race.id))) notFound();
   const doneItems = race.releaseItems.filter((item) => item.status === "done");
   const releaseTotal = race.releaseItems.length;
   const releaseReady = releaseTotal > 0 && doneItems.length === releaseTotal;

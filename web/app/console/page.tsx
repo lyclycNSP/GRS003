@@ -105,7 +105,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
         {canManageCurrentRace ? <Link href="/screen">Screen Console</Link> : null}
         <Link href="/screen/display">Screen Display</Link>
         <Link href="/profile">Profile</Link>
-        <Link href="/ops">Ops</Link>
+        {canManageCurrentRace ? <Link href={`/ops?raceId=${race.id}`}>Ops</Link> : null}
       </aside>
 
       <section className="console-main">

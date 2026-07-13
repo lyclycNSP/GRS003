@@ -19,6 +19,10 @@ const DEBUG_ROLE_COOKIE = "ary_debug_roles";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const ROLES: Role[] = ["rider", "judge", "organizer", "admin"];
 
+export function isRaceOrganizer(organizerJson: string, userId: string): boolean {
+  return fromJson<unknown[]>(organizerJson, []).some((organizerId) => organizerId === userId);
+}
+
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -107,10 +111,9 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   const roles = (await getDebugRoleOverride(actualRoles)) ?? actualRoles;
   const managedRaces = roles.includes("admin")
     ? await prisma.race.findMany({ select: { id: true } })
-    : await prisma.race.findMany({
-        where: { organizerJson: { contains: user.id } },
-        select: { id: true }
-      });
+    : (await prisma.race.findMany({ select: { id: true, organizerJson: true } }))
+        .filter((race) => isRaceOrganizer(race.organizerJson, user.id))
+        .map((race) => ({ id: race.id }));
   return {
     userId: user.id,
     roles,

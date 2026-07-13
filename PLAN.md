@@ -33,7 +33,7 @@
 | `WEB-1 Judge / Public / Screen E2E` | 已完成：新增 6 个可重复 Playwright 场景，覆盖 Judge 未授权隔离与评审持久化、Public 主路径与 review-only 边界、Screen 只读权限、模式同步和 fallback；使用独立 `prisma/e2e.db`。 | `web/playwright.config.ts`、`web/e2e/`、`web/scripts/e2e-prepare.mjs`、`web/README.md` |
 | `WEB-1 Rider / Organizer / Admin E2E + CI` | 已完成：补齐 Rider CA/Work、Organizer Race 创建发布、Admin User.roles 持久化，Playwright 全量 9/9 通过；新增 GitHub Actions 静态/领域/构建与浏览器双 Job。 | `web/e2e/rider.spec.ts`、`web/e2e/organizer.spec.ts`、`web/e2e/admin.spec.ts`、`.github/workflows/web-ci.yml` |
 | `WEB-1 E2E / CI 阶段总结与 Riding Record` | 已完成：形成修改范围、意义、验证与边界总结，并以第一人称记录项目理解、任务引导、关键决策和 Agent 指挥过程。 | `docs/ary-web-e2e-ci-change-summary.md`、`riding_records/ARY_WEB_E2E_CI_Riding_Record_2026-07-13.md` |
-| `SEC-1` 真实赛事安全与生产就绪基线 | 已完成代码级安全整改和自动化证据；部署环境硬门禁待实际基础设施接入后验收，未满足前必须 no-go。 | `docs/ary-production-security-baseline.md`、`web/lib/auth.ts`、`web/lib/ca-attestation.ts`、`web/e2e/security.spec.ts` |
+| `SEC-1` 真实赛事安全与生产就绪基线 | 已完成代码级安全整改和自动化证据；本轮补齐 Ops 资源级读取隔离与 Organizer 精确匹配授权。部署环境硬门禁待实际基础设施接入后验收，未满足前必须 no-go。 | `docs/ary-production-security-baseline.md`、`web/lib/auth.ts`、`web/app/ops/page.tsx`、`web/lib/ca-attestation.ts`、`web/e2e/security.spec.ts` |
 
 ## 近期里程碑
 
