@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getWorkBySlug } from "@/lib/queries";
+import { getReviewWorkBySlug } from "@/lib/queries";
 import { submitJudgingRecordAction } from "@/app/actions";
 import { getAuthContext } from "@/lib/auth";
 
@@ -8,7 +8,7 @@ export default async function WorkJudgePage({ params, searchParams }: { params: 
   const { slug } = await params;
   const { saved } = (await searchParams) ?? {};
   const ctx = await getAuthContext();
-  const work = await getWorkBySlug(slug, { includeReviewOnly: true });
+  const work = await getReviewWorkBySlug(slug);
   if (!work || !ctx?.roles.includes("judge") || !ctx.assignedWorkIds.includes(work.id)) notFound();
   const race = work.registration.race;
   const rider = work.registration.user;

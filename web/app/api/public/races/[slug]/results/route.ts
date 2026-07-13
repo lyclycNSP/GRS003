@@ -5,5 +5,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   const { slug } = await params;
   const race = await getRaceBySlug(slug);
   if (!race || race.visibility !== "public") return NextResponse.json({ error: "not_found" }, { status: 404 });
-  return NextResponse.json(race.awards.filter((award) => award.status === "published"));
+  return NextResponse.json(race.awards);
 }

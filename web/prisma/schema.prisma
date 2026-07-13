@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -18,9 +18,23 @@ model User {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   authAccounts     AuthAccount[]
+  authSessions     AuthSession[]
   registrations    Registration[]
   createdRaces     Race[]            @relation("RaceCreator")
   judgeAssignments JudgeAssignment[] @relation("JudgeAssignments")
+}
+
+model AuthSession {
+  id        String   @id
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model AuthAccount {
@@ -101,6 +115,7 @@ model CAConnection {
   caType             String
   connectorId        String
   connectorVersion   String
+  signingKeyId       String
   externalProjectRef String
   ingestionStatus    String
   registeredAt       DateTime
@@ -109,8 +124,24 @@ model CAConnection {
   lastSyncedAt       DateTime?
   raceProject        RaceProject  @relation(fields: [raceProjectId], references: [id], onDelete: Cascade)
   sessions           Session[]
+  ingestionReceipts  CAIngestionReceipt[]
 
   @@unique([raceProjectId, connectorId, externalProjectRef])
+}
+
+model CAIngestionReceipt {
+  id              String       @id
+  caConnectionId  String
+  messageId       String
+  idempotencyKey  String
+  payloadHash     String
+  signedAt        DateTime
+  receivedAt      DateTime     @default(now())
+  caConnection    CAConnection @relation(fields: [caConnectionId], references: [id], onDelete: Cascade)
+
+  @@unique([caConnectionId, messageId])
+  @@unique([caConnectionId, idempotencyKey])
+  @@index([receivedAt])
 }
 
 model Session {

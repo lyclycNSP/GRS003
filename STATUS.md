@@ -12,12 +12,12 @@
 * `DEV-1`已输出聚合边界、数据模型草案和接口鉴权规则；`DEV-2`和`DEV-3`已补齐静态高保真可走查闭环。
 * `DEV-4`到`DEV-7`、`REL-1`和`OPS-1`已迁入`web/`正式集成应用，覆盖报名、RaceProject、Work、Judge、CA、Projection、Screen、Report、Results、发布检查、备份、事故和归档闭环；根目录旧 `app/` 静态 MVP 已删除。
 * `web/tests/domain.test.ts`已提供关键领域回归测试；当前已补充 CA 防伪 / 防篡改 attestation 用例，缺少 OCR Desktop App / connector 认证声明的信号会被隔离。
-* 下一步应继续正式工程化，补数据库迁移、真实GitHub OAuth、真实CAConnector和部署流水线。
-* 当前尚未建立生产级部署、真实OAuth生产配置、生产CA接入或部署流水线；本地开发以 `web/` Next.js + Prisma + SQLite 为准。
+* `SEC-1` 代码级安全基线已完成：production Prisma datasource / migration 已切换 PostgreSQL；SQLite 仅保留本地和 E2E；会话、OAuth state、Public DTO、CA HMAC / 防重放、安全头和配置门禁已有自动化证据。本轮已封闭匿名 / 无关角色对 Ops 数据的读取，并将 Organizer 授权改为精确 ID 匹配。
+* 当前尚未取得生产 TLS、托管 PostgreSQL、真实 OAuth App、正式 CA 凭证、备份恢复、WAF / 限流、监控和 staging 彩排证据；按真实赛事 go-live 口径仍为 no-go。
 * 已新增`web/`正式集成应用入口：Next.js App Router、Prisma、SQLite、GitHub OAuth路由、服务端权限上下文、Public API和Console/Ops服务端动作；DEV-2/DEV-3高保真页面闭环已迁入正式应用。
 * `web/` 本轮已完成角色数据流修正：Console 按 Race 取数，Debug Login 可隔离 Organizer/Admin/Rider/Judge，Screen Console 对非管理者只读，非公开 Work 不再公开详情，Judge 提交后有保存反馈。
 * `web/e2e/` 已新增 Judge、Public、Screen 三组 6 个 Playwright 场景并全部通过；E2E 使用独立 `prisma/e2e.db`，同时补齐 Judge 页面按 assignment 服务端授权。
-* Rider、Organizer、Admin E2E 已补齐，当前全量 9/9 通过；`.github/workflows/web-ci.yml` 已接入静态/领域/构建与浏览器 E2E 双 Job，托管 Runner 首次结果待推送后确认。
+* Rider、Organizer、Admin 和 Security E2E 已补齐并全量 14/14 通过；领域测试 23/23、静态烟测、TypeScript、PostgreSQL production build 和 production config preflight 同步通过。
 * 本阶段修改说明和 Riding Record 已落盘，分别承接工程变更事实与第一人称理解、引导、决策和指挥过程。
 * `PLAN.md` 已从旧阶段完成清单收缩为正式工程化近期窗口；当前 P0 聚焦正式任务立项、真实 GitHub OAuth / 生产会话闭环和 Hosted CI 首次验证。
 
@@ -42,6 +42,7 @@
 | `WEB-1 Judge / Public / Screen E2E` | 已完成 | 6 个 Playwright 场景覆盖 Judge 未授权 404、分配作品评审与持久化、Public Gallery/Live/Works/Results/Review、review-only 页面/API 隔离、Screen 只读权限、模式同步和 fallback。 | `web/playwright.config.ts`、`web/e2e/`、`web/scripts/e2e-prepare.mjs`、`web/README.md` |
 | `WEB-1 Rider / Organizer / Admin E2E + CI` | 已完成 | Rider 验证 CA Signal 与 Work 持久化，Organizer 验证 Race 创建/切换/发布及公共 API，Admin 验证 User.roles 持久化并恢复 Seed；CI 双 Job 已落盘。 | `web/e2e/rider.spec.ts`、`web/e2e/organizer.spec.ts`、`web/e2e/admin.spec.ts`、`.github/workflows/web-ci.yml` |
 | `WEB-1 E2E / CI 阶段总结与 Riding Record` | 已完成 | 修改说明覆盖内容、范围、意义、验证和未完成边界；Riding Record 展示第一人称项目理解、引导、关键决策和 Agent 指挥。 | `docs/ary-web-e2e-ci-change-summary.md`、`riding_records/ARY_WEB_E2E_CI_Riding_Record_2026-07-13.md` |
+| `SEC-1` 真实赛事安全与生产就绪基线 | 代码完成 / 环境待验收 | 已修复 OAuth fallback / state、裸 userId Cookie、公开 API 过量披露、Ops 未授权读取、Organizer 子串授权和 dev-signature；新增 PostgreSQL baseline migration、HMAC 防重放 CA API、安全响应头、production preflight 和 Security E2E。真实赛事需完成外部硬门禁后才能 go-live。 | `docs/ary-production-security-baseline.md`、`web/lib/auth.ts`、`web/app/ops/page.tsx`、`web/e2e/security.spec.ts` |
 
 ## 证据索引
 
@@ -98,6 +99,7 @@
 | WEB-1 全站前端页面视觉审计已完成：17 个页面桌面/移动截图、4 个角色 Console 移动截图已走查；修复全局移动横向溢出、Race/Live/Rider 等二级页响应式栅格、入口按钮和卡片排布 | `web/app/globals.css` |
 | WEB-1 Judge / Public / Screen E2E 已固化并验证：6/6 通过；同时通过 20 个领域测试、静态烟测、TypeScript 和 Next build | `web/e2e/judge.spec.ts`、`web/e2e/public.spec.ts`、`web/e2e/screen.spec.ts`、`web/playwright.config.ts`、`npm run test:e2e` |
 | WEB-1 全角色 / Public / Screen E2E 与 CI 已完成：Playwright 9/9、领域测试 20/20、静态烟测、TypeScript、Next build 通过；实际浏览器抽查三角色隔离通过 | `web/e2e/`、`.github/workflows/web-ci.yml`、`web/scripts/static-smoke.mjs`、`web/README.md` |
+| SEC-1 安全与生产基线验证通过：Playwright 14/14、领域测试 23/23、静态烟测、TypeScript、PostgreSQL client / production build、production config preflight 通过 | `web/e2e/security.spec.ts`、`web/tests/domain.test.ts`、`web/prisma/schema.prisma`、`web/scripts/check-production-config.mjs`、`docs/ary-production-security-baseline.md` |
 
 ## 领域测试映射表
 
@@ -124,8 +126,8 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| 数据库迁移、真实OAuth和部署配置尚未建立 | 当前以 `web/` + Prisma + SQLite 支撑本地集成与自动化验证；生产数据库迁移和部署流水线仍需建立 |
-| `web/` 真实OAuth和生产部署仍需外部配置 | 当前已提供GitHub OAuth路由；未配置OAuth环境变量时使用本地演示账号回调，真实生产需配置GitHub OAuth App和`AUTH_SECRET` |
+| 生产基础设施尚未建立 | PostgreSQL schema / migration 和配置门禁已入库；仍需实际托管 PostgreSQL、TLS、备份恢复、WAF / 限流、监控和部署流水线证据 |
+| `web/` 真实OAuth仍需外部配置 | OAuth state、随机会话和禁止 fallback 已实现；仍需配置真实 GitHub OAuth App 并在 staging 验证 callback、过期和 Logout |
 | ReviewFlag处理状态、CAConnection新增截止窗口和违规作品处理仍需产品化 | 当前本地MVP已实现open/resolved基础状态和风险可见性，正式实现需补细粒度处理流 |
 | 服务端权限仍需系统化审计 | `web/` 已具备服务端权限上下文，且本轮修复 Judge assignment 边界；仍需按权限矩阵覆盖剩余资源动作 |
-| 浏览器自动化托管结果尚待首次推送确认 | 全角色 / Public / Screen 9 个 E2E 和 CI 配置已在本地验证；推送后确认 GitHub-hosted Runner，并继续补截图基线与移动端关键路径 |
+| 浏览器自动化托管结果尚待首次推送确认 | 全角色 / Public / Screen / Security 14 个 E2E 和 CI 配置已在本地验证；推送后确认 GitHub-hosted Runner，并继续补截图基线、移动端和负载路径 |

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { markReleaseChecklistItem, rebuildProjection, runP0Regression, switchScreenMode, toggleScreenFallback } from "@/lib/domain";
+import { hasTrustedMutationOrigin } from "@/lib/request-security";
 
 export async function POST(request: NextRequest) {
+  if (!hasTrustedMutationOrigin(request)) {
+    return NextResponse.json({ ok: false, message: "untrusted origin" }, { status: 403 });
+  }
   const ctx = await getAuthContext();
   const body = await request.json() as { action: string; raceId: string; mode?: string; enabled?: boolean; itemKey?: string; label?: string; status?: string; evidence?: string };
   if (body.action === "rebuildProjection") return NextResponse.json(await rebuildProjection(ctx, body.raceId));

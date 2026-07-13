@@ -2,6 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { canManageRace, type AuthContext, requireAuth, requireManagedRace, requireRole } from "@/lib/auth";
 import { fromJson, toJson } from "@/lib/json";
 import { makeId, slugify } from "@/lib/ids";
+import {
+  createRidingSignalAttestation,
+  getConnectorSigningKey,
+  verifyRidingSignalAttestation,
+  type RidingSignalAttestation,
+  type RidingSignalPayload
+} from "@/lib/ca-attestation";
 
 type Result = { ok: true; message: string; id?: string } | { ok: false; message: string };
 
@@ -170,14 +177,18 @@ export async function registerCAConnection(ctx: AuthContext | null, raceProjectI
   if (project.registration.userId !== ctx.userId && !canManageRace(ctx, project.registration.raceId)) {
     return fail("没有登记CAConnection的权限");
   }
+  const connectorId = process.env.DEFAULT_CA_CONNECTOR_ID ?? "github-oauth-demo-connector";
+  const signingKey = getConnectorSigningKey(connectorId);
+  if (!signingKey) return fail("CA connector尚未配置生产签名密钥");
   const connectionId = makeId("conn");
   const connection = await prisma.cAConnection.create({
     data: {
       id: connectionId,
       raceProjectId,
       caType: "codex",
-      connectorId: "github-oauth-demo-connector",
+      connectorId,
       connectorVersion: "0.1.0",
+      signingKeyId: signingKey.keyId,
       externalProjectRef: `ca-${raceProjectId}-${connectionId}`,
       ingestionStatus: "connected",
       registeredAt: new Date()
@@ -204,28 +215,13 @@ export async function handshakeCAConnection(ctx: AuthContext | null, caConnectio
   return ok("CAConnection握手完成", caConnectionId);
 }
 
-export async function ingestRidingSignal(input: {
-  raceId: string;
-  registrationId: string;
-  raceProjectId: string;
-  caConnectionId: string;
-  idempotencyKey: string;
-  caSessionId: string;
-  attestation?: {
-    source: string;
-    signingKeyId: string;
-    signature: string;
-    signedAt: string;
-  };
-  progressPercent?: number;
-  tokens?: number;
-}): Promise<Result> {
+export async function ingestRidingSignal(input: RidingSignalPayload & { attestation?: RidingSignalAttestation }): Promise<Result> {
   const connection = await prisma.cAConnection.findUnique({
     where: { id: input.caConnectionId },
     include: { raceProject: { include: { registration: true } } }
   });
+  if (!connection) return fail("CA信号非法，已隔离");
   if (
-    !connection ||
     !connection.handshakeAt ||
     connection.disabledAt ||
     connection.raceProjectId !== input.raceProjectId ||
@@ -233,9 +229,9 @@ export async function ingestRidingSignal(input: {
     connection.raceProject.registration.raceId !== input.raceId
   ) {
     await createReviewFlag({
-      raceId: input.raceId,
-      registrationId: input.registrationId,
-      raceProjectId: input.raceProjectId,
+      raceId: connection.raceProject.registration.raceId,
+      registrationId: connection.raceProject.registrationId,
+      raceProjectId: connection.raceProjectId,
       type: "ingestion_exception",
       severity: "high",
       summary: "CA信号未通过登记、握手或归属校验，已隔离。",
@@ -243,12 +239,13 @@ export async function ingestRidingSignal(input: {
     });
     return fail("CA信号非法，已隔离");
   }
-  const attestation = verifyRidingSignalAttestation(input, connection.connectorId);
+  const { attestation: suppliedAttestation, ...payload } = input;
+  const attestation = verifyRidingSignalAttestation(connection.connectorId, connection.signingKeyId, payload, suppliedAttestation);
   if (!attestation.ok) {
     await createReviewFlag({
-      raceId: input.raceId,
-      registrationId: input.registrationId,
-      raceProjectId: input.raceProjectId,
+      raceId: connection.raceProject.registration.raceId,
+      registrationId: connection.raceProject.registrationId,
+      raceProjectId: connection.raceProjectId,
       type: "ingestion_exception",
       severity: "high",
       summary: attestation.message,
@@ -256,67 +253,76 @@ export async function ingestRidingSignal(input: {
     });
     return fail("CA信号认证失败，已隔离");
   }
-  const session = await prisma.session.upsert({
-    where: { caConnectionId_externalSessionRef: { caConnectionId: input.caConnectionId, externalSessionRef: input.caSessionId } },
-    update: {
-      lastActiveAt: new Date(),
-      tokens: input.tokens ?? 0,
-      snapshotJson: toJson({ idempotencyKey: input.idempotencyKey, progressPercent: input.progressPercent ?? 100 })
-    },
-    create: {
-      id: makeId("session"),
+  const duplicate = await prisma.cAIngestionReceipt.findFirst({
+    where: {
       caConnectionId: input.caConnectionId,
-      externalSessionRef: input.caSessionId,
-      startedAt: new Date(),
-      lastActiveAt: new Date(),
-      tokens: input.tokens ?? 0,
-      snapshotJson: toJson({ idempotencyKey: input.idempotencyKey, progressPercent: input.progressPercent ?? 100 })
-    }
+      OR: [{ messageId: input.messageId }, { idempotencyKey: input.idempotencyKey }]
+    },
+    select: { id: true }
   });
-  await prisma.cAConnection.update({ where: { id: input.caConnectionId }, data: { ingestionStatus: "active", lastSyncedAt: new Date() } });
-  await prisma.raceProject.update({
-    where: { id: input.raceProjectId },
-    data: {
-      aggregateIngestionStatus: "active",
-      connectionHealth: "ok",
-      lastSyncedAt: new Date(),
-      metricsJson: toJson({ progressPercent: input.progressPercent ?? 100, tokens: input.tokens ?? 0 })
+  if (duplicate) return ok("重复CA信号已幂等忽略");
+  try {
+    const session = await prisma.$transaction(async (tx) => {
+      await tx.cAIngestionReceipt.create({
+        data: {
+          id: makeId("receipt"),
+          caConnectionId: input.caConnectionId,
+          messageId: input.messageId,
+          idempotencyKey: input.idempotencyKey,
+          payloadHash: attestation.payloadHash,
+          signedAt: attestation.signedAt
+        }
+      });
+      const storedSession = await tx.session.upsert({
+        where: { caConnectionId_externalSessionRef: { caConnectionId: input.caConnectionId, externalSessionRef: input.caSessionId } },
+        update: {
+          lastActiveAt: new Date(),
+          messageCount: { increment: 1 },
+          tokens: input.tokens ?? 0,
+          snapshotJson: toJson({ messageId: input.messageId, idempotencyKey: input.idempotencyKey, progressPercent: input.progressPercent ?? 100 })
+        },
+        create: {
+          id: makeId("session"),
+          caConnectionId: input.caConnectionId,
+          externalSessionRef: input.caSessionId,
+          startedAt: new Date(),
+          lastActiveAt: new Date(),
+          messageCount: 1,
+          tokens: input.tokens ?? 0,
+          snapshotJson: toJson({ messageId: input.messageId, idempotencyKey: input.idempotencyKey, progressPercent: input.progressPercent ?? 100 })
+        }
+      });
+      await tx.cAConnection.update({ where: { id: input.caConnectionId }, data: { ingestionStatus: "active", lastSyncedAt: new Date() } });
+      await tx.raceProject.update({
+        where: { id: input.raceProjectId },
+        data: {
+          aggregateIngestionStatus: "active",
+          connectionHealth: "ok",
+          lastSyncedAt: new Date(),
+          metricsJson: toJson({ progressPercent: input.progressPercent ?? 100, tokens: input.tokens ?? 0 })
+        }
+      });
+      await tx.evidence.create({
+        data: {
+          id: makeId("ev"),
+          raceId: input.raceId,
+          registrationId: input.registrationId,
+          type: "session_summary",
+          title: "CA Session Summary",
+          summary: "已验签CA信号进入Evidence和Projection输入。",
+          sourceRefJson: toJson({ sessionId: storedSession.id, messageId: input.messageId, idempotencyKey: input.idempotencyKey }),
+          visibility: "public"
+        }
+      });
+      return storedSession;
+    });
+    return ok("CA信号已接入", session.id);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
+      return ok("重复CA信号已幂等忽略");
     }
-  });
-  await prisma.evidence.create({
-    data: {
-      id: makeId("ev"),
-      raceId: input.raceId,
-      registrationId: input.registrationId,
-      type: "session_summary",
-      title: "CA Session Summary",
-      summary: "合法CA信号已进入Evidence和Projection输入。",
-      sourceRefJson: toJson({ sessionId: session.id, idempotencyKey: input.idempotencyKey }),
-      visibility: "public"
-    }
-  });
-  return ok("CA信号已接入", session.id);
-}
-
-function verifyRidingSignalAttestation(
-  input: { idempotencyKey: string; attestation?: { source: string; signingKeyId: string; signature: string; signedAt: string } },
-  connectorId: string
-) {
-  const attestation = input.attestation;
-  if (!attestation) return { ok: false, message: "缺少CA/OCR Desktop App认证声明，信号已隔离。" };
-  if (!["ocr_desktop_app", "registered_ca_connector"].includes(attestation.source)) {
-    return { ok: false, message: "CA信号来源不是OCR Desktop App或已登记connector，信号已隔离。" };
+    throw error;
   }
-  if (!attestation.signingKeyId || !attestation.signature || !attestation.signedAt) {
-    return { ok: false, message: "CA信号认证字段不完整，信号已隔离。" };
-  }
-  if (!attestation.signingKeyId.includes(connectorId)) {
-    return { ok: false, message: "CA信号签名密钥与connector不匹配，信号已隔离。" };
-  }
-  if (attestation.signature !== `dev-signature:${connectorId}:${input.idempotencyKey}`) {
-    return { ok: false, message: "CA信号签名校验失败，疑似伪造或篡改，信号已隔离。" };
-  }
-  return { ok: true, message: "ok" };
 }
 
 
@@ -677,22 +683,19 @@ export async function runP0Regression(ctx: AuthContext | null, raceId: string): 
     await handshakeCAConnection({ ...ctx!, userId: rider.id, roles: ["rider"] }, connectionId);
     const connection = await prisma.cAConnection.findUnique({ where: { id: connectionId } });
     const idempotencyKey = makeId("p0");
-    await ingestRidingSignal({
+    const payload: RidingSignalPayload = {
+      messageId: makeId("message"),
+      timestamp: new Date().toISOString(),
       raceId,
       registrationId: registration.id,
       raceProjectId: project.id,
       caConnectionId: connectionId,
       idempotencyKey,
       caSessionId: "session-p0",
-      attestation: {
-        source: "ocr_desktop_app",
-        signingKeyId: `ocr_key_${connection?.connectorId ?? "unknown"}`,
-        signature: `dev-signature:${connection?.connectorId ?? "unknown"}:${idempotencyKey}`,
-        signedAt: new Date().toISOString()
-      },
       progressPercent: 100,
       tokens: 18000
-    });
+    };
+    await ingestRidingSignal({ ...payload, attestation: createRidingSignalAttestation(connection?.connectorId ?? "unknown", payload, "ocr_desktop_app") });
   }
   const work = await submitWork({ ...ctx!, userId: rider.id, roles: ["rider"] }, registration.id, {
     title: "Adaptive Bay Route Agent",

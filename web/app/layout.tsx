@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HashRedirect } from "@/app/components/HashRedirect";
+import { logoutAction } from "@/app/actions";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="workspace-entry" aria-label="Workspace entry">
               <Link href="/api/auth/github">Login</Link>
               <Link href="/console">Workspace</Link>
+              <form action={logoutAction}><button type="submit">Logout</button></form>
             </div>
           </header>
           <main className="deck next-page">{children}</main>

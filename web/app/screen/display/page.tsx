@@ -2,6 +2,8 @@ import Link from "next/link";
 import { fromJson } from "@/lib/json";
 import { getScreenSnapshot } from "@/lib/queries";
 
+export const dynamic = "force-dynamic";
+
 type ProjectionPayload = {
   headlineMetrics?: Record<string, unknown>;
   processLeaderboard?: Array<{ rank: number; name: string; score: number; label: string }>;

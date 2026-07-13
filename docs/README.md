@@ -41,6 +41,7 @@ npm run dev
 | `ary-role-flow-playwright-audit.md` | 角色数据流与浏览器审计记录。 |
 | `ary-mobile-ux-review.md` | 移动端 UX 静态审计记录。 |
 | `ary-ux-finish-v2-summary.md` | UX-1 收尾 v2 汇总记录。 |
+| `ary-production-security-baseline.md` | 真实赛事的认证、传输、Public API、CA 验签、PostgreSQL、部署门禁和剩余风险基线。 |
 | `ux-hifi.taskbook.md` | UX-1 高保真原型任务书，定义视觉为主、体验为先的原型工作方式。 |
 | `registration-ca-rules-alignment.taskbook.md` | PRD-TEMP-1 整改任务书与并入记录，承接报名、RaceProject 自动生成、CAConnection 动态接入和评审前风险提示的一致性整改。 |
 

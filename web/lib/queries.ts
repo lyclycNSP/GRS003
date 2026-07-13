@@ -5,47 +5,80 @@ export async function getPublicRaces() {
   const races = await prisma.race.findMany({
     where: { visibility: "public" },
     orderBy: { createdAt: "desc" },
-    include: { registrations: true, awards: true, reports: true }
+    select: {
+      id: true, slug: true, title: true, status: true, visibility: true, challenge: true, summary: true,
+      scheduleJson: true, rulesJson: true, metricsJson: true, createdAt: true
+    }
   });
   return races.map((race) => ({
-    ...race,
+    id: race.id,
+    slug: race.slug,
+    title: race.title,
+    status: race.status,
+    visibility: race.visibility,
+    challenge: race.challenge,
+    summary: race.summary,
+    createdAt: race.createdAt,
     schedule: fromJson<Record<string, string>>(race.scheduleJson, {}),
     rules: fromJson<Record<string, unknown>>(race.rulesJson, {}),
-    metrics: fromJson<Record<string, unknown>>(race.metricsJson, {}),
-    organizerIds: fromJson<string[]>(race.organizerJson, [])
+    metrics: fromJson<Record<string, unknown>>(race.metricsJson, {})
   }));
 }
 
 export async function getRaceBySlug(slug: string) {
-  const race = await prisma.race.findUnique({
-    where: { slug },
-    include: {
-      registrations: { include: { user: true, raceProject: { include: { caConnections: true } }, work: true, reviewFlags: true } },
-      awards: { include: { registration: { include: { user: true } }, work: true } },
-      reports: true,
-      projections: { orderBy: { lastRebuiltAt: "desc" } },
-      announcements: true,
+  const race = await prisma.race.findFirst({
+    where: { slug, visibility: "public" },
+    select: {
+      id: true, slug: true, title: true, status: true, visibility: true, challenge: true, summary: true,
+      taskId: true, scheduleJson: true, rulesJson: true, metricsJson: true, createdAt: true,
+      registrations: {
+        where: { work: { is: { visibility: "public", status: "published" } } },
+        select: { work: { select: { id: true } } }
+      },
+      awards: { where: { status: "published" }, select: { id: true, awardName: true, rank: true } },
+      reports: {
+        where: { status: "published", visibility: "public" },
+        select: { id: true, type: true, status: true, visibility: true, content: true, publishedAt: true }
+      },
+      projections: {
+        where: { status: "stable" },
+        orderBy: { lastRebuiltAt: "desc" },
+        select: { id: true, type: true, status: true, payloadJson: true, stableVersionId: true, lastRebuiltAt: true }
+      },
+      announcements: {
+        where: { visibility: "public", publishedAt: { not: null } },
+        select: { id: true, title: true, body: true, visibility: true, publishedAt: true }
+      },
       screenState: true,
-      releaseItems: true,
-      backups: true,
-      incidents: true
     }
   });
   if (!race) return null;
   return {
-    ...race,
+    id: race.id,
+    slug: race.slug,
+    title: race.title,
+    status: race.status,
+    visibility: race.visibility,
+    challenge: race.challenge,
+    summary: race.summary,
+    taskId: race.taskId,
+    createdAt: race.createdAt,
+    registrations: race.registrations,
+    awards: race.awards,
+    reports: race.reports,
+    projections: race.projections,
+    announcements: race.announcements,
+    screenState: race.screenState,
     schedule: fromJson<Record<string, string>>(race.scheduleJson, {}),
     rules: fromJson<Record<string, unknown>>(race.rulesJson, {}),
-    metrics: fromJson<Record<string, unknown>>(race.metricsJson, {}),
-    organizerIds: fromJson<string[]>(race.organizerJson, [])
+    metrics: fromJson<Record<string, unknown>>(race.metricsJson, {})
   };
 }
 
-export async function getWorkBySlug(slug: string, options: { includeReviewOnly?: boolean } = {}) {
+export async function getReviewWorkBySlug(slug: string) {
   return prisma.work.findFirst({
     where: {
-      slug,
-      ...(options.includeReviewOnly ? {} : { visibility: "public", status: "published" })
+      slug
     },
     include: {
       registration: { include: { race: true, user: true, raceProject: { include: { caConnections: true } } } },
@@ -57,8 +90,56 @@ export async function getWorkBySlug(slug: string, options: { includeReviewOnly?:
   });
 }
 
+export async function getWorkBySlug(slug: string) {
+  const work = await prisma.work.findFirst({
+    where: { slug, visibility: "public", status: "published" },
+    include: {
+      registration: {
+        include: {
+          race: true,
+          user: { select: { slug: true, displayName: true, githubLogin: true, city: true } }
+        }
+      },
+      evidences: { where: { visibility: "public" } },
+      awards: { where: { status: "published" } }
+    }
+  });
+  if (!work) return null;
+  return {
+    id: work.id,
+    slug: work.slug,
+    title: work.title,
+    summary: work.summary,
+    status: work.status,
+    visibility: work.visibility,
+    demoUrl: work.demoUrl,
+    repoUrl: work.repoUrl,
+    submittedAt: work.submittedAt,
+    publishedAt: work.publishedAt,
+    registration: {
+      race: {
+        id: work.registration.race.id,
+        slug: work.registration.race.slug,
+        title: work.registration.race.title,
+        status: work.registration.race.status,
+        visibility: work.registration.race.visibility
+      },
+      user: work.registration.user
+    },
+    evidences: work.evidences.map((evidence) => ({
+      id: evidence.id,
+      type: evidence.type,
+      title: evidence.title,
+      summary: evidence.summary,
+      visibility: evidence.visibility,
+      createdAt: evidence.createdAt
+    })),
+    awards: work.awards.map((award) => ({ id: award.id, awardName: award.awardName, rank: award.rank, decisionReason: award.decisionReason }))
+  };
+}
+
 export async function getPublicWorks(raceId?: string) {
-  return prisma.work.findMany({
+  const works = await prisma.work.findMany({
     where: {
       visibility: "public",
       status: "published",
@@ -70,9 +151,31 @@ export async function getPublicWorks(raceId?: string) {
           }
         : {})
     },
-    include: { registration: { include: { race: true, user: true } }, awards: true },
+    include: {
+      registration: {
+        include: {
+          race: { select: { id: true, slug: true, title: true, status: true, visibility: true } },
+          user: { select: { slug: true, displayName: true, githubLogin: true, city: true } }
+        }
+      },
+      awards: { where: { status: "published" } }
+    },
     orderBy: { submittedAt: "desc" }
   });
+  return works.map((work) => ({
+    id: work.id,
+    slug: work.slug,
+    title: work.title,
+    summary: work.summary,
+    status: work.status,
+    visibility: work.visibility,
+    demoUrl: work.demoUrl,
+    repoUrl: work.repoUrl,
+    submittedAt: work.submittedAt,
+    publishedAt: work.publishedAt,
+    registration: { race: work.registration.race, user: work.registration.user },
+    awards: work.awards.map((award) => ({ id: award.id, awardName: award.awardName, rank: award.rank, decisionReason: award.decisionReason }))
+  }));
 }
 
 export async function getRaceWorks(slug: string) {
@@ -83,8 +186,8 @@ export async function getRaceWorks(slug: string) {
 }
 
 export async function getRaceResults(slug: string) {
-  const race = await prisma.race.findUnique({
-    where: { slug },
+  const race = await prisma.race.findFirst({
+    where: { slug, visibility: "public" },
     include: {
       awards: {
         where: { status: "published" },
@@ -108,8 +211,8 @@ export async function getRaceResults(slug: string) {
 }
 
 export async function getRaceReview(slug: string) {
-  const race = await prisma.race.findUnique({
-    where: { slug },
+  const race = await prisma.race.findFirst({
+    where: { slug, visibility: "public" },
     include: {
       reports: { where: { status: "published", visibility: "public", type: "review_summary" } },
       registrations: { include: { user: true, work: { include: { evidences: true, reviewFlags: true } } } }
@@ -135,22 +238,49 @@ export async function getRiderProfile(idOrSlug: string) {
     include: {
       registrations: {
         include: {
-          race: true,
-          work: { include: { awards: true, evidences: true } },
-          awards: true
+          race: { select: { id: true, slug: true, title: true, status: true, visibility: true } },
+          work: {
+            include: { awards: { where: { status: "published" } }, evidences: { where: { visibility: "public" } } }
+          },
+          awards: { where: { status: "published" } }
         }
       }
     }
   });
   if (!user) return null;
   return {
-    ...user,
-    roles: fromJson<string[]>(user.rolesJson, []),
+    slug: user.slug,
+    displayName: user.displayName,
+    githubLogin: user.githubLogin,
+    city: user.city,
+    roles: fromJson<string[]>(user.rolesJson, []).filter((role) => role === "rider"),
     publicWorks: user.registrations.flatMap((registration) =>
-      registration.work && registration.work.visibility === "public" ? [{ ...registration.work, race: registration.race }] : []
+      registration.race.visibility === "public" && registration.work && registration.work.visibility === "public" && registration.work.status === "published"
+        ? [{
+            id: registration.work.id,
+            slug: registration.work.slug,
+            title: registration.work.title,
+            summary: registration.work.summary,
+            status: registration.work.status,
+            visibility: registration.work.visibility,
+            demoUrl: registration.work.demoUrl,
+            repoUrl: registration.work.repoUrl,
+            race: registration.race
+          }]
+        : []
     ),
-    awards: user.registrations.flatMap((registration) => registration.awards),
-    races: user.registrations.map((registration) => registration.race)
+    awards: user.registrations
+      .filter((registration) => registration.race.visibility === "public")
+      .flatMap((registration) => registration.awards.map((award) => ({
+      id: award.id,
+      awardName: award.awardName,
+      rank: award.rank,
+      decisionReason: award.decisionReason,
+      publishedAt: award.publishedAt
+      }))),
+    races: user.registrations
+      .filter((registration) => registration.race.visibility === "public")
+      .map((registration) => registration.race)
   };
 }
 

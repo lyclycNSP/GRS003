@@ -105,7 +105,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
         {canManageCurrentRace ? <Link href="/screen">Screen Console</Link> : null}
         <Link href="/screen/display">Screen Display</Link>
         <Link href="/profile">Profile</Link>
-        <Link href="/ops">Ops</Link>
+        {canManageCurrentRace ? <Link href={`/ops?raceId=${race.id}`}>Ops</Link> : null}
       </aside>
 
       <section className="console-main">
@@ -327,7 +327,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
             <div className="ca-attestation-panel">
               <span>CA anti-forgery</span>
               <b>{ownConnection?.handshakeAt ? "OCR / connector signature required" : "waiting for CA handshake"}</b>
-              <p>{ownConnection ? `connectorId: ${ownConnection.connectorId}. 合法信号会携带 dev-signature:${ownConnection.connectorId}:<idempotencyKey>。` : "登记 CAConnection 后，系统会展示签名来源和接入状态。"}</p>
+              <p>{ownConnection ? `connectorId: ${ownConnection.connectorId} / signingKeyId: ${ownConnection.signingKeyId}。合法信号必须通过完整载荷 HMAC-SHA256 验签。` : "登记 CAConnection 后，系统会展示签名来源和接入状态。"}</p>
             </div>
             {!ownRegistration ? (
               <div className="console-empty-actions">
