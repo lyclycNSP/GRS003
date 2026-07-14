@@ -15,6 +15,7 @@ ARY 已完成 PRD / UX / 领域模型 / 本地 MVP 闭环，并建立 `web/` Nex
 | P0 | 正式工程化任务立项 | 将下一阶段的范围、依赖、验收和非目标写入长期计划 | `docs/ary.plan.md` 中形成可执行任务定义，并同步 `STATUS.md` | `docs/ary.plan.md`、`STATUS.md` |
 | P0 | 真实 GitHub OAuth 与生产会话闭环 | 用真实身份体系替代本地 fallback / debug login 作为正式业务入口 | OAuth 回调、用户绑定、服务端会话、安全 Cookie、跨会话登录和角色权限验证通过 | `web/lib/auth.ts`、`web/app/api/auth/`、`docs/ary-permission-matrix.md` |
 | P0 | Hosted CI 首次验证 | 确认已落盘的 GitHub Actions 在远端环境可重复执行 | 静态检查、领域测试、类型检查、构建和 Playwright E2E 均在 Hosted Runner 通过 | `.github/workflows/web-ci.yml`、`web/e2e/` |
+| P1 | DEV-8 风险评审中心 | 建立 Organizer 处置、Rider 整改、Judge 上下文三端风险闭环 | `web/` 中具备风险筛选、状态流转、处置记录和评审回流；长期任务与权限口径同步落盘 | `docs/ary.plan.md`、`docs/ary-permission-matrix.md`、`web/app/console/risk-center/page.tsx` |
 
 ## 后续队列
 
@@ -43,6 +44,7 @@ ARY 已完成 PRD / UX / 领域模型 / 本地 MVP 闭环，并建立 `web/` Nex
 * 长期任务定义：`docs/ary.plan.md`
 * 当前状态与风险：`STATUS.md`
 * 权限基线：`docs/ary-permission-matrix.md`
+* 风险中心专题：`docs/ary-risk-center.md`
 * CA 契约：`docs/ary-ca-integration-spec.md`
 * 工程运行：`web/README.md`
 * WEB-1 E2E / CI 总结：`docs/ary-web-e2e-ci-change-summary.md`

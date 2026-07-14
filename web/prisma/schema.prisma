@@ -172,9 +172,12 @@ model ReviewFlag {
   severity            String
   status              String
   judgeVisibleSummary String
+  resolutionNote      String?
+  resolvedByUserId    String?
   sourceRefJson       String
   createdAt           DateTime      @default(now())
   resolvedAt          DateTime?
+  updatedAt           DateTime      @updatedAt
   registration        Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   raceProject         RaceProject?  @relation(fields: [raceProjectId], references: [id], onDelete: SetNull)
   work                Work?         @relation(fields: [workId], references: [id], onDelete: SetNull)

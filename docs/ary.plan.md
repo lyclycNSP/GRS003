@@ -38,6 +38,7 @@
 | `DEV-5` | `DEV-1`, `DEV-4` | CA 接入、Projection 和 Live Hall 依赖 RaceProject 与 Work/Judge 结构流程。 |
 | `DEV-6` | `DEV-5` | Screen Console 和大屏联调依赖 Projection / Live Hall 的稳定读取边界。 |
 | `DEV-7` | `DEV-4`, `DEV-5` | Report、Review 和 Results 依赖提交、评审与 CA / Projection 输入。 |
+| `DEV-8` | `DEV-4`, `DEV-5`, `DEV-7` | 风险评审中心依赖 ReviewFlag、提交/评审结构流程和 Report/Review 上下文。 |
 | `REL-1` | `DEV-4`, `DEV-5`, `DEV-6`, `DEV-7` | 彩排、灰度和正式发布依赖本地 MVP 关键闭环。 |
 | `OPS-1` | `REL-1` | 赛事值守、回滚和赛后归档依赖发布彩排与 go / no-go 证据。 |
 
@@ -305,6 +306,36 @@
 风险：
 
 * Report 内容若缺少 Evidence 引用，会影响可信度。
+
+是否可 demo：是。
+
+## DEV-8 风险评审中心
+
+交付范围：
+
+* 将 `ReviewFlag` 从只读提示升级为可处置对象。
+* 为 Organizer 提供按状态、严重度、类型和 Rider 的风险筛选、处置和 reopen 闭环。
+* 为 Rider 提供仅包含本人可整改风险的整改视图和明确动作提示。
+* 为 Judge 提供带处置结果的风险摘要，作为评审上下文而非自动判分。
+* 为风险处置补齐最小审计字段：处理说明、处理人、更新时间。
+
+不做什么：
+
+* 不做复杂负责人分配、审批流、通知系统或自动处罚。
+* 不把风险提示升级成参赛资格硬门禁。
+* 不暴露原始 CA Session 或 Organizer 内部判断给 Rider。
+
+验收用例：
+
+* Organizer 可以查看当前 Race 全部风险并标记 `open / in_review / resolved`。
+* Rider 只能看到自己的风险，并能在补料后重新打开相关风险。
+* Judge 只看到分配作品相关的风险和处置摘要。
+* 风险处理记录会回流到 Judge 评审上下文，但不自动替代人工评分。
+
+风险：
+
+* 若风险类型继续扩展而不抽象推荐动作，页面文案会逐步碎片化。
+* 若未来引入真实通知和 SLA，需要重新设计状态机和责任分配。
 
 是否可 demo：是。
 

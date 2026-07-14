@@ -169,11 +169,60 @@ export async function getConsoleSnapshotForUser(userId?: string | null, raceId?:
       },
       judgeAssignments: {
         where: snapshot.race ? { raceId: snapshot.race.id } : undefined,
-        include: { work: { include: { registration: { include: { user: true, race: true } } } }, judgingRecord: true }
+        include: { work: { include: { registration: { include: { user: true, race: true } }, reviewFlags: true, evidences: true } }, judgingRecord: true }
       }
     }
   }) : null;
   return { ...snapshot, currentUser };
+}
+
+export async function getRiskCenterSnapshotForUser(userId?: string | null, raceId?: string | null) {
+  const snapshot = await getConsoleSnapshotForUser(userId, raceId);
+  const race = snapshot.race;
+  const currentUser = snapshot.currentUser;
+  const usersById = new Map(snapshot.users.map((user) => [user.id, user.displayName]));
+  const registrations = race?.registrations ?? [];
+  const allFlags = registrations.flatMap((registration) =>
+    registration.reviewFlags.map((flag) => ({
+      ...flag,
+      riderName: registration.user.displayName,
+      riderUserId: registration.userId,
+      raceTitle: race?.title ?? "",
+      workTitle: registration.work?.title ?? null,
+      workSlug: registration.work?.slug ?? null,
+      workVisibility: registration.work?.visibility ?? null,
+      projectStatus: registration.raceProject?.aggregateIngestionStatus ?? "not_configured",
+      connectionHealth: registration.raceProject?.connectionHealth ?? "no_signal",
+      connectionCount: registration.raceProject?.caConnections.length ?? 0,
+      resolvedByName: flag.resolvedByUserId ? usersById.get(flag.resolvedByUserId) ?? flag.resolvedByUserId : null
+    }))
+  );
+  const ownFlags = currentUser?.registrations.flatMap((registration) =>
+    registration.reviewFlags.map((flag) => ({
+      ...flag,
+      riderName: registration.userId === userId ? "你" : currentUser.displayName,
+      riderUserId: registration.userId,
+      raceTitle: registration.race.title,
+      workTitle: registration.work?.title ?? null,
+      workSlug: registration.work?.slug ?? null,
+      projectStatus: registration.raceProject?.aggregateIngestionStatus ?? "not_configured",
+      connectionHealth: registration.raceProject?.connectionHealth ?? "no_signal",
+      connectionCount: registration.raceProject?.caConnections.length ?? 0,
+      resolvedByName: flag.resolvedByUserId ? usersById.get(flag.resolvedByUserId) ?? flag.resolvedByUserId : null
+    }))
+  ) ?? [];
+  const judgeFlags = currentUser?.judgeAssignments.flatMap((assignment) =>
+    assignment.work.reviewFlags.map((flag) => ({
+      ...flag,
+      assignmentId: assignment.id,
+      assignmentStatus: assignment.status,
+      workTitle: assignment.work.title,
+      workSlug: assignment.work.slug,
+      riderName: assignment.work.registration.user.displayName,
+      resolvedByName: flag.resolvedByUserId ? usersById.get(flag.resolvedByUserId) ?? flag.resolvedByUserId : null
+    }))
+  ) ?? [];
+  return { ...snapshot, allFlags, ownFlags, judgeFlags };
 }
 
 async function findConsoleRace(raceId?: string | null) {

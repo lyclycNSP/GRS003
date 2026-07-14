@@ -3520,6 +3520,95 @@ body {
   align-items: stretch;
 }
 
+.risk-center-page {
+  display: grid;
+  gap: 24px;
+}
+
+.risk-center-hero {
+  position: relative;
+  inset: auto;
+  max-width: 980px;
+  margin: 0;
+  padding: 0;
+}
+
+.risk-center-overview {
+  margin-bottom: 0;
+}
+
+.risk-center-overview p {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.risk-filter-card,
+.risk-lane {
+  width: 100%;
+}
+
+.risk-filter-form {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.risk-quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.risk-flag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.risk-flag-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(18, 71, 152, 0.14);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 247, 255, 0.9));
+  box-shadow: 0 20px 48px rgba(12, 54, 120, 0.08);
+}
+
+.risk-flag-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.risk-flag-header b {
+  font-size: 1rem;
+  color: #163669;
+}
+
+.risk-flag-meta {
+  display: grid;
+  gap: 6px;
+  color: #53709a;
+  font-size: 0.92rem;
+}
+
+.risk-note {
+  margin: 0;
+  color: #2c4f83;
+  font-size: 0.94rem;
+}
+
+.risk-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.risk-disposition-form textarea {
+  min-height: 100px;
+}
+
 .debug-role-card {
   display: flex;
   min-height: 230px;

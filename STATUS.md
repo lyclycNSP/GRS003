@@ -15,9 +15,11 @@
 * 下一步应继续正式工程化，补数据库迁移、真实GitHub OAuth、真实CAConnector和部署流水线。
 * 当前尚未建立生产级部署、真实OAuth生产配置、生产CA接入或部署流水线；本地开发以 `web/` Next.js + Prisma + SQLite 为准。
 * 已新增`web/`正式集成应用入口：Next.js App Router、Prisma、SQLite、GitHub OAuth路由、服务端权限上下文、Public API和Console/Ops服务端动作；DEV-2/DEV-3高保真页面闭环已迁入正式应用。
-* `web/` 本轮已完成角色数据流修正：Console 按 Race 取数，Debug Login 可隔离 Organizer/Admin/Rider/Judge，Screen Console 对非管理者只读，非公开 Work 不再公开详情，Judge 提交后有保存反馈。
+* `web/` 已完成角色数据流修正：Console 按 Race 取数，Debug Login 可隔离 Organizer/Admin/Rider/Judge，Screen Console 对非管理者只读，非公开 Work 不再公开详情，Judge 提交后有保存反馈。
 * `web/e2e/` 已新增 Judge、Public、Screen 三组 6 个 Playwright 场景并全部通过；E2E 使用独立 `prisma/e2e.db`，同时补齐 Judge 页面按 assignment 服务端授权。
 * Rider、Organizer、Admin E2E 已补齐，当前全量 9/9 通过；`.github/workflows/web-ci.yml` 已接入静态/领域/构建与浏览器 E2E 双 Job，托管 Runner 首次结果待推送后确认。
+* `DEV-8` 风险评审中心已在 `web/` 落地：ReviewFlag 新增处置说明 / 处理人 / 更新时间，风险按状态与严重度排序，提供优先级摘要和快速筛选；Organizer 可筛选并处理风险，Rider 只看本人整改项，Judge 可在评审上下文中看到未解决风险和处置记录。
+* `docs/ary-risk-center.md` 已落盘，作为风险评审中心的专题说明和后续合并入口。
 * 本阶段修改说明和 Riding Record 已落盘，分别承接工程变更事实与第一人称理解、引导、决策和指挥过程。
 * `PLAN.md` 已从旧阶段完成清单收缩为正式工程化近期窗口；当前 P0 聚焦正式任务立项、真实 GitHub OAuth / 生产会话闭环和 Hosted CI 首次验证。
 
@@ -38,10 +40,11 @@
 | `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 已交付并迁入 `web/` | 已提供P0回归、发布检查项和go/no-go证据记录；真实staging/production灰度和正式发布待基础设施接入。 | `web/app/ops/page.tsx`、`web/tests/domain.test.ts`、`docs/ary-release-ops-plan.md` |
 | `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 已交付并迁入 `web/` | 已提供备份记录、事故记录、fallback记录和赛后归档入口；真实值守、回滚和生产归档待部署环境接入。 | `web/app/ops/page.tsx`、`web/lib/domain.ts`、`docs/ary-release-ops-plan.md` |
 | `WEB-1` 高保真前端 + 服务端领域动作正式集成 | DEV-2/DEV-3已迁入 | `web/`已建立Next.js全栈工程，迁入Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口，并接入Prisma/SQLite、OAuth fallback、服务端领域动作、Public API和领域测试。 | `web/README.md`、`web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
-| `WEB-1 角色数据流与调试能力修正` | 已完成 | Playwright 审计发现的 Race 数据串流、Debug 角色串扰、Screen 控制台未授权入口、非公开 Work 详情暴露、Judge 提交无反馈和 seed 跨 Race Award 已修正。 | `docs/ary-role-flow-playwright-audit.md`、`web/app/console/page.tsx`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
+| `WEB-1 角色数据流与角色隔离修正` | 已完成 | Playwright 审计发现的 Race 数据串流、角色隔离、Screen 控制台未授权入口、非公开 Work 详情暴露、Judge 提交无反馈和 seed 跨 Race Award 已修正。 | `docs/ary-role-flow-playwright-audit.md`、`web/app/console/page.tsx`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
 | `WEB-1 Judge / Public / Screen E2E` | 已完成 | 6 个 Playwright 场景覆盖 Judge 未授权 404、分配作品评审与持久化、Public Gallery/Live/Works/Results/Review、review-only 页面/API 隔离、Screen 只读权限、模式同步和 fallback。 | `web/playwright.config.ts`、`web/e2e/`、`web/scripts/e2e-prepare.mjs`、`web/README.md` |
 | `WEB-1 Rider / Organizer / Admin E2E + CI` | 已完成 | Rider 验证 CA Signal 与 Work 持久化，Organizer 验证 Race 创建/切换/发布及公共 API，Admin 验证 User.roles 持久化并恢复 Seed；CI 双 Job 已落盘。 | `web/e2e/rider.spec.ts`、`web/e2e/organizer.spec.ts`、`web/e2e/admin.spec.ts`、`.github/workflows/web-ci.yml` |
 | `WEB-1 E2E / CI 阶段总结与 Riding Record` | 已完成 | 修改说明覆盖内容、范围、意义、验证和未完成边界；Riding Record 展示第一人称项目理解、引导、关键决策和 Agent 指挥。 | `docs/ary-web-e2e-ci-change-summary.md`、`riding_records/ARY_WEB_E2E_CI_Riding_Record_2026-07-13.md` |
+| `DEV-8 风险评审中心` | 已完成 | ReviewFlag 已形成可处置对象，具备优先级摘要、快速筛选、时间/来源上下文和 Judge 只读风险回流；当前包含 Organizer 处置席、Rider 整改席、Judge 风险上下文、状态机和审计字段，并已形成专题文档承接后续合并。 | `web/app/console/risk-center/page.tsx`、`web/lib/domain.ts`、`web/lib/queries.ts`、`web/tests/domain.test.ts`、`docs/ary.plan.md`、`docs/ary-risk-center.md` |
 
 ## 证据索引
 
@@ -98,6 +101,7 @@
 | WEB-1 全站前端页面视觉审计已完成：17 个页面桌面/移动截图、4 个角色 Console 移动截图已走查；修复全局移动横向溢出、Race/Live/Rider 等二级页响应式栅格、入口按钮和卡片排布 | `web/app/globals.css` |
 | WEB-1 Judge / Public / Screen E2E 已固化并验证：6/6 通过；同时通过 20 个领域测试、静态烟测、TypeScript 和 Next build | `web/e2e/judge.spec.ts`、`web/e2e/public.spec.ts`、`web/e2e/screen.spec.ts`、`web/playwright.config.ts`、`npm run test:e2e` |
 | WEB-1 全角色 / Public / Screen E2E 与 CI 已完成：Playwright 9/9、领域测试 20/20、静态烟测、TypeScript、Next build 通过；实际浏览器抽查三角色隔离通过 | `web/e2e/`、`.github/workflows/web-ci.yml`、`web/scripts/static-smoke.mjs`、`web/README.md` |
+| DEV-8 风险评审中心已验证：ReviewFlag 新增处置字段，Organizer 可 resolve / in_review，Rider 可 reopen，Judge 只读处置摘要；静态烟测、领域测试和构建口径应覆盖新页面和动作 | `web/app/console/risk-center/page.tsx`、`web/lib/domain.ts`、`web/tests/domain.test.ts`、`web/scripts/static-smoke.mjs` |
 
 ## 领域测试映射表
 
@@ -126,6 +130,6 @@
 | --- | --- |
 | 数据库迁移、真实OAuth和部署配置尚未建立 | 当前以 `web/` + Prisma + SQLite 支撑本地集成与自动化验证；生产数据库迁移和部署流水线仍需建立 |
 | `web/` 真实OAuth和生产部署仍需外部配置 | 当前已提供GitHub OAuth路由；未配置OAuth环境变量时使用本地演示账号回调，真实生产需配置GitHub OAuth App和`AUTH_SECRET` |
-| ReviewFlag处理状态、CAConnection新增截止窗口和违规作品处理仍需产品化 | 当前本地MVP已实现open/resolved基础状态和风险可见性，正式实现需补细粒度处理流 |
+| ReviewFlag处理状态、CAConnection新增截止窗口和违规作品处理仍需细化 | 当前本地MVP已形成基础状态和风险可见性，正式实现仍需补细粒度处理流 |
 | 服务端权限仍需系统化审计 | `web/` 已具备服务端权限上下文，且本轮修复 Judge assignment 边界；仍需按权限矩阵覆盖剩余资源动作 |
 | 浏览器自动化托管结果尚待首次推送确认 | 全角色 / Public / Screen 9 个 E2E 和 CI 配置已在本地验证；推送后确认 GitHub-hosted Runner，并继续补截图基线与移动端关键路径 |

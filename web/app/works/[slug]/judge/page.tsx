@@ -36,9 +36,10 @@ export default async function WorkJudgePage({ params, searchParams }: { params: 
           <p>{work.summary}</p>
           <div className="work-judge-flags">
             {work.reviewFlags.length ? work.reviewFlags.map((flag) => (
-              <span className={`review-flag review-flag--${flag.severity}`} key={flag.id}><b>{flag.type}</b><em>{flag.judgeVisibleSummary}</em></span>
+              <span className={`review-flag review-flag--${flag.severity}`} key={flag.id}><b>{flag.type} / {flag.status}</b><em>{flag.resolutionNote ? `${flag.judgeVisibleSummary} 处理记录：${flag.resolutionNote}` : flag.judgeVisibleSummary}</em></span>
             )) : <span className="review-flag"><b>无 ReviewFlag</b><em>当前没有评审前提示。</em></span>}
           </div>
+          <Link className="inline-action" href={`/console/risk-center?raceId=${race.id}`}>打开风险评审中心</Link>
         </article>
         <form className="score-form-card work-judge-form" action={submitJudgingRecordAction} data-testid="judge-score-form">
           <span>Score Form</span>
