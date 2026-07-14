@@ -182,6 +182,8 @@ ARY 接收 `RidingSignalMessage` 前必须先校验 `ca.caConnectionId` 是否�
 
 ## 5.3 防伪、防篡改与反作弊要求
 
+本节只保护 CA Riding Signal 的来源认证、消息完整性和防重放，不等于作品提交安全。作品本身由独立的 WorkSubmissionVersion、GitHub commit SHA 声明、canonical SHA-256、提交窗口冻结和评审版本绑定保护；当前仍不联网证明 commit 存在，也不执行仓库抓取或恶意代码扫描。
+
 项目要求中“比赛中 CA 上报消息来自真实 CA / OCR Desktop App，未被伪造、篡改”在 ARY 中落为以下验收规则：
 
 * 每条 `RidingSignalMessage` 必须携带 `attestation`，说明消息由已登记的 connector 或 OCR Desktop App 签发。

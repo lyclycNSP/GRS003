@@ -18,6 +18,8 @@ test.describe("Judge E2E", () => {
     await expect(page).toHaveURL(/\/works\/work-localjoy\/judge$/);
     await expect(page.getByTestId("judge-assigned-work")).toContainText("LocalJoy Agent");
     await expect(page.getByTestId("judge-assigned-work")).toContainText("cost_watch");
+    await expect(page.getByTestId("judge-work-version")).toContainText("v1");
+    await expect(page.getByTestId("judge-work-version")).toContainText("3".repeat(40));
 
     await page.getByLabel("score_result").fill("93");
     await page.getByLabel("score_riding").fill("89");

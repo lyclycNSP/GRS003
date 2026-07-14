@@ -17,6 +17,10 @@ test.describe("Public E2E", () => {
     await expect(page.getByText("GBA WanderMate", { exact: true })).toBeVisible();
     await expect(page.getByText("LocalJoy Agent", { exact: true })).toHaveCount(0);
 
+    await page.goto("/works/work-gba-wander");
+    await expect(page.getByTestId("public-work-version")).toContainText("v1");
+    await expect(page.getByTestId("public-work-version")).toContainText("1".repeat(40));
+
     await page.goto("/races/genesis-dogfood-race/results");
     await expect(page.getByRole("heading", { name: "创世骑行挑战赛 最终榜单" })).toBeVisible();
     await expect(page.getByText("最佳自举作品", { exact: false })).toBeVisible();

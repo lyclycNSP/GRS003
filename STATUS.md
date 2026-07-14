@@ -13,6 +13,7 @@
 * `DEV-4`到`DEV-7`、`REL-1`和`OPS-1`已迁入`web/`正式集成应用，覆盖报名、RaceProject、Work、Judge、CA、Projection、Screen、Report、Results、发布检查、备份、事故和归档闭环；根目录旧 `app/` 静态 MVP 已删除。
 * `web/tests/domain.test.ts`已提供关键领域回归测试；当前已补充 CA 防伪 / 防篡改 attestation 用例，缺少 OCR Desktop App / connector 认证声明的信号会被隔离。
 * `SEC-1` 代码级安全基线已完成：production Prisma datasource / migration 已切换 PostgreSQL；SQLite 仅保留本地和 E2E；会话、OAuth state、Public DTO、CA HMAC / 防重放、安全头和配置门禁已有自动化证据。本轮已封闭匿名 / 无关角色对 Ops 数据的读取，并将 Organizer 授权改为精确 ID 匹配。
+* Racer 作品提交完整性代码基线已实现：只有 approved Registration 本人可提交不可变版本，服务端固定 GitHub Repo / commit SHA / canonical hash；窗口冻结后 JudgeAssignment、Work 发布和关联 Award 绑定明确版本。CA 证据安全与作品提交完整性是两套独立控制。
 * 当前尚未取得生产 TLS、托管 PostgreSQL、真实 OAuth App、正式 CA 凭证、备份恢复、WAF / 限流、监控和 staging 彩排证据；按真实赛事 go-live 口径仍为 no-go。
 * 已新增`web/`正式集成应用入口：Next.js App Router、Prisma、SQLite、GitHub OAuth路由、服务端权限上下文、Public API和Console/Ops服务端动作；DEV-2/DEV-3高保真页面闭环已迁入正式应用。
 * `web/` 本轮已完成角色数据流修正：Console 按 Race 取数，Debug Login 可隔离 Organizer/Admin/Rider/Judge，Screen Console 对非管理者只读，非公开 Work 不再公开详情，Judge 提交后有保存反馈。
@@ -43,6 +44,7 @@
 | `WEB-1 Rider / Organizer / Admin E2E + CI` | 已完成 | Rider 验证 CA Signal 与 Work 持久化，Organizer 验证 Race 创建/切换/发布及公共 API，Admin 验证 User.roles 持久化并恢复 Seed；CI 双 Job 已落盘。 | `web/e2e/rider.spec.ts`、`web/e2e/organizer.spec.ts`、`web/e2e/admin.spec.ts`、`.github/workflows/web-ci.yml` |
 | `WEB-1 E2E / CI 阶段总结与 Riding Record` | 已完成 | 修改说明覆盖内容、范围、意义、验证和未完成边界；Riding Record 展示第一人称项目理解、引导、关键决策和 Agent 指挥。 | `docs/ary-web-e2e-ci-change-summary.md`、`riding_records/ARY_WEB_E2E_CI_Riding_Record_2026-07-13.md` |
 | `SEC-1` 真实赛事安全与生产就绪基线 | 代码完成 / 环境待验收 | 已修复 OAuth fallback / state、裸 userId Cookie、公开 API 过量披露、Ops 未授权读取、Organizer 子串授权和 dev-signature；新增 PostgreSQL baseline migration、HMAC 防重放 CA API、安全响应头、production preflight 和 Security E2E。真实赛事需完成外部硬门禁后才能 go-live。 | `docs/ary-production-security-baseline.md`、`web/lib/auth.ts`、`web/app/ops/page.tsx`、`web/e2e/security.spec.ts` |
+| `SEC-WORK-1` Racer 作品提交完整性基线 | 代码完成 / PostgreSQL migration 待环境验收 | 不可变 v1/v2、输入/URL 策略、UTC 窗口、全场冻结/Admin 受限重开、审计事件、Judge/Award/Public 版本绑定及 legacy 兼容已实现；本地 SQLite、领域测试、build 和 Playwright 已验证。当前机器无 Docker/PostgreSQL，尚未执行一次性库 `migrate deploy`，因此不标记“完成”。 | `web/lib/work-submission.ts`、`web/lib/domain.ts`、`web/prisma/migrations/20260714_work_submission_integrity/`、`web/tests/work-submission*.test.ts`、`web/e2e/rider.spec.ts` |
 
 ## 证据索引
 
@@ -100,6 +102,7 @@
 | WEB-1 Judge / Public / Screen E2E 已固化并验证：6/6 通过；同时通过 20 个领域测试、静态烟测、TypeScript 和 Next build | `web/e2e/judge.spec.ts`、`web/e2e/public.spec.ts`、`web/e2e/screen.spec.ts`、`web/playwright.config.ts`、`npm run test:e2e` |
 | WEB-1 全角色 / Public / Screen E2E 与 CI 已完成：Playwright 9/9、领域测试 20/20、静态烟测、TypeScript、Next build 通过；实际浏览器抽查三角色隔离通过 | `web/e2e/`、`.github/workflows/web-ci.yml`、`web/scripts/static-smoke.mjs`、`web/README.md` |
 | SEC-1 安全与生产基线验证通过：Playwright 14/14、领域测试 23/23、静态烟测、TypeScript、PostgreSQL client / production build、production config preflight 通过 | `web/e2e/security.spec.ts`、`web/tests/domain.test.ts`、`web/prisma/schema.prisma`、`web/scripts/check-production-config.mjs`、`docs/ary-production-security-baseline.md` |
+| SEC-WORK-1 本地代码质量门通过：37 条领域/契约测试、Playwright 14/14、静态烟测、TypeScript、PostgreSQL client / production build、独立 SQLite db:init + seed 和 production config preflight 通过 | `web/tests/work-submission.test.ts`、`web/tests/work-submission-domain.test.ts`、`web/e2e/`、`web/prisma/seed.ts` |
 
 ## 领域测试映射表
 
@@ -131,3 +134,5 @@
 | ReviewFlag处理状态、CAConnection新增截止窗口和违规作品处理仍需产品化 | 当前本地MVP已实现open/resolved基础状态和风险可见性，正式实现需补细粒度处理流 |
 | 服务端权限仍需系统化审计 | `web/` 已具备服务端权限上下文，且本轮修复 Judge assignment 边界；仍需按权限矩阵覆盖剩余资源动作 |
 | 浏览器自动化托管结果尚待首次推送确认 | 全角色 / Public / Screen / Security 14 个 E2E 和 CI 配置已在本地验证；推送后确认 GitHub-hosted Runner，并继续补截图基线、移动端和负载路径 |
+| Work migration 尚无真实 PostgreSQL deploy 证据 | Prisma schema validate、Client 生成和 production build 已通过，但本机 Docker daemon 未运行、127.0.0.1:5432 不可达；需在一次性全新库和既有 SEC-1 基线库执行 `prisma migrate deploy` 后才能将 SEC-WORK-1 标记完成 |
+| Repo / Demo 内容安全不在本轮范围 | 当前只固定 GitHub HTTPS Repo 与 40 位 commit SHA 声明，并限制 Demo URL；未联网证明 commit 存在，未做仓库归档、secret / 依赖扫描、文件杀毒或 Demo 沙箱 |

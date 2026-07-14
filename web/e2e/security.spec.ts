@@ -27,8 +27,15 @@ test.describe("Production security boundary", () => {
     }
 
     const workResponse = await request.get("/api/public/works/work-gba-wander");
-    const workText = JSON.stringify(await workResponse.json());
-    for (const forbidden of ["assignments", "judgingRecord", "reviewFlags", "rolesJson"]) {
+    expect(workResponse.status()).toBe(200);
+    const workJson = await workResponse.json();
+    const workText = JSON.stringify(workJson);
+    expect(workJson.submissionVersion).toMatchObject({
+      versionNumber: 1,
+      repoCommitSha: "1111111111111111111111111111111111111111"
+    });
+    expect(workJson.submissionVersion.integrityHash).toMatch(/^[a-f0-9]{64}$/);
+    for (const forbidden of ["assignments", "judgingRecord", "reviewFlags", "rolesJson", "submissionAuditEvents", "submittedByUserId", "submissionLockReason"]) {
       expect(workText).not.toContain(forbidden);
     }
   });

@@ -33,5 +33,6 @@ export async function GET(request: NextRequest) {
   const debugUser = DEBUG_USERS[user];
   await setSession(debugUser.userId);
   await setDebugRoleOverride([...debugUser.roles] as Role[]);
-  return NextResponse.redirect(`${appUrl}/console`);
+  const consolePath = user === "rider_e2e" ? "/console?raceId=race_submission_e2e" : "/console";
+  return NextResponse.redirect(`${appUrl}${consolePath}`);
 }

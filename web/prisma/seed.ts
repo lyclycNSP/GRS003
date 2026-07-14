@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { createWorkSubmissionIntegrityHash, WORK_SUBMISSION_HASH_SCHEMA } from "../lib/work-submission";
 
 const prisma = new PrismaClient();
 const includeE2EFixtures = process.env.DATABASE_URL?.includes("e2e.db") ?? false;
@@ -18,6 +19,9 @@ async function main() {
   await prisma.award.deleteMany();
   await prisma.judgingRecord.deleteMany();
   await prisma.judgeAssignment.deleteMany();
+  await prisma.submissionAuditEvent.deleteMany();
+  await prisma.work.updateMany({ data: { currentVersionId: null } });
+  await prisma.workSubmissionVersion.deleteMany();
   await prisma.reviewFlag.deleteMany();
   await prisma.evidence.deleteMany();
   await prisma.work.deleteMany();
@@ -94,6 +98,8 @@ async function main() {
         scheduleJson: json({ registration: "已结束", race: "进行中", submission: "开放中", judging: "排队中", results: "未发布" }),
         rulesJson: json({ allowCAConnectionUntil: "judging", maxMainWorksPerRegistration: 1, caFailureBlocksSubmission: false }),
         metricsJson: json({ riders: 36, activeRiders: 27, sessions: 188, submittedWorks: 14, totalCost: "$512.70", riskSignals: 5 }),
+        submissionOpensAt: new Date("2020-01-01T00:00:00Z"),
+        submissionClosesAt: new Date("2099-01-01T00:00:00Z"),
         createdByUserId: "user_org_1"
       },
       {
@@ -109,8 +115,27 @@ async function main() {
         scheduleJson: json({ registration: "已结束", race: "进行中", submission: "开放中", judging: "排队中", results: "未发布" }),
         rulesJson: json({ safetyBoundary: "no investment advice" }),
         metricsJson: json({ riders: 28, activeRiders: 21, sessions: 164, submittedWorks: 9, totalCost: "$438.20", riskSignals: 8 }),
+        submissionOpensAt: new Date("2020-01-01T00:00:00Z"),
+        submissionClosesAt: new Date("2099-01-01T00:00:00Z"),
         createdByUserId: "user_org_1"
       },
+      ...(includeE2EFixtures ? [{
+        id: "race_submission_e2e",
+        slug: "submission-integrity-e2e",
+        title: "作品完整性 E2E",
+        status: "running",
+        visibility: "review",
+        challenge: "验证不可变提交版本与全场冻结。",
+        summary: "仅供浏览器自动化使用的隔离赛事。",
+        taskId: "SEC-WORK-E2E",
+        organizerJson: json(["user_org_1"]),
+        scheduleJson: json({ registration: "已结束", race: "进行中", submission: "开放中", judging: "未开始", results: "未发布" }),
+        rulesJson: json({ maxMainWorksPerRegistration: 1 }),
+        metricsJson: json({ riders: 1, submittedWorks: 0 }),
+        submissionOpensAt: new Date("2020-01-01T00:00:00Z"),
+        submissionClosesAt: new Date("2099-01-01T00:00:00Z"),
+        createdByUserId: "user_org_1"
+      }] : []),
       {
         id: "race_genesis_2026",
         slug: "genesis-dogfood-race",
@@ -124,6 +149,8 @@ async function main() {
         scheduleJson: json({ registration: "已结束", race: "已完成", submission: "已锁定", judging: "已完成", results: "已发布" }),
         rulesJson: json({ archive: true }),
         metricsJson: json({ riders: 18, submittedWorks: 12, reports: 18, evidenceRefs: 164 }),
+        submissionOpensAt: new Date("2026-06-01T00:00:00Z"),
+        submissionClosesAt: new Date("2026-06-02T00:00:00Z"),
         createdByUserId: "user_org_1"
       }
     ]
@@ -133,7 +160,8 @@ async function main() {
     data: [
       { id: "reg_mira", raceId: "race_bay_2026", userId: "user_rider_1", status: "approved", submittedAt: new Date("2026-06-18T09:00:00Z"), approvedAt: new Date("2026-06-18T09:20:00Z") },
       { id: "reg_ana", raceId: "race_bay_2026", userId: "user_rider_2", status: "approved", submittedAt: new Date("2026-06-18T09:12:00Z"), approvedAt: new Date("2026-06-18T09:24:00Z") },
-      ...(includeE2EFixtures ? [{ id: "reg_rider_e2e", raceId: "race_bay_2026", userId: "user_rider_e2e", status: "approved", submittedAt: new Date("2026-06-18T09:14:00Z"), approvedAt: new Date("2026-06-18T09:26:00Z") }] : []),
+      { id: "reg_finance_ana", raceId: "race_finance_2026", userId: "user_rider_2", status: "approved", submittedAt: new Date("2026-06-10T09:12:00Z"), approvedAt: new Date("2026-06-10T09:24:00Z") },
+      ...(includeE2EFixtures ? [{ id: "reg_rider_e2e", raceId: "race_submission_e2e", userId: "user_rider_e2e", status: "approved", submittedAt: new Date("2026-06-18T09:14:00Z"), approvedAt: new Date("2026-06-18T09:26:00Z") }] : []),
       { id: "reg_genesis_mira", raceId: "race_genesis_2026", userId: "user_rider_1", status: "approved", submittedAt: new Date("2026-06-01T09:00:00Z"), approvedAt: new Date("2026-06-01T09:20:00Z") }
     ]
   });
@@ -193,9 +221,86 @@ async function main() {
         repoUrl: "mock://repo/ary-self-dogfood",
         submittedAt: new Date("2026-06-02T10:00:00Z"),
         publishedAt: new Date("2026-06-03T10:00:00Z")
+      },
+      {
+        id: "work-finance-legacy",
+        registrationId: "reg_finance_ana",
+        slug: "finance-legacy-work",
+        title: "Legacy Finance Notes",
+        summary: "迁移前提交、尚未形成不可变版本的兼容样例。",
+        status: "published",
+        visibility: "public",
+        demoUrl: "mock://demo/finance-legacy",
+        repoUrl: "mock://repo/finance-legacy",
+        submittedAt: new Date("2026-06-10T10:00:00Z"),
+        publishedAt: new Date("2026-06-11T10:00:00Z")
       }
     ]
   });
+
+  const seededVersions = [
+    {
+      id: "work-version-gba-1",
+      workId: "work-gba-wander",
+      registrationId: "reg_mira",
+      versionNumber: 1,
+      title: "GBA WanderMate",
+      summary: "三条湾区路线已经上墙：早茶、海岸、夜景，预算和交通都标清。",
+      demoUrl: "mock://demo/gba-wandermate",
+      repoUrl: "mock://repo/gba-wandermate",
+      repoCommitSha: "1".repeat(40),
+      submittedByUserId: "user_rider_1",
+      submittedAt: new Date("2026-06-18T10:00:00Z")
+    },
+    {
+      id: "work-version-localjoy-1",
+      workId: "work-localjoy",
+      registrationId: "reg_ana",
+      versionNumber: 1,
+      title: "LocalJoy Agent",
+      summary: "周末短途游作品，节奏轻快，适合第一次来湾区的朋友。",
+      demoUrl: "mock://demo/localjoy-agent",
+      repoUrl: "mock://repo/localjoy-agent",
+      repoCommitSha: "3".repeat(40),
+      submittedByUserId: "user_rider_2",
+      submittedAt: new Date("2026-06-18T10:10:00Z")
+    },
+    {
+      id: "work-version-genesis-1",
+      workId: "work-genesis-mira",
+      registrationId: "reg_genesis_mira",
+      versionNumber: 1,
+      title: "ARY Self Dogfood Agent",
+      summary: "第一场创世赛中沉淀出的平台自举作品。",
+      demoUrl: "mock://demo/ary-self-dogfood",
+      repoUrl: "mock://repo/ary-self-dogfood",
+      repoCommitSha: "2".repeat(40),
+      submittedByUserId: "user_rider_1",
+      submittedAt: new Date("2026-06-02T10:00:00Z")
+    }
+  ];
+  for (const version of seededVersions) {
+    await prisma.workSubmissionVersion.create({
+      data: {
+        id: version.id,
+        workId: version.workId,
+        versionNumber: version.versionNumber,
+        title: version.title,
+        summary: version.summary,
+        demoUrl: version.demoUrl,
+        repoUrl: version.repoUrl,
+        repoCommitSha: version.repoCommitSha,
+        hashSchemaVersion: WORK_SUBMISSION_HASH_SCHEMA,
+        integrityHash: createWorkSubmissionIntegrityHash(version),
+        submittedByUserId: version.submittedByUserId,
+        submittedAt: version.submittedAt
+      }
+    });
+    await prisma.work.update({
+      where: { id: version.workId },
+      data: { currentVersionId: version.id, versionCounter: version.versionNumber }
+    });
+  }
 
   await prisma.evidence.createMany({
     data: [
@@ -212,7 +317,7 @@ async function main() {
   });
 
   await prisma.judgeAssignment.create({
-    data: { id: "assign_localjoy_ava", raceId: "race_bay_2026", workId: "work-localjoy", judgeUserId: "user_judge_1", assignedByUserId: "user_org_1", status: "assigned", assignedAt: new Date() }
+    data: { id: "assign_localjoy_ava", raceId: "race_bay_2026", workId: "work-localjoy", workSubmissionVersionId: "work-version-localjoy-1", judgeUserId: "user_judge_1", assignedByUserId: "user_org_1", status: "assigned", assignedAt: new Date() }
   });
 
   await prisma.report.createMany({
@@ -223,7 +328,7 @@ async function main() {
   });
 
   await prisma.award.create({
-    data: { id: "award-genesis-001", raceId: "race_genesis_2026", registrationId: "reg_genesis_mira", workId: "work-genesis-mira", awardName: "最佳自举作品", rank: 1, decisionReason: "第一场创世赛跑出了平台自己的起点。", status: "published", publishedAt: new Date() }
+    data: { id: "award-genesis-001", raceId: "race_genesis_2026", registrationId: "reg_genesis_mira", workId: "work-genesis-mira", workSubmissionVersionId: "work-version-genesis-1", awardName: "最佳自举作品", rank: 1, decisionReason: "第一场创世赛跑出了平台自己的起点。", status: "published", publishedAt: new Date() }
   });
 
   await prisma.projection.createMany({

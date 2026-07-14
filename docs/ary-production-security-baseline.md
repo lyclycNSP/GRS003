@@ -130,6 +130,19 @@ connector 使用共享密钥计算 HMAC-SHA256，并以 base64url 编码。服�
 * SQLite 只通过临时生成的测试 schema 服务于本地开发和 E2E，不是 production datasource。
 * AuthSession 和 CAIngestionReceipt 均有数据库唯一索引；核心领域关系继续由 PostgreSQL foreign key 约束。
 
+## 3.7 Racer 作品提交完整性
+
+CA 证据链与作品提交链是两套独立控制。本基线对作品提交已实现：
+
+* 只有 approved Registration 本人可在有效 UTC 提交窗口内创建版本；Organizer 不得代提交。
+* 标题、摘要、GitHub HTTPS Repo、40 位 commit SHA 和可选公共 HTTPS Demo 在服务端统一校验；Repo 禁止凭据、query 和 fragment，Demo 拒绝 localhost、`.local`、loopback、私网及保留地址字面量。
+* 每次提交创建不可更新、不可删除的 WorkSubmissionVersion，保存服务端时间、`ary.work-submission.v1` canonical payload SHA-256，并在 Serializable 事务中原子更新 Work 当前版本投影。
+* Organizer 可配置窗口或填写原因提前冻结全场，但不能解锁；Admin 仅在尚无 JudgeAssignment 时可带原因和未来截止时间重开。
+* JudgeAssignment、首次公开 Work 和关联 Work 的 Award 只能使用冻结后的真实版本；Judge View 读取 assignment 固定版本，不读取 Work 当前投影。
+* SubmissionAuditEvent 追加记录版本提交、窗口配置/冻结/重开及作品发布；Public DTO 只披露版本号、commit SHA、完整性哈希和提交时间，不披露 actor、锁定原因或审计事件。
+
+这套控制保证 ARY 数据库内的提交版本可追溯、冻结后评审对象稳定、公开元数据可复算；它不证明 GitHub commit 在线存在或内容安全。
+
 ---
 
 # 4. 生产环境变量
@@ -181,6 +194,9 @@ DEFAULT_CA_CONNECTOR_ID=connector-prod
 * OAuth callback 缺少一次性 state 时拒绝；
 * Session Cookie 不包含用户 ID且为 HttpOnly / SameSite；
 * Public API 不返回内部资源；
+* Public Work 只返回允许公开的版本元数据，不返回提交 actor、审计事件或锁定原因；
+* Rider 连续提交产生 v1/v2 且旧版本保持不变，窗口未开始/截止/手动冻结/进入评审后拒绝提交；
+* Organizer 不能代提交或解锁，JudgeAssignment / Award 固定版本，legacy Work 不能新增评审或首次公开；
 * CA API 拒绝未签名或 schema 不完整消息；
 * 完整 HMAC 信号成功入库；
 * 修改签名后的 payload 被拒绝；
@@ -213,6 +229,7 @@ DATABASE_URL=postgresql://... npm run build
 * 加密备份、跨区域副本和实际恢复演练；
 * 集中日志、不可变审计存储、指标、告警和赛事值守通知；
 * SAST、依赖漏洞扫描、镜像扫描和 SBOM；
+* GitHub commit 在线存在性校验、仓库不可变归档、secret / 依赖扫描、文件杀毒和 Demo 沙箱；
 * 200 并发、Live Hall 3 秒刷新和大屏弱网性能实测。
 
 当前数据库中的 Backup 仍是业务“备份记录”，不等同于物理备份。
@@ -232,6 +249,7 @@ DATABASE_URL=postgresql://... npm run build
 | Backup | 完整备份和恢复演练记录，RPO / RTO 满足赛事要求 |
 | CA | 正式 connector key 交付、验签、篡改、过期、重放和吊销演练通过 |
 | Public boundary | 安全 E2E 与 API 响应抽查无内部字段 |
+| Submission integrity | 窗口、冻结、不可变版本、哈希复算、评审固定版本和跨角色拒绝路径通过；另行确认仓库验证/扫描边界 |
 | Edge protection | WAF、限流和 body size 策略生效 |
 | Monitoring | 登录、CA ingestion、Projection、Public API、DB 和错误率告警生效 |
 | Load | 目标并发和刷新频率实测通过 |
@@ -249,5 +267,6 @@ DATABASE_URL=postgresql://... npm run build
 * 尚未实现真实 CA HTTP snapshot fetch；当前生产端点接收的是签名 Riding Signal 摘要。
 * 未对普通业务字段做字段级加密；正式环境依赖 PostgreSQL / 云盘 / 备份加密，若未来保存原始会话或敏感个人信息，必须重新做数据分类和字段级保护。
 * CSP 当前用于限制嵌入、对象和表单目标，尚未升级为 nonce-based script CSP。
+* Repo commit SHA 当前只做格式校验和不可变声明，未联网验证该 commit 属于声明仓库；仓库抓取、归档、secret / 依赖扫描、文件杀毒和 Demo 沙箱均不在本轮范围。
 
 这些剩余项不影响本次代码安全基线结论，但其中第 7、8 节的生产门禁会决定能否承接真实赛事。

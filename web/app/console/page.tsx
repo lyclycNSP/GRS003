@@ -3,12 +3,14 @@ import { redirect } from "next/navigation";
 import {
   approveRegistrationAction,
   assignJudgeAction,
+  configureSubmissionWindowAction,
   createRaceAction,
   disableCAConnectionAction,
   editReportAction,
   generateReportAction,
   handshakeCAAction,
   ingestSignalAction,
+  lockSubmissionWindowAction,
   publishAwardAction,
   publishRaceAction,
   publishReportAction,
@@ -16,6 +18,7 @@ import {
   rebuildProjectionAction,
   regenerateReportAction,
   registerCAAction,
+  reopenSubmissionWindowAction,
   simulateProjectionFailureAction,
   simulateReportFailureAction,
   submitRegistrationAction,
@@ -25,6 +28,7 @@ import {
 import { getAuthContext } from "@/lib/auth";
 import { fromJson } from "@/lib/json";
 import { getConsoleSnapshotForUser } from "@/lib/queries";
+import { getSubmissionWindowState } from "@/lib/work-submission";
 
 function hasRole(roles: string[], role: string) {
   return roles.includes(role);
@@ -44,7 +48,11 @@ function stepState(done: boolean, active: boolean) {
   return "todo";
 }
 
-export default async function ConsolePage({ searchParams }: { searchParams?: Promise<{ raceId?: string }> }) {
+function utcInputValue(value?: Date | null) {
+  return value?.toISOString().slice(0, 16) ?? "";
+}
+
+export default async function ConsolePage({ searchParams }: { searchParams?: Promise<{ raceId?: string; actionMessage?: string }> }) {
   const ctx = await getAuthContext();
   if (!ctx) {
     return (
@@ -60,7 +68,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
   }
   if (!ctx.profileCompleted) redirect("/profile");
 
-  const { raceId } = (await searchParams) ?? {};
+  const { raceId, actionMessage } = (await searchParams) ?? {};
   const { race, users, assignments, currentUser, availableRaces } = await getConsoleSnapshotForUser(ctx.userId, raceId);
   if (!race) return <section className="route-page"><h1>No race seeded</h1></section>;
 
@@ -82,9 +90,14 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
   const verifiedConnectionCount = allConnections.filter(({ connection }) => connection.handshakeAt && !connection.disabledAt).length;
   const activeConnectionCount = allConnections.filter(({ connection }) => connection.ingestionStatus === "active" && !connection.disabledAt).length;
   const workCount = registrations.filter((registration) => registration.work).length;
+  const versionedWorkCount = registrations.filter((registration) => registration.work?.currentVersion).length;
+  const legacyWorkCount = workCount - versionedWorkCount;
   const publicReportCount = race.reports.filter((report) => report.status === "published" && report.visibility === "public").length;
   const canManageCurrentRace = ctx.roles.includes("admin") || ctx.managedRaceIds.includes(race.id);
   const riskFlags = registrations.flatMap((registration) => registration.reviewFlags);
+  const submissionWindowState = getSubmissionWindowState(race, assignments.length > 0);
+  const submissionFreezeReason = race.submissionLockReason ??
+    (submissionWindowState === "sealed_for_judging" ? "已进入评审" : submissionWindowState === "closed_by_deadline" ? "已到提交截止时间" : "未冻结");
   const workflowSteps = [
     { label: "Registration", detail: `${approvedCount}/${registrations.length} approved`, done: approvedCount > 0, active: registrations.length > 0 },
     { label: "RaceProject", detail: `${projectCount} generated`, done: projectCount > 0, active: approvedCount > 0 },
@@ -109,6 +122,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
       </aside>
 
       <section className="console-main">
+        {actionMessage ? <p className="status-pill good" role="status">{actionMessage}</p> : null}
         <p className="section-kicker">Console / {race.title} / {roles.join(", ")}</p>
         <h1>{race.title} 指挥席</h1>
         <section className="console-signal-bar">
@@ -181,6 +195,22 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
               <form className="console-action-row" action={publishRaceAction}>
                 <input type="hidden" name="raceId" value={race.id} />
                 <button type="submit">发布当前 Race</button>
+              </form>
+            </section>
+            <section className="form-card">
+              <h2>作品提交窗口</h2>
+              <p data-testid="submission-window-state"><b>{submissionWindowState}</b> / {race.submissionLockReason ?? "无手动关闭原因"}</p>
+              <p data-testid="submission-work-counts">{workCount} submitted / {versionedWorkCount} versioned / {legacyWorkCount} legacy</p>
+              <form className="console-field-form" action={configureSubmissionWindowAction}>
+                <input type="hidden" name="raceId" value={race.id} />
+                <label><span>开始时间（UTC）</span><input type="datetime-local" name="submissionOpensAt" defaultValue={utcInputValue(race.submissionOpensAt)} required /></label>
+                <label><span>截止时间（UTC）</span><input type="datetime-local" name="submissionClosesAt" defaultValue={utcInputValue(race.submissionClosesAt)} required /></label>
+                <button type="submit" disabled={assignments.length > 0 || Boolean(race.submissionLockedAt)}>保存提交窗口</button>
+              </form>
+              <form className="console-field-form" action={lockSubmissionWindowAction} data-testid="submission-lock-form">
+                <input type="hidden" name="raceId" value={race.id} />
+                <label><span>关闭原因</span><input name="reason" required /></label>
+                <button type="submit" disabled={submissionWindowState !== "open"}>提前关闭全场提交</button>
               </form>
             </section>
             <div className="ops-grid">
@@ -323,7 +353,15 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
               <article className="rider-status-card" data-testid="rider-registration-status"><span>Registration</span><b className={`status-pill ${toneFor(ownRegistration?.status)}`}>{ownRegistration?.status ?? "none"}</b><p>{ownRegistration?.race.title ?? "选择 Race 后报名"}</p></article>
               <article className="rider-status-card" data-testid="rider-project-status"><span>RaceProject</span><b className={`status-pill ${toneFor(ownProject?.aggregateIngestionStatus)}`}>{ownProject?.aggregateIngestionStatus ?? "not_configured"}</b><p>{ownProject?.connectionHealth ?? "等待审核生成"}</p></article>
               <article className="rider-status-card" data-testid="rider-work-status"><span>Work</span><b className={`status-pill ${toneFor(ownRegistration?.work?.status)}`}>{ownRegistration?.work?.status ?? "none"}</b><p>{ownRegistration?.work?.title ?? "尚未提交作品"}</p></article>
+              <article className="rider-status-card" data-testid="rider-work-version"><span>Submission Version</span><b>{ownRegistration?.work?.currentVersion ? `v${ownRegistration.work.currentVersion.versionNumber}` : "legacy / none"}</b><p>{submissionWindowState} / {submissionFreezeReason}</p></article>
             </div>
+            {ownRegistration?.work?.currentVersion ? (
+              <div className="ca-attestation-panel" data-testid="rider-work-integrity">
+                <span>Work integrity</span>
+                <b>{ownRegistration.work.currentVersion.repoCommitSha}</b>
+                <p>SHA-256: {ownRegistration.work.currentVersion.integrityHash}</p>
+              </div>
+            ) : null}
             <div className="ca-attestation-panel">
               <span>CA anti-forgery</span>
               <b>{ownConnection?.handshakeAt ? "OCR / connector signature required" : "waiting for CA handshake"}</b>
@@ -393,6 +431,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
                   <p>提交作品标题、摘要、Demo 和 Repo。CA 信号会作为过程证据，作品本身仍由 Organizer/Judge 后续处理。</p>
                   <form className="work-submit-form" action={submitWorkAction} data-testid="rider-work-form">
                     <input type="hidden" name="registrationId" value={ownRegistration!.id} />
+                    <input type="hidden" name="raceId" value={race.id} />
                     <label>
                       <span>Title</span>
                       <input name="title" defaultValue={ownRegistration?.work?.title ?? "Adaptive Bay Route Agent"} />
@@ -409,7 +448,11 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
                       <span>Repo URL</span>
                       <input name="repoUrl" defaultValue={ownRegistration?.work?.repoUrl ?? "https://github.com/example/adaptive-bay-route-agent"} />
                     </label>
-                    <button type="submit">提交 Work</button>
+                    <label>
+                      <span>Commit SHA</span>
+                      <input name="repoCommitSha" defaultValue={ownRegistration?.work?.currentVersion?.repoCommitSha ?? ""} required pattern="[a-fA-F0-9]{40}" />
+                    </label>
+                    <button type="submit" disabled={submissionWindowState !== "open"}>提交 Work</button>
                   </form>
                 </section>
               </div>
@@ -425,7 +468,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
                 <div className="table-row" key={assignment.id}>
                   <span>{assignment.work.title}</span>
                   <b className={`status-pill ${toneFor(assignment.status)}`}>{assignment.status}</b>
-                  <em>{assignment.work.registration.race.title}</em>
+                  <em>{assignment.work.registration.race.title} / {assignment.workSubmissionVersion ? `v${assignment.workSubmissionVersion.versionNumber} ${assignment.workSubmissionVersion.repoCommitSha}` : "legacy"}</em>
                   <Link href={`/works/${assignment.work.slug}/judge`}>Open Judge View</Link>
                 </div>
               )) : <div className="empty-state">暂无分配作品。Organizer 发布 Work 后可分配 Judge。</div>}
@@ -436,6 +479,16 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
         {hasRole(roles, "admin") ? (
           <section id="admin" className="form-card">
             <h2>Admin / User.roles</h2>
+            <section className="rider-step-card">
+              <span>Submission emergency control</span>
+              <h3>重新开放提交窗口</h3>
+              <form className="console-field-form" action={reopenSubmissionWindowAction}>
+                <input type="hidden" name="raceId" value={race.id} />
+                <label><span>新的截止时间（UTC）</span><input type="datetime-local" name="submissionClosesAt" required /></label>
+                <label><span>重开原因</span><input name="reason" required /></label>
+                <button type="submit" disabled={assignments.length > 0}>Admin 重新开放</button>
+              </form>
+            </section>
             {users.map((user) => {
               const userRoles = fromJson<string[]>(user.rolesJson, []);
               return (

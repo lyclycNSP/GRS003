@@ -22,6 +22,9 @@ model User {
   registrations    Registration[]
   createdRaces     Race[]            @relation("RaceCreator")
   judgeAssignments JudgeAssignment[] @relation("JudgeAssignments")
+  lockedSubmissionRaces Race[]       @relation("SubmissionLocker")
+  submittedWorkVersions WorkSubmissionVersion[] @relation("WorkVersionSubmitter")
+  submissionAuditEvents SubmissionAuditEvent[] @relation("SubmissionAuditActor")
 }
 
 model AuthSession {
@@ -65,7 +68,13 @@ model Race {
   createdByUserId String
   createdAt      DateTime         @default(now())
   archivedAt     DateTime?
+  submissionOpensAt DateTime?
+  submissionClosesAt DateTime?
+  submissionLockedAt DateTime?
+  submissionLockedByUserId String?
+  submissionLockReason String?
   createdBy      User             @relation("RaceCreator", fields: [createdByUserId], references: [id])
+  submissionLockedBy User?        @relation("SubmissionLocker", fields: [submissionLockedByUserId], references: [id], onDelete: SetNull)
   registrations  Registration[]
   awards         Award[]
   reports        Report[]
@@ -75,6 +84,7 @@ model Race {
   incidents      Incident[]
   releaseItems   ReleaseChecklistItem[]
   screenState    ScreenState?
+  submissionAuditEvents SubmissionAuditEvent[]
 }
 
 model Registration {
@@ -91,6 +101,7 @@ model Registration {
   reviewFlags    ReviewFlag[]
   awards         Award[]
   reports        Report[]
+  submissionAuditEvents SubmissionAuditEvent[]
 
   @@unique([raceId, userId])
 }
@@ -172,11 +183,65 @@ model Work {
   repoUrl        String?
   submittedAt    DateTime?
   publishedAt    DateTime?
+  currentVersionId String?         @unique
+  versionCounter Int               @default(0)
   registration   Registration      @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  currentVersion WorkSubmissionVersion? @relation("CurrentWorkVersion", fields: [id, currentVersionId], references: [workId, id], onDelete: NoAction)
+  submissionVersions WorkSubmissionVersion[] @relation("WorkVersions")
+  submissionAuditEvents SubmissionAuditEvent[]
   evidences      Evidence[]
   reviewFlags    ReviewFlag[]
   assignments    JudgeAssignment[]
   awards         Award[]
+
+  @@unique([id, currentVersionId])
+}
+
+model WorkSubmissionVersion {
+  id                String   @id
+  workId            String
+  versionNumber     Int
+  title             String
+  summary           String
+  demoUrl           String?
+  repoUrl           String
+  repoCommitSha     String
+  hashSchemaVersion String
+  integrityHash     String
+  submittedByUserId String
+  submittedAt       DateTime
+  work              Work     @relation("WorkVersions", fields: [workId], references: [id], onDelete: Cascade)
+  currentForWork    Work?    @relation("CurrentWorkVersion")
+  submittedBy       User     @relation("WorkVersionSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  judgeAssignments  JudgeAssignment[]
+  awards            Award[]
+  submissionAuditEvents SubmissionAuditEvent[]
+
+  @@unique([workId, versionNumber])
+  @@unique([workId, id])
+  @@index([integrityHash])
+  @@index([submittedAt])
+}
+
+model SubmissionAuditEvent {
+  id                      String   @id
+  raceId                  String
+  registrationId          String?
+  workId                  String?
+  workSubmissionVersionId String?
+  actorUserId             String
+  action                  String
+  reason                  String?
+  metadataJson            String
+  createdAt               DateTime @default(now())
+  race                    Race     @relation(fields: [raceId], references: [id], onDelete: Restrict)
+  registration            Registration? @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  work                    Work?    @relation(fields: [workId], references: [id], onDelete: Restrict)
+  workSubmissionVersion   WorkSubmissionVersion? @relation(fields: [workId, workSubmissionVersionId], references: [workId, id], onDelete: Restrict)
+  actor                   User     @relation("SubmissionAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([raceId, createdAt])
+  @@index([workId, createdAt])
 }
 
 model Evidence {
@@ -219,7 +284,9 @@ model JudgeAssignment {
   assignedByUserId String
   status           String
   assignedAt       DateTime
+  workSubmissionVersionId String?
   work             Work            @relation(fields: [workId], references: [id], onDelete: Cascade)
+  workSubmissionVersion WorkSubmissionVersion? @relation(fields: [workId, workSubmissionVersionId], references: [workId, id], onDelete: Restrict)
   judge            User            @relation("JudgeAssignments", fields: [judgeUserId], references: [id], onDelete: Cascade)
   judgingRecord    JudgingRecord?
 
@@ -247,9 +314,11 @@ model Award {
   decisionReason String
   status         String
   publishedAt    DateTime?
+  workSubmissionVersionId String?
   race           Race          @relation(fields: [raceId], references: [id], onDelete: Cascade)
   registration   Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   work           Work?         @relation(fields: [workId], references: [id], onDelete: SetNull)
+  workSubmissionVersion WorkSubmissionVersion? @relation(fields: [workId, workSubmissionVersionId], references: [workId, id], onDelete: Restrict)
 
   @@unique([raceId, awardName, rank])
   @@unique([raceId, awardName, registrationId])

@@ -16,8 +16,8 @@ export default async function WorkPage({ params }: { params: Promise<{ slug: str
         <h1>{work.title}</h1>
         <p className="module-summary">{work.summary}</p>
         <div className="work-detail-actions">
-          <a href={work.demoUrl ?? "#"} className={!work.demoUrl ? "is-disabled" : undefined}>打开 Demo</a>
-          <a href={work.repoUrl ?? "#"} className={!work.repoUrl ? "is-disabled" : undefined}>查看 Repo</a>
+          <a href={work.demoUrl ?? "#"} className={!work.demoUrl ? "is-disabled" : undefined} target="_blank" rel="noopener noreferrer">打开 Demo</a>
+          <a href={work.repoUrl ?? "#"} className={!work.repoUrl ? "is-disabled" : undefined} target="_blank" rel="noopener noreferrer">查看 Repo</a>
           <Link href={`/riders/${rider.slug}`}>Rider Profile</Link>
           <Link href={`/races/${race.slug}`}>Race Page</Link>
           <Link href="/works">返回 Works</Link>
@@ -34,6 +34,12 @@ export default async function WorkPage({ params }: { params: Promise<{ slug: str
           <article className="work-story-card"><span>Demo</span><h2>{work.demoUrl ? "已绑定" : "未绑定"}</h2><p>{work.demoUrl ?? "等待 Rider 补充"}</p></article>
           <article className="work-story-card"><span>Repo</span><h2>{work.repoUrl ? "已绑定" : "未绑定"}</h2><p>{work.repoUrl ?? "等待 Rider 补充"}</p></article>
           <article className="work-story-card"><span>状态</span><h2>{work.status}</h2><p>{work.visibility}</p></article>
+          <article className="work-story-card" data-testid="public-work-version">
+            <span>提交完整性</span>
+            {work.submissionVersion ? (
+              <><h2>v{work.submissionVersion.versionNumber}</h2><p>commit {work.submissionVersion.repoCommitSha}</p><p>SHA-256 {work.submissionVersion.integrityHash}</p></>
+            ) : <><h2>legacy</h2><p>迁移前作品，无版本哈希。</p></>}
+          </article>
         </section>
         <aside className="work-evidence-panel route-aside">
           <h2>Riding Evidence</h2>

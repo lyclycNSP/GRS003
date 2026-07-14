@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { canManageRace, type AuthContext, requireAuth, requireManagedRace, requireRole } from "@/lib/auth";
 import { fromJson, toJson } from "@/lib/json";
@@ -9,6 +10,12 @@ import {
   type RidingSignalAttestation,
   type RidingSignalPayload
 } from "@/lib/ca-attestation";
+import {
+  createWorkSubmissionIntegrityHash,
+  getSubmissionWindowState,
+  validateWorkSubmissionInput,
+  WORK_SUBMISSION_HASH_SCHEMA
+} from "@/lib/work-submission";
 
 type Result = { ok: true; message: string; id?: string } | { ok: false; message: string };
 
@@ -18,6 +25,22 @@ function ok(message: string, id?: string): Result {
 
 function fail(message: string): Result {
   return { ok: false, message };
+}
+
+async function runSerializableResult(
+  action: (tx: Prisma.TransactionClient) => Promise<Result>,
+  conflictMessage = "状态并发冲突，请重试"
+): Promise<Result> {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(action, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      const retryable = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
+      if (!retryable) throw error;
+      if (attempt === 3) return fail(conflictMessage);
+    }
+  }
+  return fail(conflictMessage);
 }
 
 async function ensureRaceProject(registrationId: string) {
@@ -353,66 +376,232 @@ export async function disableCAConnection(ctx: AuthContext | null, caConnectionI
   }
   return ok("CAConnection已禁用", caConnectionId);
 }
-export async function submitWork(ctx: AuthContext | null, registrationId: string, input: { title: string; summary: string; demoUrl?: string; repoUrl?: string }): Promise<Result> {
+
+export async function configureSubmissionWindow(
+  ctx: AuthContext | null,
+  raceId: string,
+  input: { opensAt: Date; closesAt: Date }
+): Promise<Result> {
   requireAuth(ctx);
-  const registration = await prisma.registration.findUnique({ where: { id: registrationId } });
-  if (!registration) return fail("Registration不存在");
-  if (registration.userId !== ctx.userId && !canManageRace(ctx, registration.raceId)) return fail("没有提交Work的权限");
-  const work = await prisma.work.upsert({
-    where: { registrationId },
-    update: {
-      title: input.title,
-      summary: input.summary,
-      demoUrl: input.demoUrl,
-      repoUrl: input.repoUrl,
-      status: "submitted",
-      visibility: "review",
-      submittedAt: new Date()
-    },
-    create: {
-      id: makeId("work"),
-      registrationId,
-      slug: slugify(input.title) || makeId("work"),
-      title: input.title,
-      summary: input.summary,
-      demoUrl: input.demoUrl,
-      repoUrl: input.repoUrl,
-      status: "submitted",
-      visibility: "review",
-      submittedAt: new Date()
-    }
+  requireManagedRace(ctx, raceId);
+  const now = new Date();
+  if (!Number.isFinite(input.opensAt.getTime()) || !Number.isFinite(input.closesAt.getTime()) || input.opensAt >= input.closesAt || input.closesAt <= now) {
+    return fail("提交窗口必须使用有效UTC时间，且截止时间必须在未来");
+  }
+  return runSerializableResult(async (tx) => {
+    const race = await tx.race.findUnique({ where: { id: raceId } });
+    if (!race) return fail("Race不存在");
+    if (race.submissionLockedAt) return fail("赛事已手动关闭提交，仅Admin可重新开放");
+    if (race.submissionClosesAt && race.submissionClosesAt <= now) return fail("提交已截止，仅Admin可延期");
+    if (await tx.judgeAssignment.count({ where: { raceId } })) return fail("已有评审分配，不能调整提交窗口");
+    await tx.race.update({ where: { id: raceId }, data: { submissionOpensAt: input.opensAt, submissionClosesAt: input.closesAt } });
+    await tx.submissionAuditEvent.create({
+      data: {
+        id: makeId("submission_event"), raceId, actorUserId: ctx.userId, action: "window_configured",
+        metadataJson: toJson({ opensAt: input.opensAt.toISOString(), closesAt: input.closesAt.toISOString() })
+      }
+    });
+    return ok("提交窗口已配置", raceId);
   });
-  return ok("Work已提交", work.id);
+}
+
+export async function lockSubmissionWindow(ctx: AuthContext | null, raceId: string, reason: string): Promise<Result> {
+  requireAuth(ctx);
+  requireManagedRace(ctx, raceId);
+  const normalizedReason = reason.trim();
+  if (!normalizedReason) return fail("提前关闭提交必须填写原因");
+  return runSerializableResult(async (tx) => {
+    const race = await tx.race.findUnique({ where: { id: raceId } });
+    if (!race) return fail("Race不存在");
+    if (await tx.judgeAssignment.count({ where: { raceId } })) return fail("已有评审分配，提交窗口已永久冻结");
+    const lockedAt = new Date();
+    await tx.race.update({
+      where: { id: raceId },
+      data: { submissionLockedAt: lockedAt, submissionLockedByUserId: ctx.userId, submissionLockReason: normalizedReason }
+    });
+    await tx.submissionAuditEvent.create({
+      data: {
+        id: makeId("submission_event"), raceId, actorUserId: ctx.userId, action: "window_locked", reason: normalizedReason,
+        metadataJson: toJson({ lockedAt: lockedAt.toISOString() })
+      }
+    });
+    return ok("提交窗口已提前关闭", raceId);
+  });
+}
+
+export async function reopenSubmissionWindow(
+  ctx: AuthContext | null,
+  raceId: string,
+  input: { closesAt: Date; reason: string }
+): Promise<Result> {
+  requireRole(ctx, ["admin"]);
+  const reason = input.reason.trim();
+  const now = new Date();
+  if (!reason) return fail("重新开放必须填写原因");
+  if (!Number.isFinite(input.closesAt.getTime()) || input.closesAt <= now) return fail("新的截止时间必须在未来");
+  return runSerializableResult(async (tx) => {
+    const race = await tx.race.findUnique({ where: { id: raceId } });
+    if (!race) return fail("Race不存在");
+    if (!race.submissionOpensAt || race.submissionOpensAt >= input.closesAt) return fail("新的截止时间必须晚于开始时间");
+    if (await tx.judgeAssignment.count({ where: { raceId } })) return fail("已有评审分配，不能重新开放提交");
+    await tx.race.update({
+      where: { id: raceId },
+      data: { submissionClosesAt: input.closesAt, submissionLockedAt: null, submissionLockedByUserId: null, submissionLockReason: null }
+    });
+    await tx.submissionAuditEvent.create({
+      data: {
+        id: makeId("submission_event"), raceId, actorUserId: ctx.userId, action: "window_reopened", reason,
+        metadataJson: toJson({ closesAt: input.closesAt.toISOString() })
+      }
+    });
+    return ok("提交窗口已由Admin重新开放", raceId);
+  });
+}
+
+export async function submitWork(ctx: AuthContext | null, registrationId: string, input: { title: string; summary: string; demoUrl?: string; repoUrl: string; repoCommitSha: string }): Promise<Result> {
+  requireAuth(ctx);
+  const validated = validateWorkSubmissionInput(input);
+  if (!validated.ok) return fail(validated.message);
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const registration = await tx.registration.findUnique({ where: { id: registrationId }, include: { race: true } });
+        if (!registration) return fail("Registration不存在");
+        if (registration.userId !== ctx!.userId) return fail("只有Registration本人可以提交Work");
+        if (registration.status !== "approved") return fail("只有已审核通过的Registration可以提交Work");
+        const assignmentCount = await tx.judgeAssignment.count({ where: { raceId: registration.raceId } });
+        const windowState = getSubmissionWindowState(registration.race, assignmentCount > 0);
+        if (windowState !== "open") return fail(`作品提交窗口不可用：${windowState}`);
+
+        const submittedAt = new Date();
+        const createdWorkId = makeId("work");
+        const workSlug = `${slugify(validated.data.title) || "work"}-${createdWorkId.slice(-8)}`;
+        const work = await tx.work.upsert({
+          where: { registrationId },
+          update: {},
+          create: {
+            id: createdWorkId,
+            registrationId,
+            slug: workSlug,
+            title: validated.data.title,
+            summary: validated.data.summary,
+            demoUrl: validated.data.demoUrl,
+            repoUrl: validated.data.repoUrl,
+            status: "submitted",
+            visibility: "review",
+            submittedAt
+          }
+        });
+        const counted = await tx.work.update({
+          where: { id: work.id },
+          data: { versionCounter: { increment: 1 } },
+          select: { versionCounter: true }
+        });
+        const versionId = makeId("work_version");
+        const integrityHash = createWorkSubmissionIntegrityHash({
+          ...validated.data,
+          workId: work.id,
+          registrationId,
+          versionNumber: counted.versionCounter,
+          submittedByUserId: ctx!.userId,
+          submittedAt
+        });
+        await tx.workSubmissionVersion.create({
+          data: {
+            id: versionId,
+            workId: work.id,
+            versionNumber: counted.versionCounter,
+            ...validated.data,
+            hashSchemaVersion: WORK_SUBMISSION_HASH_SCHEMA,
+            integrityHash,
+            submittedByUserId: ctx!.userId,
+            submittedAt
+          }
+        });
+        await tx.work.update({
+          where: { id: work.id },
+          data: {
+            title: validated.data.title,
+            summary: validated.data.summary,
+            demoUrl: validated.data.demoUrl,
+            repoUrl: validated.data.repoUrl,
+            status: "submitted",
+            visibility: "review",
+            submittedAt,
+            publishedAt: null,
+            currentVersionId: versionId
+          }
+        });
+        await tx.submissionAuditEvent.create({
+          data: {
+            id: makeId("submission_event"),
+            raceId: registration.raceId,
+            registrationId,
+            workId: work.id,
+            workSubmissionVersionId: versionId,
+            actorUserId: ctx!.userId,
+            action: "version_submitted",
+            metadataJson: toJson({ versionNumber: counted.versionCounter, integrityHash })
+          }
+        });
+        return ok(`Work v${counted.versionCounter}已提交`, work.id);
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      const retryable = error instanceof Prisma.PrismaClientKnownRequestError && (error.code === "P2034" || error.code === "P2002");
+      if (!retryable || attempt === 3) return retryable ? fail("提交并发冲突，请重试") : fail("Work提交失败");
+    }
+  }
+  return fail("提交并发冲突，请重试");
 }
 
 export async function publishWork(ctx: AuthContext | null, workId: string): Promise<Result> {
   requireAuth(ctx);
-  const work = await prisma.work.findUnique({ where: { id: workId }, include: { registration: true } });
-  if (!work) return fail("Work不存在");
-  requireManagedRace(ctx, work.registration.raceId);
-  await prisma.work.update({ where: { id: workId }, data: { visibility: "public", status: "published", publishedAt: new Date() } });
-  return ok("Work已公开", workId);
+  const scopedWork = await prisma.work.findUnique({ where: { id: workId }, select: { registration: { select: { raceId: true } } } });
+  if (!scopedWork) return fail("Work不存在");
+  requireManagedRace(ctx, scopedWork.registration.raceId);
+  return runSerializableResult(async (tx) => {
+    const work = await tx.work.findUnique({ where: { id: workId }, include: { registration: { include: { race: true } } } });
+    if (!work) return fail("Work不存在");
+    if (!work.currentVersionId) return fail("legacy Work必须先由Rider重新提交为版本化作品");
+    if (work.status === "published" && work.visibility === "public") return ok("Work已公开", workId);
+    const assignments = await tx.judgeAssignment.count({ where: { raceId: work.registration.raceId } });
+    const windowState = getSubmissionWindowState(work.registration.race, assignments > 0);
+    if (windowState === "open" || windowState === "not_started") return fail("提交窗口关闭后才能公开Work");
+    const publishedAt = new Date();
+    await tx.work.update({ where: { id: workId }, data: { visibility: "public", status: "published", publishedAt } });
+    await tx.submissionAuditEvent.create({
+      data: {
+        id: makeId("submission_event"), raceId: work.registration.raceId, registrationId: work.registrationId,
+        workId, workSubmissionVersionId: work.currentVersionId, actorUserId: ctx.userId, action: "work_published",
+        metadataJson: toJson({ publishedAt: publishedAt.toISOString() })
+      }
+    });
+    return ok("Work已公开", workId);
+  });
 }
 
 export async function assignJudge(ctx: AuthContext | null, workId: string, judgeUserId: string): Promise<Result> {
   requireAuth(ctx);
-  const work = await prisma.work.findUnique({ where: { id: workId }, include: { registration: true } });
-  if (!work) return fail("Work不存在");
-  requireManagedRace(ctx, work.registration.raceId);
-  const assignment = await prisma.judgeAssignment.upsert({
-    where: { workId_judgeUserId: { workId, judgeUserId } },
-    update: {},
-    create: {
-      id: makeId("assign"),
-      raceId: work.registration.raceId,
-      workId,
-      judgeUserId,
-      assignedByUserId: ctx.userId,
-      status: "assigned",
-      assignedAt: new Date()
-    }
+  const scopedWork = await prisma.work.findUnique({ where: { id: workId }, select: { registration: { select: { raceId: true } } } });
+  if (!scopedWork) return fail("Work不存在");
+  requireManagedRace(ctx, scopedWork.registration.raceId);
+  return runSerializableResult(async (tx) => {
+    const work = await tx.work.findUnique({ where: { id: workId }, include: { registration: { include: { race: true } } } });
+    if (!work) return fail("Work不存在");
+    if (!work.currentVersionId) return fail("legacy Work必须先由Rider重新提交为版本化作品");
+    const assignmentCount = await tx.judgeAssignment.count({ where: { raceId: work.registration.raceId } });
+    const windowState = getSubmissionWindowState(work.registration.race, assignmentCount > 0);
+    if (windowState === "open" || windowState === "not_started") return fail("提交窗口关闭后才能分配Judge");
+    const assignment = await tx.judgeAssignment.upsert({
+      where: { workId_judgeUserId: { workId, judgeUserId } },
+      update: { workSubmissionVersionId: work.currentVersionId },
+      create: {
+        id: makeId("assign"), raceId: work.registration.raceId, workId, judgeUserId, assignedByUserId: ctx.userId,
+        status: "assigned", assignedAt: new Date(), workSubmissionVersionId: work.currentVersionId
+      }
+    });
+    return ok("JudgeAssignment已创建", assignment.id);
   });
-  return ok("JudgeAssignment已创建", assignment.id);
 }
 
 export async function submitJudgingRecord(ctx: AuthContext | null, assignmentId: string, input: { scoreResult: number; scoreRiding: number; comments: string }): Promise<Result> {
@@ -431,30 +620,32 @@ export async function submitJudgingRecord(ctx: AuthContext | null, assignmentId:
 
 export async function publishAward(ctx: AuthContext | null, input: { raceId: string; registrationId: string; workId?: string; awardName: string; rank: number; reason: string }): Promise<Result> {
   requireManagedRace(ctx, input.raceId);
-  const registration = await prisma.registration.findUnique({ where: { id: input.registrationId } });
-  if (!registration) return fail("Registration不存在");
-  if (registration.raceId !== input.raceId) return fail("Registration不属于当前Race");
-  if (input.workId) {
-    const work = await prisma.work.findUnique({ where: { id: input.workId } });
-    if (!work) return fail("Work不存在");
-    if (work.registrationId !== input.registrationId) return fail("Work不属于当前Registration");
-  }
-  const award = await prisma.award.upsert({
-    where: { raceId_awardName_rank: { raceId: input.raceId, awardName: input.awardName, rank: input.rank } },
-    update: { registrationId: input.registrationId, workId: input.workId, decisionReason: input.reason, status: "published", publishedAt: new Date() },
-    create: {
-      id: makeId("award"),
-      raceId: input.raceId,
-      registrationId: input.registrationId,
-      workId: input.workId,
-      awardName: input.awardName,
-      rank: input.rank,
-      decisionReason: input.reason,
-      status: "published",
-      publishedAt: new Date()
+  return runSerializableResult(async (tx) => {
+    const registration = await tx.registration.findUnique({ where: { id: input.registrationId }, include: { race: true } });
+    if (!registration) return fail("Registration不存在");
+    if (registration.raceId !== input.raceId) return fail("Registration不属于当前Race");
+    let workSubmissionVersionId: string | null = null;
+    if (input.workId) {
+      const work = await tx.work.findUnique({ where: { id: input.workId } });
+      if (!work) return fail("Work不存在");
+      if (work.registrationId !== input.registrationId) return fail("Work不属于当前Registration");
+      if (!work.currentVersionId) return fail("关联Award的Work必须先完成版本化提交");
+      const assignmentCount = await tx.judgeAssignment.count({ where: { raceId: input.raceId } });
+      const windowState = getSubmissionWindowState(registration.race, assignmentCount > 0);
+      if (windowState === "open" || windowState === "not_started") return fail("关联Award的Work必须先冻结提交版本");
+      workSubmissionVersionId = work.currentVersionId;
     }
+    const award = await tx.award.upsert({
+      where: { raceId_awardName_rank: { raceId: input.raceId, awardName: input.awardName, rank: input.rank } },
+      update: { registrationId: input.registrationId, workId: input.workId, workSubmissionVersionId, decisionReason: input.reason, status: "published", publishedAt: new Date() },
+      create: {
+        id: makeId("award"), raceId: input.raceId, registrationId: input.registrationId, workId: input.workId,
+        workSubmissionVersionId, awardName: input.awardName, rank: input.rank, decisionReason: input.reason,
+        status: "published", publishedAt: new Date()
+      }
+    });
+    return ok("Award已发布", award.id);
   });
-  return ok("Award已发布", award.id);
 }
 
 export async function generateReport(ctx: AuthContext | null, input: { raceId: string; type: string; subjectRegistrationId?: string }): Promise<Result> {
@@ -668,14 +859,18 @@ export async function runP0Regression(ctx: AuthContext | null, raceId: string): 
   requireManagedRace(ctx, raceId);
   const race = await prisma.race.findUnique({ where: { id: raceId }, include: { registrations: true } });
   if (!race) return fail("Race不存在");
-  const rider = await prisma.user.findFirst({ where: { rolesJson: { contains: "rider" } } });
+  const existingVersionedRegistration = await prisma.registration.findFirst({
+    where: { raceId, work: { is: { currentVersionId: { not: null } } } },
+    include: { user: true }
+  });
+  const rider = existingVersionedRegistration?.user ?? await prisma.user.findFirst({ where: { rolesJson: { contains: "rider" } } });
   const judge = await prisma.user.findFirst({ where: { rolesJson: { contains: "judge" } } });
   if (!rider || !judge) return fail("缺少Rider或Judge种子用户");
-  const registration = await prisma.registration.upsert({
-    where: { raceId_userId: { raceId, userId: rider.id } },
-    update: { status: "approved", approvedAt: new Date() },
-    create: { id: makeId("reg"), raceId, userId: rider.id, status: "approved", submittedAt: new Date(), approvedAt: new Date() }
-  });
+  const registration = existingVersionedRegistration ?? await prisma.registration.upsert({
+      where: { raceId_userId: { raceId, userId: rider.id } },
+      update: { status: "approved", approvedAt: new Date() },
+      create: { id: makeId("reg"), raceId, userId: rider.id, status: "approved", submittedAt: new Date(), approvedAt: new Date() }
+    });
   const project = await ensureRaceProject(registration.id);
   const connectionResult = await registerCAConnection({ ...ctx!, userId: rider.id, roles: ["rider"] }, project.id);
   const connectionId = connectionResult.ok ? connectionResult.id! : (await prisma.cAConnection.findFirst({ where: { raceProjectId: project.id } }))?.id;
@@ -697,24 +892,32 @@ export async function runP0Regression(ctx: AuthContext | null, raceId: string): 
     };
     await ingestRidingSignal({ ...payload, attestation: createRidingSignalAttestation(connection?.connectorId ?? "unknown", payload, "ocr_desktop_app") });
   }
-  const work = await submitWork({ ...ctx!, userId: rider.id, roles: ["rider"] }, registration.id, {
-    title: "Adaptive Bay Route Agent",
-    summary: "A route planner that replans around live constraints and explains tradeoffs.",
-    demoUrl: "https://demo.example.com/adaptive-bay-route-agent",
-    repoUrl: "https://github.com/example/adaptive-bay-route-agent"
-  });
-  if (work.ok) {
-    await publishWork(ctx, work.id!);
-    const assignment = await assignJudge(ctx, work.id!, judge.id);
-    if (assignment.ok) {
-      await submitJudgingRecord({ ...ctx!, userId: judge.id, roles: ["judge"] }, assignment.id!, {
-        scoreResult: 92,
-        scoreRiding: 88,
-        comments: "Clear outcome, traceable evidence, and strong recovery behavior."
-      });
-    }
-    await publishAward(ctx, { raceId, registrationId: registration.id, workId: work.id!, awardName: "Grand Prize", rank: 1, reason: "Best combined result and riding evidence package." });
+  let workId = (await prisma.work.findUnique({ where: { registrationId: registration.id } }))?.id;
+  if (!workId) {
+    const work = await submitWork({ ...ctx!, userId: rider.id, roles: ["rider"] }, registration.id, {
+      title: "Adaptive Bay Route Agent",
+      summary: "A route planner that replans around live constraints and explains tradeoffs.",
+      demoUrl: "https://demo.example.com/adaptive-bay-route-agent",
+      repoUrl: "https://github.com/example/adaptive-bay-route-agent",
+      repoCommitSha: "a".repeat(40)
+    });
+    if (!work.ok) return fail(`P0 Work提交失败：${work.message}`);
+    workId = work.id!;
+    const locked = await lockSubmissionWindow(ctx, raceId, "P0回归冻结提交版本");
+    if (!locked.ok) return fail(`P0 提交冻结失败：${locked.message}`);
   }
+  const publishedWork = await publishWork(ctx, workId);
+  if (!publishedWork.ok) return fail(`P0 Work公开失败：${publishedWork.message}`);
+  const assignment = await assignJudge(ctx, workId, judge.id);
+  if (!assignment.ok) return fail(`P0 Judge分配失败：${assignment.message}`);
+  const judging = await submitJudgingRecord({ ...ctx!, userId: judge.id, roles: ["judge"] }, assignment.id!, {
+    scoreResult: 92,
+    scoreRiding: 88,
+    comments: "Clear outcome, traceable evidence, and strong recovery behavior."
+  });
+  if (!judging.ok) return fail(`P0 评审失败：${judging.message}`);
+  const award = await publishAward(ctx, { raceId, registrationId: registration.id, workId, awardName: "Grand Prize", rank: 1, reason: "Best combined result and riding evidence package." });
+  if (!award.ok) return fail(`P0 Award发布失败：${award.message}`);
   const raceReport = await generateReport(ctx, { raceId, type: "race_report" });
   const review = await generateReport(ctx, { raceId, type: "review_summary" });
   if (raceReport.ok) await publishReport(ctx, raceReport.id!);

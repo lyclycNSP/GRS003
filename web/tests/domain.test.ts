@@ -3,11 +3,13 @@ import { PrismaClient } from "@prisma/client";
 import {
   approveRegistration,
   assignJudge,
+  configureSubmissionWindow,
   createRace,
   disableCAConnection,
   editReport,
   generateReport,
   ingestRidingSignal,
+  lockSubmissionWindow,
   publishAward,
   publishRace,
   publishReport,
@@ -44,7 +46,7 @@ const organizer: AuthContext = {
   userId: "user_org_1",
   roles: ["organizer", "admin", "judge", "rider"],
   profileCompleted: true,
-  managedRaceIds: ["race_bay_2026", "race_finance_2026", "race_genesis_2026"],
+  managedRaceIds: ["race_bay_2026", "race_finance_2026", "race_genesis_2026", "race_submission_e2e"],
   approvedRegistrationIds: [],
   assignedWorkIds: []
 };
@@ -103,7 +105,7 @@ async function main() {
 
   await test("approved Registration ensures exactly one RaceProject", async () => {
     const result = await approveRegistration(organizer, "reg_mira");
-    assert.equal(result.ok, true);
+    assert.equal(result.ok, true, result.message);
     const projects = await prisma.raceProject.findMany({ where: { registrationId: "reg_mira" } });
     assert.equal(projects.length, 1);
   });
@@ -131,9 +133,27 @@ async function main() {
 
 
   await test("work judge structure reaches submitted judging record", async () => {
-    const workResult = await submitWork(rider, "reg_mira", { title: "Judge Flow Work", summary: "Judge flow", demoUrl: "mock://demo/judge", repoUrl: "mock://repo/judge" });
+    const raceResult = await createRace(organizer, {
+      title: `Judge Flow ${Date.now()}`,
+      challenge: "Validate version-bound judging.",
+      summary: "Isolated judge flow fixture."
+    });
+    assert.equal(raceResult.ok, true);
+    const registrationResult = await submitRegistration(rider, raceResult.id!);
+    assert.equal(registrationResult.ok, true);
+    const approved = await approveRegistration(organizer, registrationResult.id!);
+    assert.equal(approved.ok, true);
+    const configured = await configureSubmissionWindow(organizer, raceResult.id!, {
+      opensAt: new Date(Date.now() - 60_000),
+      closesAt: new Date(Date.now() + 3_600_000)
+    });
+    assert.equal(configured.ok, true);
+    const isolatedRider: AuthContext = { ...rider, approvedRegistrationIds: [registrationResult.id!] };
+    const workResult = await submitWork(isolatedRider, registrationResult.id!, { title: "Judge Flow Work", summary: "Judge flow", demoUrl: "https://demo.example.com/judge", repoUrl: "https://github.com/example/judge", repoCommitSha: "b".repeat(40) });
     assert.equal(workResult.ok, true);
     const publishedWork = await prisma.work.findUnique({ where: { id: workResult.id! } });
+    const locked = await lockSubmissionWindow(organizer, raceResult.id!, "进入领域评审测试");
+    assert.equal(locked.ok, true);
     const assignment = await assignJudge(organizer, publishedWork!.id, "user_judge_1");
     assert.equal(assignment.ok, true);
     const judgeCtx: AuthContext = { userId: "user_judge_1", roles: ["judge"], profileCompleted: true, managedRaceIds: [], approvedRegistrationIds: [], assignedWorkIds: [publishedWork!.id] };
@@ -171,21 +191,19 @@ async function main() {
     assert.equal(snapshot.currentUser?.registrations.every((registration) => registration.raceId === "race_genesis_2026"), true);
   });
 
-  await test("public Results do not link to non-public Work assets", async () => {
+  await test("Award rejects a legacy unversioned Work", async () => {
     const race = await getRaceResults("bay-area-happy-trip");
     assert.ok(race);
     const result = await publishAward(organizer, {
-      raceId: "race_bay_2026",
-      registrationId: "reg_ana",
-      workId: "work-localjoy",
+      raceId: "race_finance_2026",
+      registrationId: "reg_finance_ana",
+      workId: "work-finance-legacy",
       awardName: "Review Only Award",
       rank: 2,
       reason: "Award can be public while Work remains under review."
     });
-    assert.equal(result.ok, true);
-    const updatedRace = await getRaceResults("bay-area-happy-trip");
-    const award = updatedRace?.awards.find((item) => item.id === result.id);
-    assert.equal(award?.work, null);
+    assert.equal(result.ok, false);
+    assert.match(result.message, /版本化/);
   });
 
   await test("unknown CA connection is rejected without writing attacker identifiers", async () => {
@@ -330,7 +348,7 @@ async function main() {
   });
   await test("P0 regression reaches release and ops evidence", async () => {
     const result = await runP0Regression(organizer, "race_bay_2026");
-    assert.equal(result.ok, true);
+    assert.equal(result.ok, true, result.message);
     const p0 = await prisma.releaseChecklistItem.findUnique({ where: { raceId_itemKey: { raceId: "race_bay_2026", itemKey: "p0_regression" } } });
     const backups = await prisma.backup.findMany({ where: { raceId: "race_bay_2026" } });
     assert.equal(p0?.status, "done");
@@ -339,6 +357,13 @@ async function main() {
     const goNoGo = await prisma.releaseChecklistItem.findUnique({ where: { raceId_itemKey: { raceId: "race_bay_2026", itemKey: "go_no_go" } } });
     assert.equal(screen?.status, "done");
     assert.equal(goNoGo?.status, "done");
+    const p0Work = await prisma.work.findUnique({
+      where: { registrationId: "reg_mira" },
+      include: { currentVersion: true, assignments: { include: { judgingRecord: true } }, awards: true }
+    });
+    assert.ok(p0Work?.currentVersion);
+    assert.ok(p0Work?.assignments.some((item) => item.workSubmissionVersionId === p0Work.currentVersionId && item.judgingRecord?.status === "submitted"));
+    assert.ok(p0Work?.awards.some((item) => item.workSubmissionVersionId === p0Work.currentVersionId && item.status === "published"));
   });
 
   await prisma.$disconnect();

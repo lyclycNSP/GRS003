@@ -369,6 +369,8 @@ MVP 固定评分项只作为评委填写说明，不建模为可配置 Score Rub
 | CAConnection | RaceProject 下的单个 CA / connector / 外部 CA Project 登记与运行接入实例，承载单个 CA 的实时接入状态 | `ary-domain-analysis.v0.3.md`、`ary-ca-integration-spec.md` |
 | Session | CAConnection 下的一次实时 CA 协同过程，用于生成摘要、指标和 Evidence | `ary-domain-analysis.v0.3.md`、`ary-ca-integration-spec.md` |
 | Work | Registration 产生的作品资产，进入展示、评审、榜单和 Evidence | `ary-domain-analysis.v0.3.md` |
+| WorkSubmissionVersion | Rider 在提交窗口内创建的不可变作品版本，固定内容、GitHub Repo、commit SHA、服务端提交时间和完整性哈希 | `ary-domain-analysis.v0.3.md`、`ary-production-security-baseline.md` |
+| SubmissionAuditEvent | 提交版本、窗口配置/冻结/重开和作品发布的追加式审计事实 | `ary-domain-analysis.v0.3.md`、`ary-production-security-baseline.md` |
 | JudgeAssignment / JudgingRecord | 评审分配和评审事实，支撑评分、评语、榜单草稿和报告 | `ary-domain-analysis.v0.3.md`、`ary-permission-matrix.md` |
 | Award / Leaderboard | 奖项结果与最终榜单读取模型，表达赛后结果 | `ary-domain-analysis.v0.3.md` |
 | Evidence | 支撑骑行能力评价、报告和公开摘要的证据事实 | `ary-domain-analysis.v0.3.md`、`ary-permission-matrix.md` |
@@ -390,6 +392,7 @@ MVP 固定评分项只作为评委填写说明，不建模为可配置 Score Rub
 | CAConnection Ingestion Status | 驱动单个 CA 接入状态展示、connector 异常定位和 Projection 输入 | 应覆盖 not_configured、connected、active、failed；单个 failed 只表达连接异常和证据缺口 |
 | CAConnection Acceptance Window | 驱动参赛过程中 CAConnection 新增和数据接收边界 | Rider 可在参赛过程中新增 CAConnection；未登记、未握手、归属错误或被禁用的连接数据不得进入有效 Projection、Evidence 或 Report 输入 |
 | Work Status | 驱动作草稿、提交、锁定和公开展示 | 获奖由 Award 推导，不在 Work Status 中重复保存 |
+| Submission Window Status | 驱动版本提交、冻结和评审准入 | 统一计算 not_started、open、closed_by_deadline、closed_manually、sealed_for_judging；进入评审后永久禁止重开 |
 | Review Readiness / Review Flag | 驱动评审前风险提示、材料完整度提示和 Judge 评审上下文 | 空骑行、无 CA 数据、空作品、缺必填材料、疑似违规和接入异常应提示 Organizer / Judge，但不自动替代人工评审 |
 | Report Status | 驱动报告生成、审核和公开发布 | 未发布 Report 不出现在 Public Site |
 
@@ -646,6 +649,9 @@ ARY MVP 验收时，应满足以下条件。
 * Race Console、Admin Console、Screen Console 的访问边界必须隔离。
 * 公开数据、内部数据、原始 CA Session、未发布评分、未发布 Report 必须隔离。
 * 资源动作级权限以 `ary-permission-matrix.md` 为准。
+* 只有 approved Registration 本人可以创建 WorkSubmissionVersion；Organizer 不得代提交。
+* CA attestation 保护实时骑行证据来源，WorkSubmissionVersion 的不可变版本、commit 声明、完整性哈希和冻结窗口保护作品提交链；两者是独立控制，不能相互替代。
+* 本期 commit SHA 只校验格式并固化声明，不联网验证 commit 存在，也不包含仓库归档、secret / 依赖扫描、文件杀毒或 Demo 沙箱。
 
 ---
 

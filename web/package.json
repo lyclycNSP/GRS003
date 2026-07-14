@@ -14,7 +14,7 @@
     "prisma:push": "prisma db push",
     "db:init": "npm run prisma:generate:sqlite && python scripts/init-sqlite.py",
     "seed": "node --import tsx prisma/seed.ts",
-    "test": "node --import tsx tests/domain.test.ts",
+    "test": "node --import tsx tests/domain.test.ts && node --import tsx tests/work-submission.test.ts && node --import tsx tests/work-submission-domain.test.ts",
     "test:e2e": "npm run test:e2e:prepare && playwright test",
     "test:e2e:judge": "npm run test:e2e:prepare && playwright test e2e/judge.spec.ts",
     "test:e2e:public": "npm run test:e2e:prepare && playwright test e2e/public.spec.ts",

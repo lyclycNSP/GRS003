@@ -200,6 +200,8 @@ MVP 关键约束：
 | CA Connection | RaceProject 下的单个 CA 接入登记与运行实例 | 参赛过程中绑定 CA 类型、connector、外部 CA Project 和接入状态；完成登记和握手后产生的数据可进入有效证据链；一个 RaceProject 可以接入多个 CAConnection |
 | Session | CAConnection 下的一次 CA 协同记录 | 可来自 Codex、Claude Code 等实时 CA 协同过程；Session Summary 作为 Evidence 进入系统，不建模为 Session |
 | Work | 作品资产 | 由 Registration 产生，进入展示、评审、榜单和 Evidence |
+| Work Submission Version | 不可变作品提交事实 | 记录 Work 某次提交的规范化内容、GitHub commit 声明、服务端时间和 canonical SHA-256；创建后不更新、不删除 |
+| Submission Audit Event | 提交控制审计事实 | 追加记录版本提交、窗口配置、全场冻结、Admin 重开和作品发布动作 |
 | Judge Assignment | 评审分配事实 | 连接拥有 judge role 的 User 与 Work |
 | Judging Record | 评审事实 | 基于 Judge Assignment 产生，包含评分和评语；评委和作品从分配关系追溯，MVP 暂不处理奖项推荐 |
 | Award | 奖项结果 | 连接 Race 与获奖 Registration，可选关联 Work，包含奖项名称和名次 |
@@ -920,6 +922,8 @@ classDiagram
 * `RaceProject` 是某次参赛的骑行工作区容器，由 approved `Registration` 自动生成，不等同于单个外部 CA Project；一个 `RaceProject` 可以包含多个 `CAConnection`。
 * `CAConnection` 是参赛过程中形成的单个 CA / connector / 外部 CA Project 登记与运行接入实例；一个 `CAConnection` 可以包含多个 `Session`。
 * `Work` 是资产，不是提交记录；`Evidence` 通过 sourceRef 引用 Work、Session 或 JudgingRecord。
+* `WorkSubmissionVersion` 是不可变提交事实；`Work.currentVersionId` 指向当前版本，Work 上的展示字段只是兼容旧查询的当前投影。
+* `JudgeAssignment` 和关联 Work 的 `Award` 固定引用明确版本，不能依赖之后可能变化的 Work 投影。
 * `Session Summary` 没有单独建类，先作为 `EvidenceType.session_summary` 表达；MVP 中它只能来自实时接入 Session 的摘要，不接受赛后手动上传补交。
 * `JudgingRecord` 通过 `JudgeAssignment` 追溯评委和作品，不重复维护 User / Work 直连事实。
 * `JudgeAssignment.assignedByUserId` 记录分配动作的操作者，通常应是拥有 organizer 或 admin role 的 User。
@@ -941,6 +945,10 @@ classDiagram
 | CA 接入状态不改变 Registration 资格状态 | RaceProject 聚合状态 failed / not_configured 只表达证据缺口或接入异常，进入评审前风险提示，不自动取消提交、评审或 Award 资格 |
 | 事后 Session Summary 不能伪造实时证据 | MVP 不接受赛后手动上传 Session Summary 伪造实时 CA 过程；如作为说明材料引用，必须标记来源、时间和可信度 |
 | 一个 Registration 最多一个主 Work | MVP 阶段先支持单作品提交；多作品后续再扩展 |
+| 一个 Work 的 versionNumber 单调递增且唯一 | 每次合法提交在 Serializable 事务中递增 versionCounter、创建版本、更新当前投影并追加审计事件 |
+| WorkSubmissionVersion 创建后不可变 | 不提供更新、删除领域动作；canonical hash 固定 schemaVersion、规范化内容、提交人和服务端时间 |
+| 提交窗口是全场边界 | 仅 open 可提交；Organizer 可配置/提前关闭但不能解锁；Admin 仅在无 JudgeAssignment 时可带原因重开 |
+| 评审和发布必须绑定冻结版本 | not_started / open 时不得分配 Judge、首次公开 Work 或发布关联 Work 的 Award；legacy Work 必须先重新提交版本 |
 | 一个 Work 可以被多个 Judge 分配和评审 | 通过 JudgeAssignment 和 JudgingRecord 表达 |
 | JudgeAssignment 应记录 assignedByUserId | 分配人应拥有 organizer 或 admin role，用于审计和权限追溯 |
 | JudgingRecord 应来源于一个 JudgeAssignment | 评审记录的评委和作品从 JudgeAssignment 推导，不重复保存为独立事实 |

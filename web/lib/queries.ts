@@ -35,7 +35,13 @@ export async function getRaceBySlug(slug: string) {
         where: { work: { is: { visibility: "public", status: "published" } } },
         select: { work: { select: { id: true } } }
       },
-      awards: { where: { status: "published" }, select: { id: true, awardName: true, rank: true } },
+      awards: {
+        where: { status: "published" },
+        select: {
+          id: true, awardName: true, rank: true,
+          workSubmissionVersion: { select: { versionNumber: true, repoCommitSha: true, integrityHash: true, submittedAt: true } }
+        }
+      },
       reports: {
         where: { status: "published", visibility: "public" },
         select: { id: true, type: true, status: true, visibility: true, content: true, publishedAt: true }
@@ -64,7 +70,7 @@ export async function getRaceBySlug(slug: string) {
     taskId: race.taskId,
     createdAt: race.createdAt,
     registrations: race.registrations,
-    awards: race.awards,
+    awards: race.awards.map(({ workSubmissionVersion, ...award }) => ({ ...award, submissionVersion: workSubmissionVersion })),
     reports: race.reports,
     projections: race.projections,
     announcements: race.announcements,
@@ -84,7 +90,8 @@ export async function getReviewWorkBySlug(slug: string) {
       registration: { include: { race: true, user: true, raceProject: { include: { caConnections: true } } } },
       evidences: true,
       reviewFlags: true,
-      assignments: { include: { judge: true, judgingRecord: true } },
+      assignments: { include: { judge: true, judgingRecord: true, workSubmissionVersion: true } },
+      currentVersion: true,
       awards: true
     }
   });
@@ -101,7 +108,8 @@ export async function getWorkBySlug(slug: string) {
         }
       },
       evidences: { where: { visibility: "public" } },
-      awards: { where: { status: "published" } }
+      awards: { where: { status: "published" } },
+      currentVersion: { select: { versionNumber: true, repoCommitSha: true, integrityHash: true, submittedAt: true } }
     }
   });
   if (!work) return null;
@@ -116,6 +124,7 @@ export async function getWorkBySlug(slug: string) {
     repoUrl: work.repoUrl,
     submittedAt: work.submittedAt,
     publishedAt: work.publishedAt,
+    submissionVersion: work.currentVersion,
     registration: {
       race: {
         id: work.registration.race.id,
@@ -158,7 +167,8 @@ export async function getPublicWorks(raceId?: string) {
           user: { select: { slug: true, displayName: true, githubLogin: true, city: true } }
         }
       },
-      awards: { where: { status: "published" } }
+      awards: { where: { status: "published" } },
+      currentVersion: { select: { versionNumber: true, repoCommitSha: true, integrityHash: true, submittedAt: true } }
     },
     orderBy: { submittedAt: "desc" }
   });
@@ -173,6 +183,7 @@ export async function getPublicWorks(raceId?: string) {
     repoUrl: work.repoUrl,
     submittedAt: work.submittedAt,
     publishedAt: work.publishedAt,
+    submissionVersion: work.currentVersion,
     registration: { race: work.registration.race, user: work.registration.user },
     awards: work.awards.map((award) => ({ id: award.id, awardName: award.awardName, rank: award.rank, decisionReason: award.decisionReason }))
   }));
@@ -192,7 +203,11 @@ export async function getRaceResults(slug: string) {
       awards: {
         where: { status: "published" },
         orderBy: { rank: "asc" },
-        include: { registration: { include: { user: true } }, work: true }
+        include: {
+          registration: { include: { user: true } },
+          work: true,
+          workSubmissionVersion: { select: { versionNumber: true, repoCommitSha: true, integrityHash: true, submittedAt: true } }
+        }
       },
       reports: { where: { status: "published", visibility: "public" } }
     }
@@ -200,8 +215,9 @@ export async function getRaceResults(slug: string) {
   if (!race) return null;
   return {
     ...race,
-    awards: race.awards.map((award) => ({
+    awards: race.awards.map(({ workSubmissionVersionId: _versionId, workSubmissionVersion, ...award }) => ({
       ...award,
+      submissionVersion: workSubmissionVersion,
       work: award.work && award.work.visibility === "public" && award.work.status === "published" ? award.work : null
     })),
     schedule: fromJson<Record<string, string>>(race.scheduleJson, {}),
@@ -295,11 +311,11 @@ export async function getConsoleSnapshotForUser(userId?: string | null, raceId?:
     include: {
       registrations: {
         where: snapshot.race ? { raceId: snapshot.race.id } : undefined,
-        include: { race: true, raceProject: { include: { caConnections: true } }, work: true, reviewFlags: true }
+        include: { race: true, raceProject: { include: { caConnections: true } }, work: { include: { currentVersion: true } }, reviewFlags: true }
       },
       judgeAssignments: {
         where: snapshot.race ? { raceId: snapshot.race.id } : undefined,
-        include: { work: { include: { registration: { include: { user: true, race: true } } } }, judgingRecord: true }
+        include: { work: { include: { registration: { include: { user: true, race: true } } } }, workSubmissionVersion: true, judgingRecord: true }
       }
     }
   }) : null;
@@ -326,7 +342,7 @@ export async function getConsoleSnapshot(raceId?: string | null) {
   const race = selectedRace ? await prisma.race.findUnique({
     where: { id: selectedRace.id },
     include: {
-      registrations: { include: { user: true, raceProject: { include: { caConnections: true } }, work: true, reviewFlags: true } },
+      registrations: { include: { user: true, raceProject: { include: { caConnections: true } }, work: { include: { currentVersion: true } }, reviewFlags: true } },
       releaseItems: true,
       backups: true,
       incidents: true,
@@ -344,7 +360,7 @@ export async function getConsoleSnapshot(raceId?: string | null) {
   });
   const assignments = await prisma.judgeAssignment.findMany({
     where: race ? { raceId: race.id } : undefined,
-    include: { work: { include: { registration: { include: { user: true, race: true } } } }, judge: true, judgingRecord: true }
+    include: { work: { include: { registration: { include: { user: true, race: true } } } }, workSubmissionVersion: true, judge: true, judgingRecord: true }
   });
   return { race, users, assignments, availableRaces };
 }

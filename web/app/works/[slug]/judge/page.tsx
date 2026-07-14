@@ -14,17 +14,22 @@ export default async function WorkJudgePage({ params, searchParams }: { params: 
   const rider = work.registration.user;
   const assignment = work.assignments.find((item) => item.judgeUserId === ctx.userId);
   if (!assignment) notFound();
+  const assignedVersion = assignment.workSubmissionVersion;
+  const reviewedTitle = assignedVersion?.title ?? work.title;
+  const reviewedSummary = assignedVersion?.summary ?? work.summary;
+  const reviewedDemoUrl = assignedVersion?.demoUrl ?? work.demoUrl;
+  const reviewedRepoUrl = assignedVersion?.repoUrl ?? work.repoUrl;
   const review = assignment.judgingRecord;
   return (
     <section className="route-page">
       <section className="work-detail-hero work-judge-hero" style={{ position: "relative", inset: "auto", marginBottom: 24 }}>
-        <p className="section-kicker">{race.title} / {work.title} / Judge View</p>
-        <h1>{work.title}</h1>
+        <p className="section-kicker">{race.title} / {reviewedTitle} / Judge View</p>
+        <h1>{reviewedTitle}</h1>
         <p className="module-summary">评审席视角：{rider.displayName} 的作品已提交，Demo、Repo 与 Riding Evidence 摘要可被评审席查看。</p>
         {saved === "1" ? <p className="status-pill good" data-testid="judge-save-confirmation">JudgingRecord 已保存，Assignment 状态已更新。</p> : null}
         <div className="work-detail-actions work-judge-actions">
-          <a href={work.demoUrl ?? "#"}>打开 Demo</a>
-          <a href={work.repoUrl ?? "#"}>查看 Repo</a>
+          <a href={reviewedDemoUrl ?? "#"} target="_blank" rel="noopener noreferrer">打开 Demo</a>
+          <a href={reviewedRepoUrl ?? "#"} target="_blank" rel="noopener noreferrer">查看 Repo</a>
           <Link href={`/works/${work.slug}`}>公开视角</Link>
           <Link href={`/races/${race.slug}`}>返回 Race</Link>
         </div>
@@ -32,8 +37,11 @@ export default async function WorkJudgePage({ params, searchParams }: { params: 
       <section className="judge-review-layout work-judge-layout" style={{ position: "relative", inset: "auto" }}>
         <article className="assigned-work-card work-judge-summary" data-testid="judge-assigned-work">
           <span>Assigned Work</span>
-          <h2>{work.title}</h2>
-          <p>{work.summary}</p>
+          <h2>{reviewedTitle}</h2>
+          <p>{reviewedSummary}</p>
+          <div data-testid="judge-work-version">
+            {assignedVersion ? <p>固定版本 v{assignedVersion.versionNumber} / commit {assignedVersion.repoCommitSha} / SHA-256 {assignedVersion.integrityHash}</p> : <p>Legacy assignment / 无版本哈希</p>}
+          </div>
           <div className="work-judge-flags">
             {work.reviewFlags.length ? work.reviewFlags.map((flag) => (
               <span className={`review-flag review-flag--${flag.severity}`} key={flag.id}><b>{flag.type}</b><em>{flag.judgeVisibleSummary}</em></span>

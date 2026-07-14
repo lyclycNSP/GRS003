@@ -7,8 +7,7 @@
 ```bash
 cp .env.example .env
 npm install
-npm run prisma:generate
-npm run prisma:push
+npm run db:init
 npm run seed
 npm run dev
 ```
@@ -19,7 +18,17 @@ npm run dev
 http://127.0.0.1:3000
 ```
 
-如果没有配置 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`，`/api/auth/github` 会进入本地演示账号回调，便于本地走通 Console。
+`db:init` 会重建 `DATABASE_URL` 指向的 SQLite 数据库；只对本地开发库或一次性测试库执行。未配置 GitHub OAuth 时不会自动降级登录；本地角色验收需设置 `ENABLE_DEBUG_LOGIN=true`，且该入口在 production 强制禁用。
+
+### 浏览器验收：作品提交完整性
+
+1. 启动后打开 `http://127.0.0.1:3000/api/debug/login?user=rider_e2e`，进入 Rider Console，确认提交窗口为 open。
+2. 填写标题、摘要、`https://github.com/<owner>/<repo>`、40 位 commit SHA 和可选公共 HTTPS Demo，点击“提交 Work”；页面应显示 v1、commit SHA 和 64 位完整性哈希。
+3. 修改内容与 commit SHA 再提交，刷新后应显示 v2；数据库中的 v1 不变。
+4. 打开 `http://127.0.0.1:3000/api/debug/login?user=organizer`，选择 Submission Integrity E2E Race，填写原因并“提前关闭全场提交”。
+5. 切回 rider_e2e，提交按钮应禁用；服务端直接提交也会被拒绝。
+6. Organizer 在冻结后分配 Judge；打开 `http://127.0.0.1:3000/api/debug/login?user=judge`，Judge View 应显示 assignment 固定的版本号、commit SHA 和哈希。
+7. 公开 Work 页面只应显示已公开版本元数据，不应出现提交人内部 ID、审计事件或锁定原因。
 
 ## 验证
 
@@ -107,18 +116,18 @@ DEV-2 / DEV-3 的高保真页面与交互已迁入 `web/`；DEV-4 到 REL-1 已�
 
 ### Console / Domain Actions
 
-* Organizer View：Race 创建/发布、报名审核、RaceProject 幂等生成、CAConnection 禁用、作品公开、Judge 分配、Award 发布、Report 生成/失败/编辑/重跑/发布、Projection 重建与失败隔离。
-* Rider View：查看自己的 Registration、RaceProject、CAConnection、Work 状态，登记/握手 CAConnection，接入合法 CA Signal，提交 Work。
-* Judge View：查看分配作品并进入 Judge View 提交评分。
-* Admin Console：维护 `User.roles`。
+* Organizer View：Race 创建/发布、报名审核、RaceProject 幂等生成、CAConnection 禁用、UTC 提交窗口配置/提前冻结、作品公开、固定版本 Judge 分配、Award 发布、Report 生成/失败/编辑/重跑/发布、Projection 重建与失败隔离。
+* Rider View：查看自己的 Registration、RaceProject、CAConnection、Work 状态，登记/握手 CAConnection，接入合法 CA Signal，在开放窗口内提交不可变 Work 版本。
+* Judge View：查看 assignment 固定的作品版本、commit SHA 和哈希，并提交评分。
+* Admin Console：维护 `User.roles`，在无 JudgeAssignment 时带原因和未来截止时间紧急重开提交。
 * Screen：`/screen` 控制大屏模式，`/screen/display` 输出现场展示。
 * Ops：P0 回归、发布检查项、灰度/正式发布证据、go/no-go、备份记录和运维入口。
 
 ### Data / APIs / Tests
 
-* Production 使用 Prisma + PostgreSQL migration；SQLite 仅用于本地 / E2E。模型新增 AuthSession 和 CAIngestionReceipt，承接可撤销会话与 CA 防重放。
+* Production 使用 Prisma + PostgreSQL migration；SQLite 仅用于本地 / E2E。模型包含 AuthSession、CAIngestionReceipt、WorkSubmissionVersion 和 SubmissionAuditEvent，承接可撤销会话、CA 防重放与作品提交完整性。
 * Public API 覆盖 races、race detail、live、works、results、review、screen、work detail、rider detail。
-* 领域测试覆盖 Race 创建/发布、重复报名、RaceProject 幂等、权限拒绝、Profile Completion、Admin roles、Work/Judge、CA 合法/非法/禁用接入、Projection 失败隔离、Screen mode、Report 可见性/失败重跑/编辑发布和 P0 回归。
+* 领域测试覆盖 Race 创建/发布、重复报名、RaceProject 幂等、权限拒绝、Profile Completion、Admin roles、Work 不可变版本/哈希/窗口/冻结/评审绑定、CA 合法/非法/禁用接入、Projection 失败隔离、Screen mode、Report 可见性/失败重跑/编辑发布和 P0 回归。
 * Playwright E2E 共 14 个场景，除全角色 / Public / Screen 外，增加 OAuth state、随机会话、Public DTO、安全头、Ops 读取隔离和未签名 CA API 拒绝检查。
 
 真实赛事部署、安全配置和 go-live 硬门禁见 `../docs/ary-production-security-baseline.md`。生产启动会先运行 `npm run check:production-config`，数据库迁移使用 `npm run prisma:migrate:deploy`。

@@ -16,7 +16,7 @@ cur.execute("PRAGMA foreign_keys=OFF")
 
 tables = [
     "ReleaseChecklistItem", "Incident", "Backup", "ScreenState", "Announcement", "Projection", "Report", "Award",
-    "JudgingRecord", "JudgeAssignment", "ReviewFlag", "Evidence", "Work", "CAIngestionReceipt", "Session", "CAConnection",
+    "JudgingRecord", "JudgeAssignment", "SubmissionAuditEvent", "WorkSubmissionVersion", "ReviewFlag", "Evidence", "Work", "CAIngestionReceipt", "Session", "CAConnection",
     "RaceProject", "Registration", "Race", "AuthSession", "AuthAccount", "User"
 ]
 for table in tables:
@@ -69,7 +69,12 @@ CREATE TABLE "Race" (
   "metricsJson" TEXT NOT NULL,
   "createdByUserId" TEXT NOT NULL,
   "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "archivedAt" DATETIME
+  "archivedAt" DATETIME,
+  "submissionOpensAt" DATETIME,
+  "submissionClosesAt" DATETIME,
+  "submissionLockedAt" DATETIME,
+  "submissionLockedByUserId" TEXT,
+  "submissionLockReason" TEXT
 );
 CREATE TABLE "Registration" (
   "id" TEXT NOT NULL PRIMARY KEY,
@@ -141,8 +146,44 @@ CREATE TABLE "Work" (
   "demoUrl" TEXT,
   "repoUrl" TEXT,
   "submittedAt" DATETIME,
-  "publishedAt" DATETIME
+  "publishedAt" DATETIME,
+  "currentVersionId" TEXT UNIQUE,
+  "versionCounter" INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE "WorkSubmissionVersion" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "workId" TEXT NOT NULL,
+  "versionNumber" INTEGER NOT NULL,
+  "title" TEXT NOT NULL,
+  "summary" TEXT NOT NULL,
+  "demoUrl" TEXT,
+  "repoUrl" TEXT NOT NULL,
+  "repoCommitSha" TEXT NOT NULL,
+  "hashSchemaVersion" TEXT NOT NULL,
+  "integrityHash" TEXT NOT NULL,
+  "submittedByUserId" TEXT NOT NULL,
+  "submittedAt" DATETIME NOT NULL
+);
+CREATE UNIQUE INDEX "Work_id_currentVersionId_key" ON "Work"("id", "currentVersionId");
+CREATE UNIQUE INDEX "WorkSubmissionVersion_workId_versionNumber_key" ON "WorkSubmissionVersion"("workId", "versionNumber");
+CREATE UNIQUE INDEX "WorkSubmissionVersion_workId_id_key" ON "WorkSubmissionVersion"("workId", "id");
+CREATE INDEX "WorkSubmissionVersion_integrityHash_idx" ON "WorkSubmissionVersion"("integrityHash");
+CREATE INDEX "WorkSubmissionVersion_submittedAt_idx" ON "WorkSubmissionVersion"("submittedAt");
+CREATE TABLE "SubmissionAuditEvent" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "raceId" TEXT NOT NULL,
+  "registrationId" TEXT,
+  "workId" TEXT,
+  "workSubmissionVersionId" TEXT,
+  "actorUserId" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "reason" TEXT,
+  "metadataJson" TEXT NOT NULL,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK ("workSubmissionVersionId" IS NULL OR "workId" IS NOT NULL)
+);
+CREATE INDEX "SubmissionAuditEvent_raceId_createdAt_idx" ON "SubmissionAuditEvent"("raceId", "createdAt");
+CREATE INDEX "SubmissionAuditEvent_workId_createdAt_idx" ON "SubmissionAuditEvent"("workId", "createdAt");
 CREATE TABLE "Evidence" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "raceId" TEXT NOT NULL,
@@ -176,7 +217,8 @@ CREATE TABLE "JudgeAssignment" (
   "judgeUserId" TEXT NOT NULL,
   "assignedByUserId" TEXT NOT NULL,
   "status" TEXT NOT NULL,
-  "assignedAt" DATETIME NOT NULL
+  "assignedAt" DATETIME NOT NULL,
+  "workSubmissionVersionId" TEXT
 );
 CREATE UNIQUE INDEX "JudgeAssignment_workId_judgeUserId_key" ON "JudgeAssignment"("workId", "judgeUserId");
 CREATE TABLE "JudgingRecord" (
@@ -197,7 +239,9 @@ CREATE TABLE "Award" (
   "rank" INTEGER NOT NULL,
   "decisionReason" TEXT NOT NULL,
   "status" TEXT NOT NULL,
-  "publishedAt" DATETIME
+  "publishedAt" DATETIME,
+  "workSubmissionVersionId" TEXT,
+  CHECK ("workSubmissionVersionId" IS NULL OR "workId" IS NOT NULL)
 );
 CREATE UNIQUE INDEX "Award_raceId_awardName_rank_key" ON "Award"("raceId", "awardName", "rank");
 CREATE UNIQUE INDEX "Award_raceId_awardName_registrationId_key" ON "Award"("raceId", "awardName", "registrationId");

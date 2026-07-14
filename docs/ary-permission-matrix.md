@@ -100,7 +100,9 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 | view_private | - | own | assigned | managed race | system |
 | create | - | own registration | - | - | system exception |
 | submit | - | own registration | - | - | system exception |
-| lock | - | - | - | managed race | system |
+| configure_submission_window | - | - | - | managed race, judging 前 | system |
+| lock_submission_window | - | - | - | managed race, reason required | system |
+| reopen_submission_window | - | - | - | - | no assignment, reason + future deadline |
 | publish | - | - | - | managed race | system |
 | hide | - | own if draft | - | managed race | system |
 | review | - | - | assigned | - | - |
@@ -109,6 +111,10 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 
 * Work 是作品资产，不是提交记录本身。
 * MVP 阶段一个 Registration 最多一个主 Work。
+* 只有 approved Registration 本人可以提交；Organizer 和其他 Rider 不得代提交。
+* 每次提交创建不可更新、不可删除的 WorkSubmissionVersion，Work 字段只是当前版本投影。
+* Organizer 可配置或提前关闭全场提交，但不能解锁；Admin 仅在尚无 JudgeAssignment 时可带原因和未来截止时间重开。
+* 未版本化 legacy Work 可继续读取；重新评审或首次公开前必须由 Rider 创建真实版本。
 
 ## 3.5 Evidence
 
@@ -139,6 +145,7 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 
 * JudgeAssignment 应记录 `assignedByUserId`。
 * 分配人应拥有 `organizer` 或 `admin` role。
+* 只能在提交窗口关闭后创建；创建时绑定 Work 当前 WorkSubmissionVersion，Judge 后续始终读取该固定版本。
 
 ## 3.7 JudgingRecord
 
@@ -169,6 +176,7 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 规则：
 
 * Award 授予 Registration，可选关联获奖 Work。
+* Award 若关联 Work，必须在版本冻结后绑定明确的 WorkSubmissionVersion；旧数据允许版本引用为空。
 * Leaderboard 是按 Award.rank 排列的读取模型。
 * Award / Leaderboard draft 在发布前只允许 managed race Organizer 和 Admin 查看，避免提前泄露赛果。
 

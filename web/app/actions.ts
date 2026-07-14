@@ -10,6 +10,7 @@ import {
   assignJudge,
   createBackup,
   createRace,
+  configureSubmissionWindow,
   disableCAConnection,
   editReport,
   generateReport,
@@ -23,11 +24,13 @@ import {
   publishRace,
   publishReport,
   publishWork,
+  lockSubmissionWindow,
   rebuildProjection,
   regenerateReport,
   recordGoNoGo,
   registerCAConnection,
   runP0Regression,
+  reopenSubmissionWindow,
   simulateProjectionFailure,
   simulateReportFailure,
   submitJudgingRecord,
@@ -48,6 +51,15 @@ function refresh(path = "/console") {
   revalidatePath("/console");
   revalidatePath("/ops");
   revalidatePath(path);
+}
+
+function consoleRedirect(raceId: string, message: string) {
+  redirect(`/console?raceId=${encodeURIComponent(raceId)}&actionMessage=${encodeURIComponent(message)}`);
+}
+
+function utcDate(formData: FormData, key: string) {
+  const raw = value(formData, key);
+  return new Date(/[zZ]|[+-]\d\d:\d\d$/.test(raw) ? raw : `${raw}Z`);
 }
 
 export async function logoutAction() {
@@ -135,10 +147,41 @@ export async function submitWorkAction(formData: FormData) {
     title: value(formData, "title"),
     summary: value(formData, "summary"),
     demoUrl: value(formData, "demoUrl"),
-    repoUrl: value(formData, "repoUrl")
+    repoUrl: value(formData, "repoUrl"),
+    repoCommitSha: value(formData, "repoCommitSha")
   });
   refresh("/console");
-  if (!result.ok) throw new Error(result.message);
+  consoleRedirect(value(formData, "raceId"), result.message);
+}
+
+export async function configureSubmissionWindowAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const raceId = value(formData, "raceId");
+  const result = await configureSubmissionWindow(ctx, raceId, {
+    opensAt: utcDate(formData, "submissionOpensAt"),
+    closesAt: utcDate(formData, "submissionClosesAt")
+  });
+  refresh("/console");
+  consoleRedirect(raceId, result.message);
+}
+
+export async function lockSubmissionWindowAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const raceId = value(formData, "raceId");
+  const result = await lockSubmissionWindow(ctx, raceId, value(formData, "reason"));
+  refresh("/console");
+  consoleRedirect(raceId, result.message);
+}
+
+export async function reopenSubmissionWindowAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const raceId = value(formData, "raceId");
+  const result = await reopenSubmissionWindow(ctx, raceId, {
+    closesAt: utcDate(formData, "submissionClosesAt"),
+    reason: value(formData, "reason")
+  });
+  refresh("/console");
+  consoleRedirect(raceId, result.message);
 }
 
 export async function publishWorkAction(formData: FormData) {
