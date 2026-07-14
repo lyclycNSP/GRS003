@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { fromJson } from "@/lib/json";
-import { getScreenSnapshot } from "@/lib/queries";
+import { getEntrantDisplay, getScreenSnapshot } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,7 @@ export default async function ScreenDisplayPage() {
         ) : null}
         {mode === "works" ? (
           <div className="screen-board-list">
-            {works.map((work) => <article key={work.id}><b>{work.registration.user.displayName}</b><span>{work.title}</span><em>{work.summary}</em></article>)}
+            {works.map((work) => <article key={work.id}><b>{getEntrantDisplay(work.registration).name}</b><span>{work.title}</span><em>{work.summary}</em></article>)}
           </div>
         ) : null}
         {mode === "announcement" ? <h2>{announcement?.body ?? "暂无公告"}</h2> : null}

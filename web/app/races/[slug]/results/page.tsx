@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getRaceResults } from "@/lib/queries";
+import { getEntrantDisplay, getRaceResults } from "@/lib/queries";
 
 export default async function RaceResultsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -16,14 +16,20 @@ export default async function RaceResultsPage({ params }: { params: Promise<{ sl
       </section>
 
       <section className="award-grid">
-        {race.awards.length ? race.awards.map((award) => (
-          <article className="glass-card" key={award.id}>
+        {race.awards.length ? race.awards.map((award) => {
+          const entrant = getEntrantDisplay(award.registration);
+          const assetHref = award.work
+            ? `/works/${award.work.slug}`
+            : entrant.type === "individual"
+              ? `/riders/${entrant.slug}`
+              : `/races/${race.slug}/works`;
+          return <article className="glass-card" key={award.id}>
             <span>#{award.rank} / {award.awardName}</span>
-            <h2>{award.work?.title ?? award.registration.user.displayName}</h2>
+            <h2>{award.work?.title ?? entrant.name}</h2>
             <p>{award.decisionReason}</p>
-            <Link href={award.work ? `/works/${award.work.slug}` : `/riders/${award.registration.user.slug}`}>查看资产</Link>
-          </article>
-        )) : (
+            <Link href={assetHref}>查看资产</Link>
+          </article>;
+        }) : (
           <article className="glass-card">
             <span>Results</span>
             <h2>榜单尚未发布</h2>

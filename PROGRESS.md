@@ -6,7 +6,7 @@
 - 解决方式：新增 WorkSubmissionVersion 和 SubmissionAuditEvent；在 Serializable 事务中校验本人/报名/窗口、递增版本、计算 `ary.work-submission.v1` canonical SHA-256、更新 Work 投影并追加审计；补全 Organizer 全场冻结、Admin 受限重开、Judge/Award/Public 固定版本、legacy 兼容、Console 页面和领域/Playwright 回归。
 - 后续避免：任何评审、作品公开或关联作品 Award 都必须先确认窗口已冻结且存在真实版本；CA 证据链、作品提交链、仓库内容安全分别验收。新增 URL 类型需补 loopback、私网、保留地址、编码分隔符和跨角色 Server Action 负向测试。
 - 验证限制：本地静态、37 条领域/契约测试、TypeScript、production build、Playwright 14/14、独立 SQLite 初始化/Seed 和 production config preflight 已通过；本机无可用 Docker/PostgreSQL，`prisma migrate deploy` 待一次性数据库环境补验。
-- git commit ID：未提交。
+- git commit ID：`4ea4bab`。
 
 ## 2026-07-13 SQLite Prisma Client 生成脚本 Windows 兼容修正
 

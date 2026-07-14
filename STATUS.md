@@ -21,6 +21,7 @@
 * Rider、Organizer、Admin 和 Security E2E 已补齐并全量 14/14 通过；领域测试 23/23、静态烟测、TypeScript、PostgreSQL production build 和 production config preflight 同步通过。
 * 本阶段修改说明和 Riding Record 已落盘，分别承接工程变更事实与第一人称理解、引导、决策和指挥过程。
 * `PLAN.md` 已从旧阶段完成清单收缩为正式工程化近期窗口；当前 P0 聚焦正式任务立项、真实 GitHub OAuth / 生产会话闭环和 Hosted CI 首次验证。
+* `web/` 本轮已完成 Rider 团队参赛功能：Rider 可创建团队、用邀请码加入团队、由队长提交团队报名；团队报名审核后生成 RaceProject，团队成员可接入各自 CAConnection，团队 Work 由队长提交。
 
 ## 任务看板
 
@@ -45,6 +46,7 @@
 | `WEB-1 E2E / CI 阶段总结与 Riding Record` | 已完成 | 修改说明覆盖内容、范围、意义、验证和未完成边界；Riding Record 展示第一人称项目理解、引导、关键决策和 Agent 指挥。 | `docs/ary-web-e2e-ci-change-summary.md`、`riding_records/ARY_WEB_E2E_CI_Riding_Record_2026-07-13.md` |
 | `SEC-1` 真实赛事安全与生产就绪基线 | 代码完成 / 环境待验收 | 已修复 OAuth fallback / state、裸 userId Cookie、公开 API 过量披露、Ops 未授权读取、Organizer 子串授权和 dev-signature；新增 PostgreSQL baseline migration、HMAC 防重放 CA API、安全响应头、production preflight 和 Security E2E。真实赛事需完成外部硬门禁后才能 go-live。 | `docs/ary-production-security-baseline.md`、`web/lib/auth.ts`、`web/app/ops/page.tsx`、`web/e2e/security.spec.ts` |
 | `SEC-WORK-1` Racer 作品提交完整性基线 | 代码完成 / PostgreSQL migration 待环境验收 | 不可变 v1/v2、输入/URL 策略、UTC 窗口、全场冻结/Admin 受限重开、审计事件、Judge/Award/Public 版本绑定及 legacy 兼容已实现；本地 SQLite、领域测试、build 和 Playwright 已验证。当前机器无 Docker/PostgreSQL，尚未执行一次性库 `migrate deploy`，因此不标记“完成”。 | `web/lib/work-submission.ts`、`web/lib/domain.ts`、`web/prisma/migrations/20260714_work_submission_integrity/`、`web/tests/work-submission*.test.ts`、`web/e2e/rider.spec.ts` |
+| `WEB-2 Rider 团队参赛功能` | 已完成 | 新增 Team / TeamMember / participantType / CAConnection.ownerUserId 数据口径；Rider View 支持创建团队、邀请码加入、提交团队报名和团队状态查看；团队成员可登记 CAConnection，队长统一提交团队 Work；领域测试已覆盖完整团队参赛链路。 | `web/prisma/schema.prisma`、`web/app/console/page.tsx`、`web/lib/domain.ts`、`web/lib/queries.ts`、`web/tests/domain.test.ts` |
 
 ## 证据索引
 
@@ -97,6 +99,7 @@
 | WEB-1 已继承 DEV-2/DEV-3 页面闭环：Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口均在 Next.js 应用中渲染并接入服务端数据/动作 | `web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts`、`web/README.md` |
 | WEB-1 验证通过：TypeScript、9个领域测试、Next build、本地浏览器烟测均通过 | `cd web && tsc --noEmit`、`python scripts/init-sqlite.py`、`tsx prisma/seed.ts`、`tsx tests/domain.test.ts`、`next build`、`http://127.0.0.1:3000` |
 | WEB-1 角色数据流修正已验证：新增领域回归、静态烟测、TypeScript、Next build 和 Playwright 角色流检查均通过；`pnpm test` 在本机触发 pnpm build-script approval，改用本地 `tsx.cmd` 直接执行测试入口 | `web/tests/domain.test.ts`、`web/scripts/static-smoke.mjs`、`web/app/console/page.tsx`、`web/app/screen/page.tsx`、`web/app/works/[slug]/judge/page.tsx` |
+| WEB-2 Rider 团队参赛已验证：团队创建、邀请码加入、阻止重复个人报名、队长提交团队报名、审核生成 RaceProject、队员登记 CAConnection、队员不能提交团队 Work、队长可提交团队 Work | `DATABASE_URL=file:./dev.db npm run test`、`web/tests/domain.test.ts` |
 | WEB-1 Work Detail 视觉修正已完成：作品详情页补齐按钮入口，统一链接按钮样式，收紧中英文混排和长 URL 换行，并通过桌面/移动 Playwright 截图验证无重叠 | `web/app/works/[slug]/page.tsx`、`web/app/globals.css` |
 | WEB-1 全站前端页面视觉审计已完成：17 个页面桌面/移动截图、4 个角色 Console 移动截图已走查；修复全局移动横向溢出、Race/Live/Rider 等二级页响应式栅格、入口按钮和卡片排布 | `web/app/globals.css` |
 | WEB-1 Judge / Public / Screen E2E 已固化并验证：6/6 通过；同时通过 20 个领域测试、静态烟测、TypeScript 和 Next build | `web/e2e/judge.spec.ts`、`web/e2e/public.spec.ts`、`web/e2e/screen.spec.ts`、`web/playwright.config.ts`、`npm run test:e2e` |

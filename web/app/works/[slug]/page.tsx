@@ -1,28 +1,30 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getWorkBySlug } from "@/lib/queries";
+import { getEntrantDisplay, getWorkBySlug } from "@/lib/queries";
 
 export default async function WorkPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const work = await getWorkBySlug(slug);
   if (!work) notFound();
   const race = work.registration.race;
-  const rider = work.registration.user;
+  const entrant = getEntrantDisplay(work.registration);
 
   return (
     <section className="route-page page-work-detail">
       <section className="work-detail-hero route-hero">
-        <p className="section-kicker">{race.title} / {rider.displayName}</p>
+        <p className="section-kicker">{race.title} / {entrant.name}</p>
         <h1>{work.title}</h1>
         <p className="module-summary">{work.summary}</p>
         <div className="work-detail-actions">
           <a href={work.demoUrl ?? "#"} className={!work.demoUrl ? "is-disabled" : undefined} target="_blank" rel="noopener noreferrer">打开 Demo</a>
           <a href={work.repoUrl ?? "#"} className={!work.repoUrl ? "is-disabled" : undefined} target="_blank" rel="noopener noreferrer">查看 Repo</a>
-          <Link href={`/riders/${rider.slug}`}>Rider Profile</Link>
+          {entrant.type === "individual" ? <Link href={`/riders/${entrant.slug}`}>Rider Profile</Link> : null}
           <Link href={`/races/${race.slug}`}>Race Page</Link>
           <Link href="/works">返回 Works</Link>
         </div>
       </section>
+
+      {entrant.type === "team" ? <section className="route-band"><b>Team members</b><p>{entrant.members.map((member) => member.displayName).join(" / ")}</p></section> : null}
 
       <section className="app-grid">
         <section className="work-story-grid route-grid">

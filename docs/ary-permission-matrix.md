@@ -68,7 +68,27 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 规则：
 
 * 一个 User 对同一 Race 最多一个 Registration。
+* 团队参赛时，Registration 的 `participantType=team`，`teamId` 指向对应 Team，`userId` 记录队长 / 创建者。
+* 同一 User 不能同时个人报名和加入同一 Race 的团队。
 * CA 接入状态不驱动 Registration 进入 `withdrawn`；RaceProject 聚合接入 failed / not_configured 只表达证据缺口或接入异常，并进入评审前风险提示。
+
+## 3.2.1 Team / TeamMember
+
+| Action | Public | Rider | Judge | Organizer | Admin |
+|---|---|---|---|---|---|
+| create_team | - | own race participation | - | managed race assistance | system |
+| join_team | - | invite code before submitted | - | - | - |
+| leave_team | - | member before submitted | - | - | - |
+| remove_member | - | captain before submitted | - | managed race exception | system |
+| submit_team_registration | - | captain before submitted | - | managed race assistance | system |
+| view_team_status | - | own team | assigned work context | managed race | system |
+
+规则：
+
+* Team 只用于当前 Race 的轻量团队参赛，不表达 Organization、学校或长期团队。
+* Team `draft` 阶段可加入、退出或移除成员；提交后进入 `submitted`，审核通过后进入 `locked`。
+* 团队至少 2 人才能提交团队报名。
+* Team 提交后生成一条团队 Registration，后续 RaceProject、CAConnection、Work、Award、Report 均沿用 Registration 闭环。
 
 ## 3.3 RaceProject
 
@@ -86,6 +106,7 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 
 * Registration approved 后由系统幂等创建 RaceProject；Rider 不手动创建自己的 RaceProject。
 * 同一 RaceProject 可配置多个 CAConnection；CAConnection 可在参赛过程中新增。
+* 团队参赛时，TeamMember 可以为团队 RaceProject 登记自己的 CAConnection，连接保留 `ownerUserId` 便于审计。
 * 只有已登记、已握手、归属正确且未禁用的 CAConnection 后续数据可以进入 Projection、Evidence 或 Report 输入。
 * 单个 CAConnection failed 或 RaceProject 聚合接入 failed 不触发 Registration 自动退赛，只形成连接异常、证据缺口和评审前风险提示。
 * GitHub Repo 只能作为作品代码入口或 Evidence 外部材料引用，不能替代任何实时 CAConnection。
@@ -115,6 +136,7 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 * 每次提交创建不可更新、不可删除的 WorkSubmissionVersion，Work 字段只是当前版本投影。
 * Organizer 可配置或提前关闭全场提交，但不能解锁；Admin 仅在尚无 JudgeAssignment 时可带原因和未来截止时间重开。
 * 未版本化 legacy Work 可继续读取；重新评审或首次公开前必须由 Rider 创建真实版本。
+* 团队参赛时，主 Work 由队长提交；普通成员可维护 CAConnection，但不能直接覆盖团队 Work。
 
 ## 3.5 Evidence
 
@@ -275,7 +297,7 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 |---|---|---|
 | 角色身份 | GitHub OAuth 会话读取用户；本地调试可通过 `/debug-login` 写入单角色覆盖 cookie，隔离 Organizer / Admin / Rider / Judge | `web/lib/auth.ts`、`web/app/debug-login/page.tsx` |
 | Server-side 鉴权 | Server Actions 从服务端 auth context 读取 actor，领域动作执行角色、所有权和 race 范围校验 | `web/app/actions.ts`、`web/lib/domain.ts` |
-| 已落地的 actor 校验 | Judge 评分校验 assignment 归属；Organizer/Admin 才能管理当前 Race、Screen、Award、Report；Rider 只能操作自己的 Registration / RaceProject / Work | `web/lib/domain.ts`、`web/tests/domain.test.ts` |
+| 已落地的 actor 校验 | Judge 评分校验 assignment 归属；Organizer/Admin 才能管理当前 Race、Screen、Award、Report；Rider 只能操作自己的 Registration / RaceProject / Work；团队成员可接入团队 RaceProject，团队 Work 由队长提交 | `web/lib/domain.ts`、`web/tests/domain.test.ts` |
 | 公开端访问控制 | 公开 Works / Results / Review 只读取已发布和公开资源；非公开 Work detail 不返回公开详情 | `web/lib/queries.ts`、`web/tests/domain.test.ts` |
 | 数据可见性 | `rider_report` 保持 private；`race_report` / `review_summary` 可发布为 public；Award 校验 registration/work 属于当前 Race | `web/lib/domain.ts` |
 | 跨用户隔离 | 生产路径依赖服务端会话；debug login 每次覆盖旧调试角色，避免多角色串扰 | `web/lib/auth.ts` |

@@ -11,7 +11,9 @@ export default async function WorkJudgePage({ params, searchParams }: { params: 
   const work = await getReviewWorkBySlug(slug);
   if (!work || !ctx?.roles.includes("judge") || !ctx.assignedWorkIds.includes(work.id)) notFound();
   const race = work.registration.race;
-  const rider = work.registration.user;
+  const entrant = work.registration.team
+    ? { name: work.registration.team.name }
+    : { name: work.registration.user.displayName };
   const assignment = work.assignments.find((item) => item.judgeUserId === ctx.userId);
   if (!assignment) notFound();
   const assignedVersion = assignment.workSubmissionVersion;
@@ -25,7 +27,7 @@ export default async function WorkJudgePage({ params, searchParams }: { params: 
       <section className="work-detail-hero work-judge-hero" style={{ position: "relative", inset: "auto", marginBottom: 24 }}>
         <p className="section-kicker">{race.title} / {reviewedTitle} / Judge View</p>
         <h1>{reviewedTitle}</h1>
-        <p className="module-summary">评审席视角：{rider.displayName} 的作品已提交，Demo、Repo 与 Riding Evidence 摘要可被评审席查看。</p>
+        <p className="module-summary">评审席视角：{entrant.name} 的作品已提交，Demo、Repo 与 Riding Evidence 摘要可被评审席查看。</p>
         {saved === "1" ? <p className="status-pill good" data-testid="judge-save-confirmation">JudgingRecord 已保存，Assignment 状态已更新。</p> : null}
         <div className="work-detail-actions work-judge-actions">
           <a href={reviewedDemoUrl ?? "#"} target="_blank" rel="noopener noreferrer">打开 Demo</a>

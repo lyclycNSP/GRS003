@@ -46,6 +46,7 @@
 验收点：
 
 * Race status 可以按预期流转。
+* Rider 团队参赛可以创建团队、通过邀请码加入、提交团队报名，并避免同一用户在同一 Race 中重复个人 / 团队参赛。
 * Registration approved 后 RaceProject 自动幂等生成，Registration、RaceProject、Work、JudgeAssignment、JudgingRecord、Award、Report 可以形成闭环。
 * RaceProject 聚合 CA 接入 failed / not_configured 不阻断 Work Submission、评审和 Award 流程，但必须形成评审前风险提示。
 
@@ -229,6 +230,7 @@ GitHub 登录
 | CA 接入 | 已覆盖：合法/非法信号接入、`idempotencyKey` 幂等、CA 失败不阻断 Work/Judge/Award | 真实 connector HTTP push、HTTP fetch snapshot、网络分区恢复 |
 | Projection | 已覆盖：`rebuildProjection` 成功生成稳定版本、失败时 `status=failed` 但保留最近稳定版本、事实表零修改 | 并发重建、回滚到稳定版本、Projection 版本对比 |
 | Report | 已覆盖：`rider_report` 必须带 `subjectRegistrationId` 且发布后仍私有、`race_report`/`review_summary` 发布后可公开、Report 失败不覆盖已发布版本 | Report Generator 服务化、Evidence 引用链、失败重试策略 |
+| Team Registration | 已覆盖：团队创建、邀请码加入、团队报名提交、审核后生成 RaceProject、成员共享 CA 接入、队长提交团队 Work | 团队人数上限、邀请码失效、团队审核拒绝和队长转让 |
 | 大屏 | 已覆盖：5 模式切换、fallback 读稳定 Projection | 弱网断流、长时间运行稳定性、远距离可读性 |
 | 非功能 / 性能 | 未验证 | 首屏 1s、Live Hall 3s、200 并发用户、权限与可见性边界下性能不退化 |
 

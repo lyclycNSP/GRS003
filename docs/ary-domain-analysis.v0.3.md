@@ -25,7 +25,7 @@
 
 MVP 关键约束：
 
-* MVP 只支持个人参赛，不支持 Team。
+* MVP 当前支持个人参赛和轻量团队参赛；团队参赛最终仍落到一条 Registration，不引入复杂多组织或多租户。
 * ARY MVP 使用 GitHub 账号登录；登录后用户补充个人信息，成为 ARY User。
 * User 持有 `roles` 集合，可以同时拥有 `rider`、`judge`、`organizer`、`admin` 中的多个身份。MVP 不把角色分配建模为独立实体。
 * Score Rubric 暂不进入当前领域模型，后续再细化。
@@ -45,7 +45,9 @@ MVP 关键约束：
 | User / Account | 用户 / 账号 | 通过 GitHub 登录后补充个人信息形成的 ARY 用户 |
 | User Roles | 用户身份集合 | User 持有的 rider、judge、organizer、admin 身份集合 |
 | Rider | 骑手 / 参赛者 | 拥有 rider role 的 User |
-| Registration | 报名记录 | 拥有 rider role 的 User 对某场 Race 的个人参赛申请 |
+| Team | 参赛团队 | 同一 Race 下由队长创建、成员通过邀请码加入的轻量团队 |
+| TeamMember | 团队成员 | Team 与 User 的成员关系，role 区分 captain / member |
+| Registration | 报名记录 | 拥有 rider role 的 User 对某场 Race 的个人或团队参赛申请 |
 | Race Project | 参赛项目 / 骑行工作区 | 一个 User 参加一场 Race 时对应的一个骑行工作区，下面可以接入多个 CAConnection |
 | CA Connection | CA 接入登记 / 实例 | RaceProject 下的单个 CA / connector / 外部 CA Project 登记与运行接入实例 |
 | Session | 会话 | 某个 CAConnection 下的一次 User 与 CA 协同过程 |
@@ -213,7 +215,7 @@ MVP 关键约束：
 
 | 实体 / 概念 | 处理 |
 |---|---|
-| Team | MVP 只支持个人参赛，不建团队实体 |
+| Team | MVP 当前已建轻量团队实体；不扩展为 Organization、多租户或复杂队伍治理 |
 | Rider | 由拥有 rider role 的 User 表达，不建独立实体 |
 | Judge | 由拥有 judge role 的 User 表达，不建独立实体 |
 | Organization | MVP 只建 User 与角色，不建学校、企业、主办方组织实体 |
@@ -373,7 +375,7 @@ Race -> Report -> Results / Review
 
 | 词 | 当前结论 |
 |---|---|
-| Team | MVP 不支持 Team，只支持个人参赛 |
+| Team | MVP 支持轻量团队参赛；团队报名仍通过 Registration、RaceProject、Work、Award 闭环承载 |
 | User / Account | 使用 GitHub 账号登录，登录后补充个人信息成为 ARY User |
 | User Roles | User 持有 roles 集合，可同时拥有 rider、judge、organizer、admin |
 | Race Project / CA Connection | 一个 User 参加一场 Race，对该 User 来说就是一个 RaceProject 骑行工作区；一个 RaceProject 下可以接入多个 CAConnection，每个 CAConnection 下有多个 Sessions |
@@ -913,7 +915,7 @@ classDiagram
 
 ## 4.3 图中刻意表达的边界
 
-* `Team` 不在图中，MVP 只支持个人参赛。
+* `Team` / `TeamMember` 是当前新增的轻量团队参赛实体；团队报名仍由 `Registration` 承载，避免重做后续 RaceProject、Work、Award 和 Report 链路。
 * `Organization` 不在图中，MVP 用 User + roles 表达身份。
 * `RoleAssignment` 不在图中。MVP 阶段 role 只是 `User.roles` 集合；如果后续需要 `assignedBy`、`assignedAt`、`scopeRaceId`、`revokedAt`，再升级为独立实体。
 * `Rider`、`Judge` 不再作为独立核心实体。参赛者、评委、主办方、管理员都由 `User.roles` 表达。
@@ -936,8 +938,8 @@ classDiagram
 
 | 不变量 | 说明 |
 |---|---|
-| 一个 User 对同一 Race 最多一个 Registration | MVP 只支持个人参赛，不支持同一人重复报名同一赛事 |
-| 一个 Registration 最多一个 RaceProject | 一个 User 参加一场 Race，对该 User 来说就是一个骑行工作区 |
+| 一个 User 对同一 Race 最多一种参赛身份 | 同一用户不能同时个人报名和加入团队，也不能加入多个团队 |
+| 一个 Registration 最多一个 RaceProject | 一条个人或团队报名对应一个骑行工作区 |
 | 已批准 Registration 应有且仅有一个 RaceProject | Registration approved 后由 ARY 幂等生成 RaceProject；重复审批、重试或补偿任务不得生成多个 RaceProject |
 | 一个 RaceProject 可以有多个 CAConnection | 选手可以在同一场 Race 中使用多个 CA，并在参赛过程中通过多个 connector 将多个 CA 接入赛事 |
 | 一个 CAConnection 可以有多个 Sessions | 一场比赛中单个 CA 的协作会分多次 Session 发生 |

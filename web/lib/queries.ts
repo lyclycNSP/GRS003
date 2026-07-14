@@ -1,6 +1,33 @@
 import { prisma } from "@/lib/prisma";
 import { fromJson } from "@/lib/json";
 
+export type EntrantRegistration = {
+  participantType: string;
+  user: { displayName: string; slug: string };
+  team?: {
+    name: string;
+    slug: string;
+    members?: Array<{ user: { displayName: string; slug: string } }>;
+  } | null;
+};
+
+export function getEntrantDisplay(registration: EntrantRegistration) {
+  if (registration.participantType === "team" && registration.team) {
+    return {
+      type: "team" as const,
+      name: registration.team.name,
+      slug: registration.team.slug,
+      members: registration.team.members?.map((member) => member.user) ?? []
+    };
+  }
+  return {
+    type: "individual" as const,
+    name: registration.user.displayName,
+    slug: registration.user.slug,
+    members: [registration.user]
+  };
+}
+
 export async function getPublicRaces() {
   const races = await prisma.race.findMany({
     where: { visibility: "public" },
@@ -87,7 +114,7 @@ export async function getReviewWorkBySlug(slug: string) {
       slug
     },
     include: {
-      registration: { include: { race: true, user: true, raceProject: { include: { caConnections: true } } } },
+      registration: { include: { race: true, user: true, team: { include: { members: { include: { user: true } } } }, raceProject: { include: { caConnections: true } } } },
       evidences: true,
       reviewFlags: true,
       assignments: { include: { judge: true, judgingRecord: true, workSubmissionVersion: true } },
@@ -104,7 +131,8 @@ export async function getWorkBySlug(slug: string) {
       registration: {
         include: {
           race: true,
-          user: { select: { slug: true, displayName: true, githubLogin: true, city: true } }
+          user: { select: { slug: true, displayName: true, githubLogin: true, city: true } },
+          team: { select: { name: true, slug: true, members: { select: { user: { select: { slug: true, displayName: true } } } } } }
         }
       },
       evidences: { where: { visibility: "public" } },
@@ -133,7 +161,9 @@ export async function getWorkBySlug(slug: string) {
         status: work.registration.race.status,
         visibility: work.registration.race.visibility
       },
-      user: work.registration.user
+      participantType: work.registration.participantType,
+      user: work.registration.user,
+      team: work.registration.team
     },
     evidences: work.evidences.map((evidence) => ({
       id: evidence.id,
@@ -164,7 +194,8 @@ export async function getPublicWorks(raceId?: string) {
       registration: {
         include: {
           race: { select: { id: true, slug: true, title: true, status: true, visibility: true } },
-          user: { select: { slug: true, displayName: true, githubLogin: true, city: true } }
+          user: { select: { slug: true, displayName: true, githubLogin: true, city: true } },
+          team: { select: { name: true, slug: true, members: { select: { user: { select: { slug: true, displayName: true } } } } } }
         }
       },
       awards: { where: { status: "published" } },
@@ -184,7 +215,7 @@ export async function getPublicWorks(raceId?: string) {
     submittedAt: work.submittedAt,
     publishedAt: work.publishedAt,
     submissionVersion: work.currentVersion,
-    registration: { race: work.registration.race, user: work.registration.user },
+    registration: { participantType: work.registration.participantType, race: work.registration.race, user: work.registration.user, team: work.registration.team },
     awards: work.awards.map((award) => ({ id: award.id, awardName: award.awardName, rank: award.rank, decisionReason: award.decisionReason }))
   }));
 }
@@ -204,7 +235,7 @@ export async function getRaceResults(slug: string) {
         where: { status: "published" },
         orderBy: { rank: "asc" },
         include: {
-          registration: { include: { user: true } },
+          registration: { include: { user: true, team: { include: { members: { include: { user: true } } } } } },
           work: true,
           workSubmissionVersion: { select: { versionNumber: true, repoCommitSha: true, integrityHash: true, submittedAt: true } }
         }
@@ -231,7 +262,7 @@ export async function getRaceReview(slug: string) {
     where: { slug, visibility: "public" },
     include: {
       reports: { where: { status: "published", visibility: "public", type: "review_summary" } },
-      registrations: { include: { user: true, work: { include: { evidences: true, reviewFlags: true } } } }
+      registrations: { include: { user: true, team: { include: { members: { include: { user: true } } } }, work: { include: { evidences: true, reviewFlags: true } } } }
     }
   });
   if (!race) return null;
@@ -241,7 +272,7 @@ export async function getRaceReview(slug: string) {
     publicEvidence: race.registrations.flatMap((registration) =>
       registration.work?.evidences.filter((evidence) => evidence.visibility === "public").map((evidence) => ({
         ...evidence,
-        riderName: registration.user.displayName,
+        riderName: getEntrantDisplay(registration).name,
         workTitle: registration.work?.title ?? ""
       })) ?? []
     )
@@ -255,22 +286,43 @@ export async function getRiderProfile(idOrSlug: string) {
       registrations: {
         include: {
           race: { select: { id: true, slug: true, title: true, status: true, visibility: true } },
+          team: { include: { members: { include: { user: true } } } },
           work: {
             include: { awards: { where: { status: "published" } }, evidences: { where: { visibility: "public" } } }
           },
           awards: { where: { status: "published" } }
         }
+      },
+      teamMemberships: {
+        include: {
+          team: {
+            include: {
+              registration: {
+                include: {
+                  race: { select: { id: true, slug: true, title: true, status: true, visibility: true } },
+                  team: { include: { members: { include: { user: true } } } },
+                  work: { include: { awards: { where: { status: "published" } }, evidences: { where: { visibility: "public" } } } },
+                  awards: { where: { status: "published" } }
+                }
+              }
+            }
+          }
+        }
       }
     }
   });
   if (!user) return null;
+  const registrations = [
+    ...user.registrations,
+    ...user.teamMemberships.map((membership) => membership.team.registration).filter((registration) => registration !== null)
+  ].filter((registration, index, all) => all.findIndex((candidate) => candidate.id === registration.id) === index);
   return {
     slug: user.slug,
     displayName: user.displayName,
     githubLogin: user.githubLogin,
     city: user.city,
     roles: fromJson<string[]>(user.rolesJson, []).filter((role) => role === "rider"),
-    publicWorks: user.registrations.flatMap((registration) =>
+    publicWorks: registrations.flatMap((registration) =>
       registration.race.visibility === "public" && registration.work && registration.work.visibility === "public" && registration.work.status === "published"
         ? [{
             id: registration.work.id,
@@ -285,7 +337,7 @@ export async function getRiderProfile(idOrSlug: string) {
           }]
         : []
     ),
-    awards: user.registrations
+    awards: registrations
       .filter((registration) => registration.race.visibility === "public")
       .flatMap((registration) => registration.awards.map((award) => ({
       id: award.id,
@@ -294,7 +346,7 @@ export async function getRiderProfile(idOrSlug: string) {
       decisionReason: award.decisionReason,
       publishedAt: award.publishedAt
       }))),
-    races: user.registrations
+    races: registrations
       .filter((registration) => registration.race.visibility === "public")
       .map((registration) => registration.race)
   };
@@ -311,15 +363,31 @@ export async function getConsoleSnapshotForUser(userId?: string | null, raceId?:
     include: {
       registrations: {
         where: snapshot.race ? { raceId: snapshot.race.id } : undefined,
-        include: { race: true, raceProject: { include: { caConnections: true } }, work: { include: { currentVersion: true } }, reviewFlags: true }
+        include: { race: true, user: true, team: { include: { members: { include: { user: true } } } }, raceProject: { include: { caConnections: true } }, work: { include: { currentVersion: true } }, reviewFlags: true }
+      },
+      teamMemberships: {
+        where: snapshot.race ? { team: { raceId: snapshot.race.id } } : undefined,
+        include: {
+          team: {
+            include: {
+              members: { include: { user: true } },
+              registration: { include: { race: true, user: true, team: { include: { members: { include: { user: true } } } }, raceProject: { include: { caConnections: true } }, work: { include: { currentVersion: true } }, reviewFlags: true } }
+            }
+          }
+        }
       },
       judgeAssignments: {
         where: snapshot.race ? { raceId: snapshot.race.id } : undefined,
-        include: { work: { include: { registration: { include: { user: true, race: true } } } }, workSubmissionVersion: true, judgingRecord: true }
+        include: { work: { include: { registration: { include: { user: true, team: { include: { members: { include: { user: true } } } }, race: true } } } }, workSubmissionVersion: true, judgingRecord: true }
       }
     }
   }) : null;
-  return { ...snapshot, currentUser };
+  if (!currentUser) return { ...snapshot, currentUser: null };
+  const registrations = [
+    ...currentUser.registrations,
+    ...currentUser.teamMemberships.map((membership) => membership.team.registration).filter((registration) => registration !== null)
+  ].filter((registration, index, all) => all.findIndex((candidate) => candidate.id === registration.id) === index);
+  return { ...snapshot, currentUser: { ...currentUser, registrations } };
 }
 
 async function findConsoleRace(raceId?: string | null) {
@@ -342,7 +410,7 @@ export async function getConsoleSnapshot(raceId?: string | null) {
   const race = selectedRace ? await prisma.race.findUnique({
     where: { id: selectedRace.id },
     include: {
-      registrations: { include: { user: true, raceProject: { include: { caConnections: true } }, work: { include: { currentVersion: true } }, reviewFlags: true } },
+      registrations: { include: { user: true, team: { include: { members: { include: { user: true } } } }, raceProject: { include: { caConnections: true } }, work: { include: { currentVersion: true } }, reviewFlags: true } },
       releaseItems: true,
       backups: true,
       incidents: true,
@@ -360,7 +428,7 @@ export async function getConsoleSnapshot(raceId?: string | null) {
   });
   const assignments = await prisma.judgeAssignment.findMany({
     where: race ? { raceId: race.id } : undefined,
-    include: { work: { include: { registration: { include: { user: true, race: true } } } }, workSubmissionVersion: true, judge: true, judgingRecord: true }
+    include: { work: { include: { registration: { include: { user: true, team: { include: { members: { include: { user: true } } } }, race: true } } } }, workSubmissionVersion: true, judge: true, judgingRecord: true }
   });
   return { race, users, assignments, availableRaces };
 }

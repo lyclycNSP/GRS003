@@ -193,7 +193,7 @@ MVP 阶段暂不做：
 | Screen Operator 大屏操作职责 | 现场、课堂或直播大屏操作职责，不新增独立 role | 切换大屏视图，展示实况、榜单、作品和公告，保障现场展示稳定 |
 | Data Maintainer 数据维护职责 | 内部数据维护职责，不提供独立 Data / Ops Console | 查看 CA 接入、Session、Projection 和 Report 状态，执行必要重算、重跑和异常数据处理 |
 
-MVP 固定约束：个人参赛、不支持 Team；身份通过 `User.roles` 集合表达，不建立独立 `RoleAssignment` 实体；Screen Operator 和 Data Maintainer 是操作职责，通常由 `organizer` 或 `admin` role 承担。
+MVP 当前支持个人参赛和轻量团队参赛；团队由 `Team` / `TeamMember` 表达，最终仍通过一条 `Registration` 进入赛事闭环。身份通过 `User.roles` 集合表达，不建立独立 `RoleAssignment` 实体；Screen Operator 和 Data Maintainer 是操作职责，通常由 `organizer` 或 `admin` role 承担。
 
 ---
 
@@ -324,7 +324,7 @@ MVP 管理端由 Race Console、Admin Console 和 Screen Console 组成，不把
 | 能力 | 产品要求 | 产品级验收 |
 |---|---|---|
 | Race Console / Organizer View | 支持赛事创建、发布、报名管理、评审配置、榜单发布和总结生成 | 主办方可创建完整赛事、管理报名和选手名册、配置成果提交和评审、发布赛果和生成赛事总结 |
-| Race Console / Rider View | 支持报名后查看赛程、进入 ARY 自动生成的 RaceProject、在参赛过程中配置一个或多个 CAConnection、查看接入健康度和提交作品 | 选手可在参赛过程中新增实时 CA 接入，查看个人进度 / 成本 / 风险和证据完整度，提交作品并查看评审结果和报告 |
+| Race Console / Rider View | 支持个人报名、创建团队、通过邀请码加入团队；报名通过后查看赛程、进入 ARY 自动生成的 RaceProject、在参赛过程中配置一个或多个 CAConnection、查看接入健康度和提交作品 | 选手可独立报名或以团队报名；团队成员可维护自己的 CA 接入，团队 Work 由队长统一提交；选手可查看个人进度 / 成本 / 风险和证据完整度，并查看评审结果和报告 |
 | Race Console / Judge View | 支持评委查看分配作品、骑行摘要、评分和评语提交 | 评委可按 MVP 固定评分项提交 `scoreResult`、`scoreRiding` 和 `comments` |
 | Screen Console | 支持现场、课堂和直播大屏展示 | 操作员可选择赛事、切换 Live / 榜单 / 作品 / 公告和全屏展示；大屏配置不影响公开网页数据 |
 | Admin Console | 支持最小账号与角色管理 | Admin 可查看 GitHub 登录用户、资料补全状态并维护 `User.roles`；Admin Console 不承担赛事执行或数据运营 |
@@ -364,6 +364,7 @@ MVP 固定评分项只作为评委填写说明，不建模为可配置 Score Rub
 |---|---|---|
 | Race | 一场 Agent Racing 活动，是公开展示、报名、过程展示、评审、赛果和报告的核心内容对象 | `ary-domain-analysis.v0.3.md` |
 | User / Account | GitHub 登录并补全资料后的 ARY 用户，通过 `User.roles` 参与不同职责 | `ary-domain-analysis.v0.3.md`、`ary-permission-matrix.md` |
+| Team / TeamMember | 同一 Race 下的轻量参赛团队和成员关系；队长创建团队并提交团队报名，成员通过邀请码加入 | `ary-domain-analysis.v0.3.md`、`ary-permission-matrix.md` |
 | Registration | User 参加某场 Race 的报名事实，是参赛流程、RaceProject、Work、Evidence、Award 和 rider_report 的追溯中枢 | `ary-domain-analysis.v0.3.md` |
 | RaceProject | Registration 对应的本场比赛骑行工作区，由 approved Registration 自动生成，可关联 GitHub Repo 作为作品代码材料入口，承载多个 CAConnection 的聚合实时 CA 接入健康度 | `ary-domain-analysis.v0.3.md`、`ary-ca-integration-spec.md` |
 | CAConnection | RaceProject 下的单个 CA / connector / 外部 CA Project 登记与运行接入实例，承载单个 CA 的实时接入状态 | `ary-domain-analysis.v0.3.md`、`ary-ca-integration-spec.md` |

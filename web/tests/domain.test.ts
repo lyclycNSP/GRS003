@@ -5,11 +5,13 @@ import {
   assignJudge,
   configureSubmissionWindow,
   createRace,
+  createTeam,
   disableCAConnection,
   editReport,
   generateReport,
   ingestRidingSignal,
   lockSubmissionWindow,
+  joinTeam,
   publishAward,
   publishRace,
   publishReport,
@@ -20,6 +22,7 @@ import {
   simulateReportFailure,
   submitJudgingRecord,
   submitRegistration,
+  submitTeamRegistration,
   submitWork,
   switchScreenMode,
   updateProfile,
@@ -101,6 +104,48 @@ async function main() {
     assert.equal(second.ok, true);
     const registrations = await prisma.registration.findMany({ where: { raceId: "race_bay_2026", userId: "user_rider_1" } });
     assert.equal(registrations.length, 1);
+  });
+
+  await test("Rider team can create, join, submit and share CA access", async () => {
+    const captainId = "user_team_captain_test";
+    const memberId = "user_team_member_test";
+    for (const [id, slug, displayName] of [
+      [captainId, "team-captain-test", "Team Captain Test"],
+      [memberId, "team-member-test", "Team Member Test"]
+    ]) {
+      await prisma.user.upsert({
+        where: { id },
+        update: { rolesJson: JSON.stringify(["rider"]), profileCompleted: true },
+        create: { id, slug, displayName, rolesJson: JSON.stringify(["rider"]), profileCompleted: true }
+      });
+    }
+    const captain: AuthContext = { userId: captainId, roles: ["rider"], profileCompleted: true, managedRaceIds: [], approvedRegistrationIds: [], assignedWorkIds: [] };
+    const member: AuthContext = { userId: memberId, roles: ["rider"], profileCompleted: true, managedRaceIds: [], approvedRegistrationIds: [], assignedWorkIds: [] };
+    const created = await createTeam(captain, "race_finance_2026", `Team Flow ${Date.now()}`);
+    assert.equal(created.ok, true);
+    const team = await prisma.team.findUnique({ where: { id: created.id! } });
+    assert.ok(team);
+    const joined = await joinTeam(member, team.inviteCode);
+    assert.equal(joined.ok, true);
+    const individualBlocked = await submitRegistration(member, "race_finance_2026");
+    assert.equal(individualBlocked.ok, false);
+    const submitted = await submitTeamRegistration(captain, team.id);
+    assert.equal(submitted.ok, true);
+    const registration = await prisma.registration.findUnique({ where: { id: submitted.id! } });
+    assert.equal(registration?.participantType, "team");
+    assert.equal(registration?.teamId, team.id);
+    const approved = await approveRegistration(organizer, registration!.id);
+    assert.equal(approved.ok, true);
+    const project = await prisma.raceProject.findUnique({ where: { registrationId: registration!.id } });
+    assert.ok(project);
+    const connection = await registerCAConnection(member, project.id);
+    assert.equal(connection.ok, true);
+    const savedConnection = await prisma.cAConnection.findUnique({ where: { id: connection.id! } });
+    assert.equal(savedConnection?.ownerUserId, memberId);
+    const memberWork = await submitWork(member, registration!.id, { title: "Member Work", summary: "Must be rejected", repoUrl: "https://github.com/example/member-work", repoCommitSha: "1".repeat(40) });
+    assert.equal(memberWork.ok, false);
+    const captainWork = await submitWork(captain, registration!.id, { title: "Team Flow Work", summary: "Submitted by captain", repoUrl: "https://github.com/example/team-flow-work", repoCommitSha: "2".repeat(40) });
+    assert.equal(captainWork.ok, true);
   });
 
   await test("approved Registration ensures exactly one RaceProject", async () => {

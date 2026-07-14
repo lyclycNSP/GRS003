@@ -117,7 +117,7 @@ DEV-2 / DEV-3 的高保真页面与交互已迁入 `web/`；DEV-4 到 REL-1 已�
 ### Console / Domain Actions
 
 * Organizer View：Race 创建/发布、报名审核、RaceProject 幂等生成、CAConnection 禁用、UTC 提交窗口配置/提前冻结、作品公开、固定版本 Judge 分配、Award 发布、Report 生成/失败/编辑/重跑/发布、Projection 重建与失败隔离。
-* Rider View：查看自己的 Registration、RaceProject、CAConnection、Work 状态，登记/握手 CAConnection，接入合法 CA Signal，在开放窗口内提交不可变 Work 版本。
+* Rider View：查看个人或团队 Registration、RaceProject、CAConnection、Work 状态；可个人报名、创建/加入团队、提交团队报名；审核通过后登记/握手 CAConnection、接入合法 CA Signal，并由个人参赛者或队长在开放窗口内提交不可变 Work 版本。
 * Judge View：查看 assignment 固定的作品版本、commit SHA 和哈希，并提交评分。
 * Admin Console：维护 `User.roles`，在无 JudgeAssignment 时带原因和未来截止时间紧急重开提交。
 * Screen：`/screen` 控制大屏模式，`/screen/display` 输出现场展示。
@@ -125,9 +125,9 @@ DEV-2 / DEV-3 的高保真页面与交互已迁入 `web/`；DEV-4 到 REL-1 已�
 
 ### Data / APIs / Tests
 
-* Production 使用 Prisma + PostgreSQL migration；SQLite 仅用于本地 / E2E。模型包含 AuthSession、CAIngestionReceipt、WorkSubmissionVersion 和 SubmissionAuditEvent，承接可撤销会话、CA 防重放与作品提交完整性。
+* Production 使用 Prisma + PostgreSQL migration；SQLite 仅用于本地 / E2E。模型包含 Team、TeamMember、AuthSession、CAIngestionReceipt、WorkSubmissionVersion 和 SubmissionAuditEvent，承接团队参赛、可撤销会话、CA 防重放与作品提交完整性。
 * Public API 覆盖 races、race detail、live、works、results、review、screen、work detail、rider detail。
-* 领域测试覆盖 Race 创建/发布、重复报名、RaceProject 幂等、权限拒绝、Profile Completion、Admin roles、Work 不可变版本/哈希/窗口/冻结/评审绑定、CA 合法/非法/禁用接入、Projection 失败隔离、Screen mode、Report 可见性/失败重跑/编辑发布和 P0 回归。
+* 领域测试覆盖 Race 创建/发布、重复报名、团队创建/加入/报名/共享 CA、RaceProject 幂等、权限拒绝、Profile Completion、Admin roles、Work 不可变版本/哈希/窗口/冻结/评审绑定、CA 合法/非法/禁用接入、Projection 失败隔离、Screen mode、Report 可见性/失败重跑/编辑发布和 P0 回归。
 * Playwright E2E 共 14 个场景，除全角色 / Public / Screen 外，增加 OAuth state、随机会话、Public DTO、安全头、Ops 读取隔离和未签名 CA API 拒绝检查。
 
 真实赛事部署、安全配置和 go-live 硬门禁见 `../docs/ary-production-security-baseline.md`。生产启动会先运行 `npm run check:production-config`，数据库迁移使用 `npm run prisma:migrate:deploy`。

@@ -490,6 +490,7 @@ Console / Screen / {Race} / {Mode}
 | Awards / Leaderboard | Award 草稿、发布状态 | 排名、奖项名称、关联 Work / Registration | decisionReason | 发布 / 撤回 |
 | Reports | Report 状态 | rider_report、race_report、review_summary | Evidence / Award 引用 | 生成 / 编辑 / 发布 |
 | Rider View | 当前 Race、报名状态、CA 状态 | 骑行状态、Work Submission、Review Result、Rider Report | 风险提示、截止时间 | 接入 CA / 提交作品 |
+| Rider Team Entry | 当前 Race 下的团队草稿、邀请码、成员列表和提交状态 | Team、TeamMember、团队 Registration | 人数不足、已提交、重复参赛提示 | 创建团队 / 加入团队 / 提交团队报名 |
 | Judge View | 分配作品、评审进度 | Work Detail、Evidence Summary、Score Form、Comments | 提交状态 | 提交评审 |
 | Admin Console | 用户列表、资料状态 | User.roles 维护 | 最近登录 / 异常账号 | 更新 roles |
 | Screen Console | 当前 Race、当前 Display Mode | Jumbotron、Billboard、Live、Leaderboard、Works、Announcement | Theme、Calibration、Fallback | 全屏展示 / 切换模式 |
@@ -544,6 +545,7 @@ Console / Screen / {Race} / {Mode}
 IA 行为：
 
 * Rider View 必须展示 CA 接入状态。
+* Rider View 必须支持个人报名和轻量团队报名；团队草稿展示邀请码、成员列表和提交状态。
 * Rider 可在参赛过程中配置一个或多个 CAConnection。
 * CAConnection 必须先完成登记和握手，后续数据才进入 Projection、Evidence 或 Report 输入。
 * CA 未配置、无 CA 数据或接入异常时，Work Submission 仍可进入，但 Rider View 应提示证据缺口。
@@ -1342,7 +1344,7 @@ Riding Intelligence
 | Rider Profile | User、Registration、Work、Award、Skill Tag、Evidence | 公开读取模型 |
 | Cooperation | 介绍内容、合作入口、Contact | 内容页 |
 | Race Console / Organizer View | Registration、Work、Judge Assignment、Judging Progress、Report | 工作台信息 |
-| Race Console / Rider View | Registration、RaceProject、registration_status、Work、rider_report | 个人参赛信息 |
+| Race Console / Rider View | Team、TeamMember、Registration、RaceProject、registration_status、Work、rider_report | 个人或团队参赛信息 |
 | Race Console / Judge View | Judge Assignment、Work、Evidence、Judging Record | 评审工作台 |
 | Admin Console | User、User.roles、用户资料状态 | 账号与角色管理 |
 | Screen Console | screen_feed_projection、current_leaderboard_projection、leaderboard_read_model、Announcement | 大屏展示信息 |

@@ -62,6 +62,9 @@ npm run dev
 
 * `publishRace`
 * `submitRegistration`
+* `createTeam`
+* `joinTeam`
+* `submitTeamRegistration`
 * `approveRegistration`
 * `ensureRaceProject`
 * `submitWork`
@@ -74,6 +77,7 @@ npm run dev
 | 不变量 | 实现方式 |
 |---|---|
 | 一个User对同一Race最多一个Registration | `submitRegistration`查找已有报名并幂等返回，不重复创建。 |
+| Team参赛仍沿用Registration闭环 | `createTeam` / `joinTeam` 维护团队草稿，`submitTeamRegistration` 创建 `participantType=team` 的 Registration。 |
 | Registration approved后自动生成RaceProject | `approveRegistration`调用`ensureRaceProject`。 |
 | 一个Registration最多一个RaceProject | `ensureRaceProject`先查找已有项目，存在则返回原项目。 |
 | 一个Registration最多一个主Work | `submitWork`按`registrationId`查找并更新同一Work。 |
