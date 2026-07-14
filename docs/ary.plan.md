@@ -57,7 +57,7 @@
 
 验收用例：
 
-* 文档之间没有 Team、Organization、RoleAssignment、手动 Session Summary 补交等冲突。
+* 文档之间没有 Organization、RoleAssignment、手动 Session Summary 补交等冲突；Team 仅作为轻量团队参赛实体，不扩展为组织或多租户。
 * PRD 能作为架构设计入口。
 
 风险：
@@ -106,11 +106,11 @@
 不做什么：
 
 * 不做完整 UI。
-* 不做多组织、多团队、多租户。
+* 不做多组织、多租户或复杂团队治理；只支持当前 Race 下的轻量团队参赛。
 
 验收用例：
 
-* 一个 User 对同一 Race 最多一个 Registration。
+* 一个 User 对同一 Race 最多一种参赛身份：个人报名或加入一个团队，二者不能并存。
 * 一个 Registration 最多一个 RaceProject 和一个主 Work；Registration approved 后由 ARY 幂等生成 RaceProject；一个 RaceProject 可在参赛过程中登记多个 CAConnection。
 * 只有已登记、已握手、归属正确且未禁用的 CAConnection 后续数据可以进入 Projection、Evidence 或 Report 输入。
 * RaceProject 聚合 CA 接入 failed / not_configured 不阻断提交、评审和 Award 流程，但应生成评审前风险提示。

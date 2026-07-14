@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getPublicRaces, getPublicWorks } from "@/lib/queries";
+import { getEntrantDisplay, getPublicRaces, getPublicWorks } from "@/lib/queries";
 
 export default async function HomePage() {
   const races = await getPublicRaces();
@@ -34,16 +34,17 @@ export default async function HomePage() {
       </section>
 
       <section className="benefit-row route-band">
-        {works.slice(0, 2).map((work) => (
-          <article key={work.id}>
+        {works.slice(0, 2).map((work) => {
+          const entrant = getEntrantDisplay(work.registration);
+          return <article key={work.id}>
             <span className="icon-card">Work</span>
             <div>
               <h2>{work.title}</h2>
-              <p>{work.registration.race.title} / {work.registration.user.displayName}</p>
+              <p>{work.registration.race.title} / {entrant.name}</p>
               <Link href={`/works/${work.slug}`}>查看作品</Link>
             </div>
-          </article>
-        ))}
+          </article>;
+        })}
       </section>
 
       <section className="work-grid">

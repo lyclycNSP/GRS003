@@ -8,11 +8,14 @@ import {
   assignJudge,
   createBackup,
   createRace,
+  createTeam,
   disableCAConnection,
   editReport,
   generateReport,
   handshakeCAConnection,
   ingestRidingSignal,
+  joinTeam,
+  leaveTeam,
   markCanaryReady,
   markProductionReleased,
   markReleaseChecklistItem,
@@ -22,6 +25,7 @@ import {
   publishReport,
   publishWork,
   rebuildProjection,
+  removeTeamMember,
   regenerateReport,
   recordGoNoGo,
   registerCAConnection,
@@ -30,6 +34,7 @@ import {
   simulateReportFailure,
   submitJudgingRecord,
   submitRegistration,
+  submitTeamRegistration,
   submitWork,
   switchScreenMode,
   toggleScreenFallback,
@@ -70,6 +75,41 @@ export async function submitRegistrationAction(formData: FormData) {
   const ctx = await getAuthContext();
   const result = await submitRegistration(ctx, value(formData, "raceId"));
   refresh("/");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function createTeamAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await createTeam(ctx, value(formData, "raceId"), value(formData, "name"));
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function joinTeamAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await joinTeam(ctx, value(formData, "inviteCode"));
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function leaveTeamAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await leaveTeam(ctx, value(formData, "teamId"));
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function removeTeamMemberAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await removeTeamMember(ctx, value(formData, "teamId"), value(formData, "userId"));
+  refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function submitTeamRegistrationAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await submitTeamRegistration(ctx, value(formData, "teamId"));
+  refresh("/console");
   if (!result.ok) throw new Error(result.message);
 }
 

@@ -11,7 +11,7 @@ cur.execute("PRAGMA foreign_keys=OFF")
 tables = [
     "ReleaseChecklistItem", "Incident", "Backup", "Announcement", "Projection", "Report", "Award",
     "JudgingRecord", "JudgeAssignment", "ReviewFlag", "Evidence", "Work", "Session", "CAConnection",
-    "RaceProject", "Registration", "Race", "AuthAccount", "User"
+    "RaceProject", "Registration", "TeamMember", "Team", "Race", "AuthAccount", "User"
 ]
 for table in tables:
     cur.execute(f'DROP TABLE IF EXISTS "{table}"')
@@ -55,15 +55,39 @@ CREATE TABLE "Race" (
   "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "archivedAt" DATETIME
 );
+CREATE TABLE "Team" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "raceId" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "slug" TEXT NOT NULL UNIQUE,
+  "inviteCode" TEXT NOT NULL UNIQUE,
+  "status" TEXT NOT NULL DEFAULT 'draft',
+  "maxMembers" INTEGER NOT NULL DEFAULT 5,
+  "createdByUserId" TEXT NOT NULL,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX "Team_raceId_name_key" ON "Team"("raceId", "name");
+CREATE TABLE "TeamMember" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "teamId" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "role" TEXT NOT NULL,
+  "joinedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX "TeamMember_teamId_userId_key" ON "TeamMember"("teamId", "userId");
 CREATE TABLE "Registration" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "raceId" TEXT NOT NULL,
   "userId" TEXT NOT NULL,
+  "participantType" TEXT NOT NULL DEFAULT 'individual',
+  "teamId" TEXT,
   "status" TEXT NOT NULL,
   "submittedAt" DATETIME NOT NULL,
   "approvedAt" DATETIME
 );
 CREATE UNIQUE INDEX "Registration_raceId_userId_key" ON "Registration"("raceId", "userId");
+CREATE UNIQUE INDEX "Registration_teamId_key" ON "Registration"("teamId");
 CREATE TABLE "RaceProject" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "registrationId" TEXT NOT NULL UNIQUE,
@@ -77,6 +101,7 @@ CREATE TABLE "RaceProject" (
 CREATE TABLE "CAConnection" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "raceProjectId" TEXT NOT NULL,
+  "ownerUserId" TEXT,
   "caType" TEXT NOT NULL,
   "connectorId" TEXT NOT NULL,
   "connectorVersion" TEXT NOT NULL,

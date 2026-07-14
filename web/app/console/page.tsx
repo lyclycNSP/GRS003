@@ -4,11 +4,14 @@ import {
   approveRegistrationAction,
   assignJudgeAction,
   createRaceAction,
+  createTeamAction,
   disableCAConnectionAction,
   editReportAction,
   generateReportAction,
   handshakeCAAction,
   ingestSignalAction,
+  joinTeamAction,
+  leaveTeamAction,
   publishAwardAction,
   publishRaceAction,
   publishReportAction,
@@ -16,15 +19,17 @@ import {
   rebuildProjectionAction,
   regenerateReportAction,
   registerCAAction,
+  removeTeamMemberAction,
   simulateProjectionFailureAction,
   simulateReportFailureAction,
   submitRegistrationAction,
+  submitTeamRegistrationAction,
   submitWorkAction,
   updateRolesAction
 } from "@/app/actions";
 import { getAuthContext } from "@/lib/auth";
 import { fromJson } from "@/lib/json";
-import { getConsoleSnapshotForUser } from "@/lib/queries";
+import { getConsoleSnapshotForUser, getEntrantDisplay } from "@/lib/queries";
 
 function hasRole(roles: string[], role: string) {
   return roles.includes(role);
@@ -74,8 +79,14 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
   const judge = users.find((user) => fromJson<string[]>(user.rolesJson, []).includes("judge"));
   const ownRegistrations = currentUser?.registrations ?? [];
   const ownRegistration = ownRegistrations.find((registration) => registration.raceId === race.id);
+  const currentMembership = currentUser?.teamMemberships.find((membership) => membership.team.raceId === race.id);
+  const draftTeam = currentMembership?.team.registration ? null : currentMembership?.team;
+  const ownTeam = ownRegistration?.team ?? draftTeam ?? null;
+  const isTeamCaptain = ownTeam?.createdByUserId === ctx.userId;
   const ownProject = ownRegistration?.raceProject;
-  const ownConnection = ownProject?.caConnections[0];
+  const ownConnection = ownProject?.caConnections.find((connection) => connection.ownerUserId === ctx.userId)
+    ?? ownProject?.caConnections.find((connection) => !connection.ownerUserId)
+    ?? ownProject?.caConnections[0];
   const approvedCount = registrations.filter((registration) => registration.status === "approved").length;
   const projectCount = registrations.filter((registration) => registration.raceProject).length;
   const connectionCount = allConnections.length;
@@ -84,6 +95,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
   const workCount = registrations.filter((registration) => registration.work).length;
   const publicReportCount = race.reports.filter((report) => report.status === "published" && report.visibility === "public").length;
   const canManageCurrentRace = ctx.roles.includes("admin") || ctx.managedRaceIds.includes(race.id);
+  const canSubmitOwnWork = Boolean(ownRegistration && (ownRegistration.userId === ctx.userId || canManageCurrentRace));
   const riskFlags = registrations.flatMap((registration) => registration.reviewFlags);
   const workflowSteps = [
     { label: "Registration", detail: `${approvedCount}/${registrations.length} approved`, done: approvedCount > 0, active: registrations.length > 0 },
@@ -196,7 +208,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
               <div className="table-list">
                 {registrations.map((registration) => (
                   <div className="table-row registration-row" key={registration.id}>
-                    <span>{registration.user.displayName}</span>
+                    <span>{getEntrantDisplay(registration).name} · {registration.participantType === "team" ? "Team" : "Individual"}</span>
                     <b>{registration.status}</b>
                     <form action={approveRegistrationAction}>
                       <input type="hidden" name="registrationId" value={registration.id} />
@@ -211,7 +223,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
               <div className="table-list">
                 {allConnections.length > 0 ? allConnections.map(({ connection, registration }) => (
                   <div className="table-row ca-row" key={connection.id}>
-                    <span>{registration.user.displayName}</span>
+                    <span>{getEntrantDisplay(registration).name}</span>
                     <b className={`status-pill ${toneFor(connection.disabledAt ? "disabled" : connection.ingestionStatus)}`}>{connection.ingestionStatus}{connection.disabledAt ? "/disabled" : ""}</b>
                     <em>
                       <strong>{connection.handshakeAt && !connection.disabledAt ? "Verified by OCR / connector" : "Attestation pending"}</strong>
@@ -320,7 +332,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
           <section id="rider" className="form-card">
             <h2>Rider View</h2>
             <div className="rider-cockpit-grid">
-              <article className="rider-status-card"><span>Registration</span><b className={`status-pill ${toneFor(ownRegistration?.status)}`}>{ownRegistration?.status ?? "none"}</b><p>{ownRegistration?.race.title ?? "选择 Race 后报名"}</p></article>
+              <article className="rider-status-card"><span>Registration</span><b className={`status-pill ${toneFor(ownRegistration?.status)}`}>{ownRegistration?.status ?? (ownTeam ? "team draft" : "none")}</b><p>{ownTeam?.name ?? ownRegistration?.race.title ?? "选择 Race 后报名"}</p></article>
               <article className="rider-status-card"><span>RaceProject</span><b className={`status-pill ${toneFor(ownProject?.aggregateIngestionStatus)}`}>{ownProject?.aggregateIngestionStatus ?? "not_configured"}</b><p>{ownProject?.connectionHealth ?? "等待审核生成"}</p></article>
               <article className="rider-status-card"><span>Work</span><b className={`status-pill ${toneFor(ownRegistration?.work?.status)}`}>{ownRegistration?.work?.status ?? "none"}</b><p>{ownRegistration?.work?.title ?? "尚未提交作品"}</p></article>
             </div>
@@ -329,12 +341,54 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
               <b>{ownConnection?.handshakeAt ? "OCR / connector signature required" : "waiting for CA handshake"}</b>
               <p>{ownConnection ? `connectorId: ${ownConnection.connectorId}. 合法信号会携带 dev-signature:${ownConnection.connectorId}:<idempotencyKey>。` : "登记 CAConnection 后，系统会展示签名来源和接入状态。"}</p>
             </div>
-            {!ownRegistration ? (
+            {!ownRegistration && ownTeam ? (
+              <section className="rider-step-card">
+                <span>Team draft</span>
+                <h3>{ownTeam.name}</h3>
+                <p>邀请码：<strong>{ownTeam.inviteCode}</strong> · {ownTeam.members.length}/{ownTeam.maxMembers} members</p>
+                <div className="table-list">
+                  {ownTeam.members.map((member) => (
+                    <div className="table-row" key={member.id}>
+                      <span>{member.user.displayName}</span>
+                      <b>{member.role}</b>
+                      {isTeamCaptain && member.userId !== ctx.userId ? (
+                        <form action={removeTeamMemberAction}>
+                          <input type="hidden" name="teamId" value={ownTeam.id} />
+                          <input type="hidden" name="userId" value={member.userId} />
+                          <button type="submit">移除</button>
+                        </form>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                {isTeamCaptain ? (
+                  <form action={submitTeamRegistrationAction}>
+                    <input type="hidden" name="teamId" value={ownTeam.id} />
+                    <button type="submit" disabled={ownTeam.members.length < 2}>提交团队报名</button>
+                    {ownTeam.members.length < 2 ? <p className="form-hint">至少邀请 1 名队员后才能提交。</p> : null}
+                  </form>
+                ) : (
+                  <form action={leaveTeamAction}>
+                    <input type="hidden" name="teamId" value={ownTeam.id} />
+                    <button type="submit">退出团队</button>
+                  </form>
+                )}
+              </section>
+            ) : !ownRegistration ? (
               <div className="console-empty-actions">
-                <p>你还没有报名当前赛事。先提交报名，审核通过后会生成 RaceProject。</p>
+                <p>你还没有报名当前赛事。可以个人报名，也可以创建或通过邀请码加入团队。</p>
                 <form action={submitRegistrationAction}>
                   <input type="hidden" name="raceId" value={race.id} />
-                  <button type="submit">报名参赛</button>
+                  <button type="submit">个人报名</button>
+                </form>
+                <form className="console-field-form" action={createTeamAction}>
+                  <input type="hidden" name="raceId" value={race.id} />
+                  <label><span>团队名</span><input name="name" required placeholder="输入团队名" /></label>
+                  <button type="submit">创建团队</button>
+                </form>
+                <form className="console-field-form" action={joinTeamAction}>
+                  <label><span>邀请码</span><input name="inviteCode" required placeholder="输入 8 位邀请码" /></label>
+                  <button type="submit">加入团队</button>
                 </form>
                 <Link className="inline-action" href={`/races/${race.slug}`}>查看 Race Page</Link>
               </div>
@@ -390,8 +444,8 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
                 <section className="rider-step-card">
                   <span>Step 4</span>
                   <h3>提交 Work</h3>
-                  <p>提交作品标题、摘要、Demo 和 Repo。CA 信号会作为过程证据，作品本身仍由 Organizer/Judge 后续处理。</p>
-                  <form className="work-submit-form" action={submitWorkAction}>
+                  <p>{ownRegistration.team ? `团队作品由队长 ${ownRegistration.user.displayName} 统一提交。` : "提交作品标题、摘要、Demo 和 Repo。CA 信号会作为过程证据。"}</p>
+                  {canSubmitOwnWork ? <form className="work-submit-form" action={submitWorkAction}>
                     <input type="hidden" name="registrationId" value={ownRegistration!.id} />
                     <label>
                       <span>Title</span>
@@ -410,7 +464,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
                       <input name="repoUrl" defaultValue={ownRegistration?.work?.repoUrl ?? "https://github.com/example/adaptive-bay-route-agent"} />
                     </label>
                     <button type="submit">提交 Work</button>
-                  </form>
+                  </form> : <p className="form-hint">你可以维护自己的 CA 连接；团队 Work 需要由队长提交。</p>}
                 </section>
               </div>
             ) : <p>需要 Organizer 审核报名后生成 RaceProject。</p>}

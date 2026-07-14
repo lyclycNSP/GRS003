@@ -69,6 +69,52 @@ async function createReviewFlag(input: {
   });
 }
 
+type RegistrationWithTeam = Awaited<ReturnType<typeof getRegistrationWithTeam>>;
+
+async function getRegistrationWithTeam(registrationId: string) {
+  return prisma.registration.findUnique({
+    where: { id: registrationId },
+    include: { team: { include: { members: true } } }
+  });
+}
+
+function isTeamMember(registration: NonNullable<RegistrationWithTeam>, userId: string) {
+  return registration.team?.members.some((member) => member.userId === userId) ?? false;
+}
+
+function canContributeToRegistration(ctx: AuthContext | null, registration: NonNullable<RegistrationWithTeam>) {
+  if (!ctx) return false;
+  return registration.userId === ctx.userId || isTeamMember(registration, ctx.userId) || canManageRace(ctx, registration.raceId);
+}
+
+function canLeadRegistration(ctx: AuthContext | null, registration: NonNullable<RegistrationWithTeam>) {
+  if (!ctx) return false;
+  return registration.userId === ctx.userId || canManageRace(ctx, registration.raceId);
+}
+
+async function hasRaceParticipation(userId: string, raceId: string) {
+  const existingRegistration = await prisma.registration.findFirst({
+    where: {
+      raceId,
+      OR: [{ userId }, { team: { members: { some: { userId } } } }]
+    }
+  });
+  if (existingRegistration) return true;
+  const draftTeam = await prisma.team.findFirst({
+    where: { raceId, registration: null, members: { some: { userId } } }
+  });
+  return Boolean(draftTeam);
+}
+
+async function createInviteCode() {
+  for (let i = 0; i < 5; i += 1) {
+    const code = makeId("invite").replace(/^invite_?/, "").slice(-8).toUpperCase();
+    const existing = await prisma.team.findUnique({ where: { inviteCode: code } });
+    if (!existing) return code;
+  }
+  return makeId("invite").replace(/^invite_?/, "").toUpperCase();
+}
+
 
 export async function createRace(ctx: AuthContext | null, input: { title: string; challenge: string; summary: string }): Promise<Result> {
   requireRole(ctx, ["organizer", "admin"]);
@@ -124,6 +170,8 @@ export async function submitRegistration(ctx: AuthContext | null, raceId: string
   requireRole(ctx, ["rider", "admin"]);
   const race = await prisma.race.findUnique({ where: { id: raceId } });
   if (!race) return fail("Race不存在");
+  const team = await prisma.team.findFirst({ where: { raceId, members: { some: { userId: ctx.userId } } } });
+  if (team) return fail("Already joined a team for this Race.");
   const registration = await prisma.registration.upsert({
     where: { raceId_userId: { raceId, userId: ctx.userId } },
     update: {},
@@ -131,6 +179,7 @@ export async function submitRegistration(ctx: AuthContext | null, raceId: string
       id: makeId("reg"),
       raceId,
       userId: ctx.userId,
+      participantType: "individual",
       status: "pending",
       submittedAt: new Date()
     }
@@ -138,14 +187,119 @@ export async function submitRegistration(ctx: AuthContext | null, raceId: string
   return ok("报名已提交", registration.id);
 }
 
+export async function createTeam(ctx: AuthContext | null, raceId: string, name: string): Promise<Result> {
+  requireRole(ctx, ["rider", "admin"]);
+  const race = await prisma.race.findUnique({ where: { id: raceId } });
+  if (!race) return fail("Race not found.");
+  const teamName = name.trim();
+  if (!teamName) return fail("Team name is required.");
+  if (await hasRaceParticipation(ctx.userId, raceId)) return fail("Already participating in this Race.");
+  const teamId = makeId("team");
+  const baseSlug = slugify(teamName) || "team";
+  const team = await prisma.team.create({
+    data: {
+      id: teamId,
+      raceId,
+      name: teamName,
+      slug: `${baseSlug}-${teamId.slice(-5)}`,
+      inviteCode: await createInviteCode(),
+      status: "draft",
+      maxMembers: 5,
+      createdByUserId: ctx.userId,
+      members: { create: { id: makeId("tm"), userId: ctx.userId, role: "captain" } }
+    }
+  });
+  return ok("Team created.", team.id);
+}
+
+export async function joinTeam(ctx: AuthContext | null, inviteCode: string): Promise<Result> {
+  requireRole(ctx, ["rider", "admin"]);
+  const code = inviteCode.trim().toUpperCase();
+  if (!code) return fail("Invite code is required.");
+  const team = await prisma.team.findUnique({ where: { inviteCode: code }, include: { members: true } });
+  if (!team) return fail("Team not found.");
+  if (team.status !== "draft") return fail("Team has already been submitted.");
+  if (team.members.length >= team.maxMembers) return fail("Team is full.");
+  if (await hasRaceParticipation(ctx.userId, team.raceId)) return fail("Already participating in this Race.");
+  const member = await prisma.teamMember.create({
+    data: { id: makeId("tm"), teamId: team.id, userId: ctx.userId, role: "member" }
+  });
+  return ok("Joined team.", member.id);
+}
+
+export async function leaveTeam(ctx: AuthContext | null, teamId: string): Promise<Result> {
+  requireAuth(ctx);
+  const team = await prisma.team.findUnique({ where: { id: teamId }, include: { members: true, registration: true } });
+  if (!team) return fail("Team not found.");
+  if (team.registration || team.status !== "draft") return fail("Submitted team cannot be changed.");
+  const member = team.members.find((item) => item.userId === ctx.userId);
+  if (!member) return fail("You are not a team member.");
+  if (member.role === "captain" || team.createdByUserId === ctx.userId) return fail("Team captain cannot leave the team.");
+  await prisma.teamMember.delete({ where: { id: member.id } });
+  return ok("Left team.", teamId);
+}
+
+export async function removeTeamMember(ctx: AuthContext | null, teamId: string, userId: string): Promise<Result> {
+  requireAuth(ctx);
+  const team = await prisma.team.findUnique({ where: { id: teamId }, include: { members: true, registration: true } });
+  if (!team) return fail("Team not found.");
+  if (team.registration || team.status !== "draft") return fail("Submitted team cannot be changed.");
+  if (team.createdByUserId !== ctx.userId && !canManageRace(ctx, team.raceId)) return fail("No permission to manage this team.");
+  if (team.createdByUserId === userId) return fail("Cannot remove the team captain.");
+  const member = team.members.find((item) => item.userId === userId);
+  if (!member) return fail("Team member not found.");
+  await prisma.teamMember.delete({ where: { id: member.id } });
+  return ok("Team member removed.", teamId);
+}
+
+export async function submitTeamRegistration(ctx: AuthContext | null, teamId: string): Promise<Result> {
+  requireAuth(ctx);
+  const team = await prisma.team.findUnique({ where: { id: teamId }, include: { members: true, registration: true } });
+  if (!team) return fail("Team not found.");
+  if (team.createdByUserId !== ctx.userId && !canManageRace(ctx, team.raceId)) return fail("Only team captain or organizer can submit team registration.");
+  if (team.registration) return ok("Team registration already submitted.", team.registration.id);
+  if (team.status !== "draft") return fail("Team cannot be submitted in current status.");
+  if (team.members.length < 2) return fail("Team registration requires at least 2 members.");
+  for (const member of team.members) {
+    const existing = await prisma.registration.findFirst({
+      where: {
+        raceId: team.raceId,
+        OR: [{ userId: member.userId }, { team: { members: { some: { userId: member.userId } } } }]
+      }
+    });
+    if (existing) return fail("A team member is already participating in this Race.");
+  }
+  const registration = await prisma.$transaction(async (tx) => {
+    const created = await tx.registration.create({
+      data: {
+        id: makeId("reg"),
+        raceId: team.raceId,
+        userId: team.createdByUserId,
+        participantType: "team",
+        teamId: team.id,
+        status: "pending",
+        submittedAt: new Date()
+      }
+    });
+    await tx.team.update({ where: { id: team.id }, data: { status: "submitted" } });
+    return created;
+  });
+  return ok("Team registration submitted.", registration.id);
+}
+
 export async function approveRegistration(ctx: AuthContext | null, registrationId: string): Promise<Result> {
   requireAuth(ctx);
   const registration = await prisma.registration.findUnique({ where: { id: registrationId } });
   if (!registration) return fail("Registration不存在");
   requireManagedRace(ctx, registration.raceId);
-  await prisma.registration.update({
-    where: { id: registrationId },
-    data: { status: "approved", approvedAt: new Date() }
+  await prisma.$transaction(async (tx) => {
+    await tx.registration.update({
+      where: { id: registrationId },
+      data: { status: "approved", approvedAt: new Date() }
+    });
+    if (registration.teamId) {
+      await tx.team.update({ where: { id: registration.teamId }, data: { status: "locked" } });
+    }
   });
   const project = await ensureRaceProject(registrationId);
   await createReviewFlag({
@@ -164,10 +318,10 @@ export async function registerCAConnection(ctx: AuthContext | null, raceProjectI
   requireAuth(ctx);
   const project = await prisma.raceProject.findUnique({
     where: { id: raceProjectId },
-    include: { registration: true }
+    include: { registration: { include: { team: { include: { members: true } } } } }
   });
   if (!project) return fail("RaceProject不存在");
-  if (project.registration.userId !== ctx.userId && !canManageRace(ctx, project.registration.raceId)) {
+  if (!canContributeToRegistration(ctx, project.registration)) {
     return fail("没有登记CAConnection的权限");
   }
   const connectionId = makeId("conn");
@@ -180,6 +334,7 @@ export async function registerCAConnection(ctx: AuthContext | null, raceProjectI
       connectorVersion: "0.1.0",
       externalProjectRef: `ca-${raceProjectId}-${connectionId}`,
       ingestionStatus: "connected",
+      ownerUserId: ctx.userId,
       registeredAt: new Date()
     }
   });
@@ -194,10 +349,11 @@ export async function handshakeCAConnection(ctx: AuthContext | null, caConnectio
   requireAuth(ctx);
   const connection = await prisma.cAConnection.findUnique({
     where: { id: caConnectionId },
-    include: { raceProject: { include: { registration: true } } }
+    include: { raceProject: { include: { registration: { include: { team: { include: { members: true } } } } } } }
   });
   if (!connection) return fail("CAConnection不存在");
-  if (connection.raceProject.registration.userId !== ctx.userId && !canManageRace(ctx, connection.raceProject.registration.raceId)) {
+  const ownsConnection = connection.ownerUserId ? connection.ownerUserId === ctx.userId : canContributeToRegistration(ctx, connection.raceProject.registration);
+  if (!ownsConnection && !canManageRace(ctx, connection.raceProject.registration.raceId)) {
     return fail("没有握手CAConnection的权限");
   }
   await prisma.cAConnection.update({ where: { id: caConnectionId }, data: { handshakeAt: new Date() } });
@@ -324,11 +480,21 @@ export async function disableCAConnection(ctx: AuthContext | null, caConnectionI
   requireAuth(ctx);
   const connection = await prisma.cAConnection.findUnique({
     where: { id: caConnectionId },
-    include: { raceProject: { include: { registration: true, caConnections: true } } }
+    include: {
+      raceProject: {
+        include: {
+          registration: { include: { team: { include: { members: true } } } },
+          caConnections: true
+        }
+      }
+    }
   });
   if (!connection) return fail("CAConnection不存在");
   const raceId = connection.raceProject.registration.raceId;
-  if (connection.raceProject.registration.userId !== ctx!.userId && !canManageRace(ctx, raceId)) return fail("没有禁用CAConnection的权限");
+  const ownsConnection = connection.ownerUserId
+    ? connection.ownerUserId === ctx!.userId
+    : canContributeToRegistration(ctx, connection.raceProject.registration);
+  if (!ownsConnection && !canManageRace(ctx, raceId)) return fail("没有禁用CAConnection的权限");
   await prisma.cAConnection.update({ where: { id: caConnectionId }, data: { ingestionStatus: "failed", disabledAt: new Date() } });
   const activeCount = await prisma.cAConnection.count({
     where: { raceProjectId: connection.raceProjectId, disabledAt: null, handshakeAt: { not: null }, ingestionStatus: { in: ["connected", "active"] } }
@@ -349,9 +515,9 @@ export async function disableCAConnection(ctx: AuthContext | null, caConnectionI
 }
 export async function submitWork(ctx: AuthContext | null, registrationId: string, input: { title: string; summary: string; demoUrl?: string; repoUrl?: string }): Promise<Result> {
   requireAuth(ctx);
-  const registration = await prisma.registration.findUnique({ where: { id: registrationId } });
+  const registration = await getRegistrationWithTeam(registrationId);
   if (!registration) return fail("Registration不存在");
-  if (registration.userId !== ctx.userId && !canManageRace(ctx, registration.raceId)) return fail("没有提交Work的权限");
+  if (!canLeadRegistration(ctx, registration)) return fail("没有提交Work的权限");
   const work = await prisma.work.upsert({
     where: { registrationId },
     update: {
@@ -525,7 +691,13 @@ export async function rebuildProjection(ctx: AuthContext | null, raceId: string)
   requireManagedRace(ctx, raceId);
   const registrations = await prisma.registration.findMany({
     where: { raceId },
-    include: { user: true, raceProject: true, work: true, reviewFlags: true }
+    include: {
+      user: true,
+      team: { include: { members: { include: { user: true } } } },
+      raceProject: true,
+      work: true,
+      reviewFlags: true
+    }
   });
   const projection = await prisma.projection.create({
     data: {
@@ -542,7 +714,9 @@ export async function rebuildProjection(ctx: AuthContext | null, raceId: string)
           activeProjects: registrations.filter((registration) => registration.raceProject?.aggregateIngestionStatus === "active").length
         },
         entries: registrations.map((registration) => ({
-          riderName: registration.user.displayName,
+          riderName: registration.team?.name ?? registration.user.displayName,
+          participantType: registration.participantType,
+          members: registration.team?.members.map((member) => member.user.displayName) ?? [registration.user.displayName],
           registrationId: registration.id,
           ingestion: registration.raceProject?.aggregateIngestionStatus ?? "not_configured",
           workTitle: registration.work?.title ?? null,

@@ -21,6 +21,9 @@ model User {
   registrations    Registration[]
   createdRaces     Race[]            @relation("RaceCreator")
   judgeAssignments JudgeAssignment[] @relation("JudgeAssignments")
+  createdTeams     Team[]            @relation("TeamCreator")
+  teamMemberships  TeamMember[]
+  caConnections    CAConnection[]    @relation("CAConnectionOwner")
 }
 
 model AuthAccount {
@@ -53,6 +56,7 @@ model Race {
   archivedAt     DateTime?
   createdBy      User             @relation("RaceCreator", fields: [createdByUserId], references: [id])
   registrations  Registration[]
+  teams          Team[]
   awards         Award[]
   reports        Report[]
   projections    Projection[]
@@ -63,15 +67,49 @@ model Race {
   screenState    ScreenState?
 }
 
+model Team {
+  id              String        @id
+  raceId          String
+  name            String
+  slug            String        @unique
+  inviteCode      String        @unique
+  status          String        @default("draft")
+  maxMembers      Int           @default(5)
+  createdByUserId String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  race            Race          @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  createdBy       User          @relation("TeamCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  members         TeamMember[]
+  registration    Registration?
+
+  @@unique([raceId, name])
+}
+
+model TeamMember {
+  id        String   @id
+  teamId    String
+  userId    String
+  role      String
+  joinedAt  DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
 model Registration {
   id             String       @id
   raceId         String
   userId         String
+  participantType String      @default("individual")
+  teamId         String?      @unique
   status         String
   submittedAt    DateTime
   approvedAt     DateTime?
   race           Race         @relation(fields: [raceId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team           Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
   raceProject    RaceProject?
   work           Work?
   reviewFlags    ReviewFlag[]
@@ -98,6 +136,7 @@ model RaceProject {
 model CAConnection {
   id                 String       @id
   raceProjectId      String
+  ownerUserId        String?
   caType             String
   connectorId        String
   connectorVersion   String
@@ -108,6 +147,7 @@ model CAConnection {
   disabledAt         DateTime?
   lastSyncedAt       DateTime?
   raceProject        RaceProject  @relation(fields: [raceProjectId], references: [id], onDelete: Cascade)
+  owner              User?        @relation("CAConnectionOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   sessions           Session[]
 
   @@unique([raceProjectId, connectorId, externalProjectRef])

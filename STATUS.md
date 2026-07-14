@@ -16,6 +16,7 @@
 * 当前尚未建立生产级部署、真实OAuth生产配置、生产CA接入或部署流水线；本地开发以 `web/` Next.js + Prisma + SQLite 为准。
 * 已新增`web/`正式集成应用入口：Next.js App Router、Prisma、SQLite、GitHub OAuth路由、服务端权限上下文、Public API和Console/Ops服务端动作；DEV-2/DEV-3高保真页面闭环已迁入正式应用。
 * `web/` 本轮已完成角色数据流修正：Console 按 Race 取数，Debug Login 可隔离 Organizer/Admin/Rider/Judge，Screen Console 对非管理者只读，非公开 Work 不再公开详情，Judge 提交后有保存反馈。
+* `web/` 本轮已完成 Rider 团队参赛功能：Rider 可创建团队、用邀请码加入团队、由队长提交团队报名；团队报名审核后生成 RaceProject，团队成员可接入各自 CAConnection，团队 Work 由队长提交。
 
 ## 任务看板
 
@@ -35,6 +36,7 @@
 | `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 已交付并迁入 `web/` | 已提供备份记录、事故记录、fallback记录和赛后归档入口；真实值守、回滚和生产归档待部署环境接入。 | `web/app/ops/page.tsx`、`web/lib/domain.ts`、`docs/ary-release-ops-plan.md` |
 | `WEB-1` 高保真前端 + 服务端领域动作正式集成 | DEV-2/DEV-3已迁入 | `web/`已建立Next.js全栈工程，迁入Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口，并接入Prisma/SQLite、OAuth fallback、服务端领域动作、Public API和领域测试。 | `web/README.md`、`web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
 | `WEB-1 角色数据流与调试能力修正` | 已完成 | Playwright 审计发现的 Race 数据串流、Debug 角色串扰、Screen 控制台未授权入口、非公开 Work 详情暴露、Judge 提交无反馈和 seed 跨 Race Award 已修正。 | `docs/ary-role-flow-playwright-audit.md`、`web/app/console/page.tsx`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
+| `WEB-2 Rider 团队参赛功能` | 已完成 | 新增 Team / TeamMember / participantType / CAConnection.ownerUserId 数据口径；Rider View 支持创建团队、邀请码加入、提交团队报名和团队状态查看；团队成员可登记 CAConnection，队长统一提交团队 Work；领域测试已覆盖完整团队参赛链路。 | `web/prisma/schema.prisma`、`web/app/console/page.tsx`、`web/lib/domain.ts`、`web/lib/queries.ts`、`web/tests/domain.test.ts` |
 
 ## 证据索引
 
@@ -87,6 +89,7 @@
 | WEB-1 已继承 DEV-2/DEV-3 页面闭环：Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口均在 Next.js 应用中渲染并接入服务端数据/动作 | `web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts`、`web/README.md` |
 | WEB-1 验证通过：TypeScript、9个领域测试、Next build、本地浏览器烟测均通过 | `cd web && tsc --noEmit`、`python scripts/init-sqlite.py`、`tsx prisma/seed.ts`、`tsx tests/domain.test.ts`、`next build`、`http://127.0.0.1:3000` |
 | WEB-1 角色数据流修正已验证：新增领域回归、静态烟测、TypeScript、Next build 和 Playwright 角色流检查均通过；`pnpm test` 在本机触发 pnpm build-script approval，改用本地 `tsx.cmd` 直接执行测试入口 | `web/tests/domain.test.ts`、`web/scripts/static-smoke.mjs`、`web/app/console/page.tsx`、`web/app/screen/page.tsx`、`web/app/works/[slug]/judge/page.tsx` |
+| WEB-2 Rider 团队参赛已验证：团队创建、邀请码加入、阻止重复个人报名、队长提交团队报名、审核生成 RaceProject、队员登记 CAConnection、队员不能提交团队 Work、队长可提交团队 Work | `DATABASE_URL=file:./dev.db npm run test`、`web/tests/domain.test.ts` |
 | WEB-1 Work Detail 视觉修正已完成：作品详情页补齐按钮入口，统一链接按钮样式，收紧中英文混排和长 URL 换行，并通过桌面/移动 Playwright 截图验证无重叠 | `web/app/works/[slug]/page.tsx`、`web/app/globals.css` |
 | WEB-1 全站前端页面视觉审计已完成：17 个页面桌面/移动截图、4 个角色 Console 移动截图已走查；修复全局移动横向溢出、Race/Live/Rider 等二级页响应式栅格、入口按钮和卡片排布 | `web/app/globals.css` |
 

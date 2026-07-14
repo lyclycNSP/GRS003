@@ -24,6 +24,8 @@ async function main() {
   await prisma.cAConnection.deleteMany();
   await prisma.raceProject.deleteMany();
   await prisma.registration.deleteMany();
+  await prisma.teamMember.deleteMany();
+  await prisma.team.deleteMany();
   await prisma.race.deleteMany();
   await prisma.authAccount.deleteMany();
   await prisma.user.deleteMany();
@@ -136,8 +138,8 @@ async function main() {
 
   await prisma.cAConnection.createMany({
     data: [
-      { id: "conn_mira_codex", raceProjectId: "rp_mira", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", externalProjectRef: "gba-wander", ingestionStatus: "active", registeredAt: new Date(), handshakeAt: new Date(), lastSyncedAt: new Date() },
-      { id: "conn_ana_codex", raceProjectId: "rp_ana", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", externalProjectRef: "localjoy", ingestionStatus: "connected", registeredAt: new Date(), handshakeAt: new Date() }
+      { id: "conn_mira_codex", raceProjectId: "rp_mira", ownerUserId: "user_rider_1", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", externalProjectRef: "gba-wander", ingestionStatus: "active", registeredAt: new Date(), handshakeAt: new Date(), lastSyncedAt: new Date() },
+      { id: "conn_ana_codex", raceProjectId: "rp_ana", ownerUserId: "user_rider_2", caType: "codex", connectorId: "codex-demo", connectorVersion: "0.1.0", externalProjectRef: "localjoy", ingestionStatus: "connected", registeredAt: new Date(), handshakeAt: new Date() }
     ]
   });
 

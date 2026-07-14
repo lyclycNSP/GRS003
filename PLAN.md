@@ -29,6 +29,7 @@
 | `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 已完成运维入口并迁入 `web/`：备份、事故、fallback、归档记录；真实值守和回滚待生产环境接入。 | `web/app/ops/page.tsx`、`web/lib/domain.ts`、`docs/ary-release-ops-plan.md` |
 | `WEB-1` 高保真前端 + 服务端领域动作正式集成 | 已迁入DEV-2/DEV-3页面闭环：Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口，并接入Prisma数据、OAuth fallback、Server Actions和领域测试。 | `web/README.md`、`web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
 | `WEB-1 角色数据流与调试能力修正` | 已完成：Console 改为 Race-scoped，Debug Login 支持角色隔离，Award/Work/Results 公共边界和 Screen Console 权限已收口，Judge 提交有保存反馈。 | `docs/ary-role-flow-playwright-audit.md`、`web/app/console/page.tsx`、`web/lib/queries.ts`、`web/tests/domain.test.ts` |
+| `WEB-2 Rider 团队参赛功能` | 已完成：Rider View 支持创建团队、邀请码加入、队长提交团队报名；团队报名经 Organizer 审核后生成 RaceProject；TeamMember 可为团队 RaceProject 接入自己的 CAConnection，团队 Work 由队长统一提交。 | `web/app/console/page.tsx`、`web/lib/domain.ts`、`web/prisma/schema.prisma`、`web/tests/domain.test.ts`、`docs/ary-permission-matrix.md` |
 
 ## 近期里程碑
 

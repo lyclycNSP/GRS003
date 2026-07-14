@@ -75,7 +75,7 @@ DEV-2 / DEV-3 的高保真页面与交互已迁入 `web/`；DEV-4 到 REL-1 已�
 ### Console / Domain Actions
 
 * Organizer View：Race 创建/发布、报名审核、RaceProject 幂等生成、CAConnection 禁用、作品公开、Judge 分配、Award 发布、Report 生成/失败/编辑/重跑/发布、Projection 重建与失败隔离。
-* Rider View：查看自己的 Registration、RaceProject、CAConnection、Work 状态，登记/握手 CAConnection，接入合法 CA Signal，提交 Work。
+* Rider View：查看自己的个人或团队 Registration、RaceProject、CAConnection、Work 状态；可个人报名、创建团队、通过邀请码加入团队、提交团队报名；审核通过后可登记/握手 CAConnection、接入合法 CA Signal，队长可提交团队 Work。
 * Judge View：查看分配作品并进入 Judge View 提交评分。
 * Admin Console：维护 `User.roles`。
 * Screen：`/screen` 控制大屏模式，`/screen/display` 输出现场展示。
@@ -83,8 +83,8 @@ DEV-2 / DEV-3 的高保真页面与交互已迁入 `web/`；DEV-4 到 REL-1 已�
 
 ### Data / APIs / Tests
 
-* Prisma + SQLite 覆盖 User、AuthAccount、Race、Registration、RaceProject、CAConnection、Session、Work、Evidence、ReviewFlag、JudgeAssignment、JudgingRecord、Award、Report、Projection、Announcement、ScreenState、Backup、Incident、ReleaseChecklistItem。
+* Prisma + SQLite 覆盖 User、AuthAccount、Race、Team、TeamMember、Registration、RaceProject、CAConnection、Session、Work、Evidence、ReviewFlag、JudgeAssignment、JudgingRecord、Award、Report、Projection、Announcement、ScreenState、Backup、Incident、ReleaseChecklistItem。
 * Public API 覆盖 races、race detail、live、works、results、review、screen、work detail、rider detail。
-* 领域测试覆盖 Race 创建/发布、重复报名、RaceProject 幂等、权限拒绝、Profile Completion、Admin roles、Work/Judge、CA 合法/非法/禁用接入、Projection 失败隔离、Screen mode、Report 可见性/失败重跑/编辑发布和 P0 回归。
+* 领域测试覆盖 Race 创建/发布、重复报名、团队创建/加入/提交/共享 CA 接入、RaceProject 幂等、权限拒绝、Profile Completion、Admin roles、Work/Judge、CA 合法/非法/禁用接入、Projection 失败隔离、Screen mode、Report 可见性/失败重跑/编辑发布和 P0 回归。
 
 根目录旧 `app/` 静态 MVP 已删除；`design-prototype/` 保留为历史原型与视觉迁移来源。

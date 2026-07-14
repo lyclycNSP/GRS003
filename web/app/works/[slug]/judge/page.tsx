@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getWorkBySlug } from "@/lib/queries";
+import { getEntrantDisplay, getWorkBySlug } from "@/lib/queries";
 import { submitJudgingRecordAction } from "@/app/actions";
 
 export default async function WorkJudgePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ saved?: string }> }) {
@@ -9,7 +9,7 @@ export default async function WorkJudgePage({ params, searchParams }: { params: 
   const work = await getWorkBySlug(slug, { includeReviewOnly: true });
   if (!work) notFound();
   const race = work.registration.race;
-  const rider = work.registration.user;
+  const entrant = getEntrantDisplay(work.registration);
   const assignment = work.assignments[0];
   const review = assignment?.judgingRecord;
   return (
@@ -17,7 +17,7 @@ export default async function WorkJudgePage({ params, searchParams }: { params: 
       <section className="work-detail-hero work-judge-hero" style={{ position: "relative", inset: "auto", marginBottom: 24 }}>
         <p className="section-kicker">{race.title} / {work.title} / Judge View</p>
         <h1>{work.title}</h1>
-        <p className="module-summary">评审席视角：{rider.displayName} 的作品已提交，Demo、Repo 与 Riding Evidence 摘要可被评审席查看。</p>
+        <p className="module-summary">评审席视角：{entrant.name} 的作品已提交，Demo、Repo 与 Riding Evidence 摘要可被评审席查看。</p>
         {saved === "1" ? <p className="status-pill good">JudgingRecord 已保存，Assignment 状态已更新。</p> : null}
         <div className="work-detail-actions work-judge-actions">
           <a href={work.demoUrl ?? "#"}>打开 Demo</a>
