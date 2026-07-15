@@ -42,6 +42,8 @@ jobs:
       - run: npm run check:static
       - run: npm run typecheck
       - run: npm test
+      - name: Prepare production track asset root
+        run: mkdir -p "$RUNNER_TEMP/ary-track-assets"
       - name: Validate production security configuration
         run: npm run check:production-config
         env:
@@ -52,10 +54,12 @@ jobs:
           ENABLE_DEBUG_LOGIN: "false"
           DEFAULT_CA_CONNECTOR_ID: ci-connector
           CA_CONNECTOR_KEYS: '{"ci-connector":{"keyId":"ci-key","secret":"01234567890123456789012345678901"}}'
+          TRACK_ASSET_ROOT: ${{ runner.temp }}/ary-track-assets
       - run: npm run prisma:generate
       - run: npm run build
         env:
           DATABASE_URL: postgresql://ary:test@db.invalid/ary
+          TRACK_ASSET_ROOT: ${{ runner.temp }}/ary-track-assets
 
   browser-e2e:
     name: Playwright browser E2E
