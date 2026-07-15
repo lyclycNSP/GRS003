@@ -8,26 +8,28 @@ datasource db {
 }
 
 model User {
-  id                    String                  @id
-  slug                  String                  @unique
+  id                    String                    @id
+  slug                  String                    @unique
   displayName           String
   githubLogin           String?
-  profileCompleted      Boolean                 @default(false)
+  profileCompleted      Boolean                   @default(false)
   rolesJson             String
   city                  String?
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
   authAccounts          AuthAccount[]
   authSessions          AuthSession[]
   registrations         Registration[]
-  createdRaces          Race[]                  @relation("RaceCreator")
-  judgeAssignments      JudgeAssignment[]       @relation("JudgeAssignments")
-  lockedSubmissionRaces Race[]                  @relation("SubmissionLocker")
-  submittedWorkVersions WorkSubmissionVersion[] @relation("WorkVersionSubmitter")
-  submissionAuditEvents SubmissionAuditEvent[]  @relation("SubmissionAuditActor")
-  createdTeams          Team[]                  @relation("TeamCreator")
+  createdRaces          Race[]                    @relation("RaceCreator")
+  judgeAssignments      JudgeAssignment[]         @relation("JudgeAssignments")
+  lockedSubmissionRaces Race[]                    @relation("SubmissionLocker")
+  submittedWorkVersions WorkSubmissionVersion[]   @relation("WorkVersionSubmitter")
+  submissionAuditEvents SubmissionAuditEvent[]    @relation("SubmissionAuditActor")
+  createdTeams          Team[]                    @relation("TeamCreator")
   teamMemberships       TeamMember[]
-  caConnections         CAConnection[]          @relation("CAConnectionOwner")
+  caConnections         CAConnection[]            @relation("CAConnectionOwner")
+  screenControlEvents   ScreenControlAuditEvent[] @relation("ScreenControlActor")
+  publishedTrackVersions TrackProfileVersion[]    @relation("TrackVersionPublisher")
 }
 
 model AuthSession {
@@ -56,8 +58,8 @@ model AuthAccount {
 }
 
 model Race {
-  id                       String                 @id
-  slug                     String                 @unique
+  id                       String                    @id
+  slug                     String                    @unique
   title                    String
   status                   String
   visibility               String
@@ -69,15 +71,15 @@ model Race {
   rulesJson                String
   metricsJson              String
   createdByUserId          String
-  createdAt                DateTime               @default(now())
+  createdAt                DateTime                  @default(now())
   archivedAt               DateTime?
   submissionOpensAt        DateTime?
   submissionClosesAt       DateTime?
   submissionLockedAt       DateTime?
   submissionLockedByUserId String?
   submissionLockReason     String?
-  createdBy                User                   @relation("RaceCreator", fields: [createdByUserId], references: [id])
-  submissionLockedBy       User?                  @relation("SubmissionLocker", fields: [submissionLockedByUserId], references: [id], onDelete: SetNull)
+  createdBy                User                      @relation("RaceCreator", fields: [createdByUserId], references: [id])
+  submissionLockedBy       User?                     @relation("SubmissionLocker", fields: [submissionLockedByUserId], references: [id], onDelete: SetNull)
   registrations            Registration[]
   teams                    Team[]
   awards                   Award[]
@@ -89,6 +91,9 @@ model Race {
   releaseItems             ReleaseChecklistItem[]
   screenState              ScreenState?
   submissionAuditEvents    SubmissionAuditEvent[]
+  raceRounds               RaceRound[]
+  trackProfiles            TrackProfile[]
+  screenControlEvents      ScreenControlAuditEvent[]
 }
 
 model Team {
@@ -140,6 +145,7 @@ model Registration {
   awards                Award[]
   reports               Report[]
   submissionAuditEvents SubmissionAuditEvent[]
+  raceRoundEntries      RaceRoundEntry[]
 
   @@unique([raceId, userId])
 }
@@ -156,6 +162,80 @@ model RaceProject {
   registration             Registration   @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   caConnections            CAConnection[]
   reviewFlags              ReviewFlag[]
+}
+
+model TrackProfile {
+  id        String                @id
+  trackId   String                @unique
+  raceId    String?
+  name      String
+  scope     String                @default("system")
+  createdAt DateTime              @default(now())
+  race      Race?                 @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  versions  TrackProfileVersion[]
+
+  @@index([raceId])
+}
+
+model TrackProfileVersion {
+  id                 String       @id
+  trackId            String
+  version            String
+  status             String
+  schemaVersion      String
+  profileJson        String
+  checksum           String
+  backgroundAssetRef String
+  publishRequestId   String?      @unique
+  profileHash        String?
+  backgroundHash     String?
+  validationReportJson String?
+  publishedByUserId  String?
+  createdAt          DateTime     @default(now())
+  publishedAt        DateTime?
+  track              TrackProfile @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
+  publishedBy        User?         @relation("TrackVersionPublisher", fields: [publishedByUserId], references: [id], onDelete: SetNull)
+  raceRounds         RaceRound[]
+
+  @@unique([trackId, version])
+  @@index([status])
+  @@index([publishedByUserId])
+}
+
+model RaceRound {
+  id                    String              @id
+  raceId                String
+  trackProfileVersionId String
+  name                  String
+  order                 Int
+  status                String
+  scheduledStartAt      DateTime
+  scheduledEndAt        DateTime
+  actualStartedAt       DateTime?
+  actualEndedAt         DateTime?
+  createdAt             DateTime            @default(now())
+  race                  Race                @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  trackProfileVersion   TrackProfileVersion @relation(fields: [trackProfileVersionId], references: [id])
+  entries               RaceRoundEntry[]
+  screenStates          ScreenState[]
+
+  @@unique([raceId, order])
+  @@index([trackProfileVersionId])
+}
+
+model RaceRoundEntry {
+  id             String       @id
+  raceRoundId    String
+  registrationId String
+  displayOrder   Int
+  status         String       @default("active")
+  createdAt      DateTime     @default(now())
+  raceRound      RaceRound    @relation(fields: [raceRoundId], references: [id], onDelete: Cascade)
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@unique([raceRoundId, registrationId])
+  @@unique([raceRoundId, displayOrder])
+  @@index([registrationId])
 }
 
 model CAConnection {
@@ -380,14 +460,22 @@ model Report {
 }
 
 model Projection {
-  id              String   @id
+  id              String        @id
   raceId          String
   type            String
   status          String
   payloadJson     String
   stableVersionId String?
   lastRebuiltAt   DateTime
-  race            Race     @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  schemaVersion   String?
+  sequence        Int?
+  generatedAt     DateTime?
+  sourceWatermark String?
+  payloadHash     String?
+  race            Race          @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  screenStates    ScreenState[]
+
+  @@unique([raceId, type, sequence])
 }
 
 model Announcement {
@@ -401,12 +489,43 @@ model Announcement {
 }
 
 model ScreenState {
-  id              String   @id
-  raceId          String   @unique
-  mode            String
-  fallbackEnabled Boolean  @default(false)
-  updatedAt       DateTime @updatedAt
-  race            Race     @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  id                      String                    @id
+  raceId                  String                    @unique
+  mode                    String
+  fallbackEnabled         Boolean                   @default(false)
+  currentRoundId          String?
+  stableProjectionId      String?
+  activeGroupOrder        Int                       @default(1)
+  autoRotateEnabled       Boolean                   @default(true)
+  rotationIntervalSeconds Int                       @default(15)
+  rotationEpochAt         DateTime                  @default(now())
+  rotationPausedAt        DateTime?
+  controlVersion          Int                       @default(0)
+  updatedAt               DateTime                  @updatedAt
+  race                    Race                      @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  currentRound            RaceRound?                @relation(fields: [currentRoundId], references: [id], onDelete: SetNull)
+  stableProjection        Projection?               @relation(fields: [stableProjectionId], references: [id], onDelete: SetNull)
+  controlEvents           ScreenControlAuditEvent[]
+
+  @@index([currentRoundId])
+  @@index([stableProjectionId])
+}
+
+model ScreenControlAuditEvent {
+  id            String       @id
+  raceId        String
+  screenStateId String?
+  actorUserId   String
+  action        String
+  reason        String?
+  payloadJson   String
+  createdAt     DateTime     @default(now())
+  race          Race         @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  screenState   ScreenState? @relation(fields: [screenStateId], references: [id], onDelete: SetNull)
+  actor         User         @relation("ScreenControlActor", fields: [actorUserId], references: [id])
+
+  @@index([raceId, createdAt])
+  @@index([actorUserId])
 }
 
 model Backup {

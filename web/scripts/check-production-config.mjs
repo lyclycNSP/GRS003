@@ -1,7 +1,9 @@
 import process from "node:process";
+import fs from "node:fs";
+import path from "node:path";
 
 const errors = [];
-const required = ["DATABASE_URL", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "NEXT_PUBLIC_APP_URL", "CA_CONNECTOR_KEYS", "DEFAULT_CA_CONNECTOR_ID"];
+const required = ["DATABASE_URL", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "NEXT_PUBLIC_APP_URL", "CA_CONNECTOR_KEYS", "DEFAULT_CA_CONNECTOR_ID", "TRACK_ASSET_ROOT"];
 for (const name of required) {
   if (!process.env[name]) errors.push(`${name} is required`);
 }
@@ -18,6 +20,13 @@ if ((process.env.DATABASE_URL ?? "").startsWith("file:")) {
   errors.push("production DATABASE_URL must use a managed database, not SQLite");
 }
 if (process.env.ENABLE_DEBUG_LOGIN === "true") errors.push("ENABLE_DEBUG_LOGIN must be false in production");
+
+if (process.env.TRACK_ASSET_ROOT) {
+  const root = path.resolve(process.env.TRACK_ASSET_ROOT);
+  const sourceRoot = path.resolve(process.cwd());
+  if (root === sourceRoot || root.startsWith(`${sourceRoot}${path.sep}`)) errors.push("TRACK_ASSET_ROOT must be outside the source directory in production");
+  try { fs.accessSync(root, fs.constants.W_OK); } catch { errors.push("TRACK_ASSET_ROOT must exist and be writable"); }
+}
 
 try {
   const keys = JSON.parse(process.env.CA_CONNECTOR_KEYS ?? "{}");

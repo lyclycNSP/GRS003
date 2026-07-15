@@ -945,37 +945,79 @@ export async function simulateProjectionFailure(ctx: AuthContext | null, raceId:
   return ok("Projection失败已隔离，stable版本未被覆盖", projection.id);
 }
 
-export async function switchScreenMode(ctx: AuthContext | null, raceId: string, mode: string): Promise<Result> {
+export async function switchScreenMode(ctx: AuthContext | null, raceId: string, mode: string, reason?: string): Promise<Result> {
   requireManagedRace(ctx, raceId);
-  const allowed = ["live", "leaderboard", "works", "announcement", "fallback"];
+  if (ctx!.roles.includes("admin") && !ctx!.managedRaceIds.includes(raceId) && !reason?.trim()) return fail("Admin跨Race操作必须填写原因");
+  const allowed = ["live", "leaderboard", "works", "announcement"];
   if (!allowed.includes(mode)) return fail("Screen mode不合法");
-  const state = await prisma.screenState.upsert({
-    where: { raceId },
-    update: { mode, fallbackEnabled: mode === "fallback" },
-    create: { id: makeId("screen"), raceId, mode, fallbackEnabled: mode === "fallback" }
+  const state = await prisma.$transaction(async (tx) => {
+    const updated = await tx.screenState.upsert({
+      where: { raceId },
+      update: { mode, controlVersion: { increment: 1 } },
+      create: { id: makeId("screen"), raceId, mode, fallbackEnabled: false }
+    });
+    await tx.screenControlAuditEvent.create({ data: { id: makeId("screen-audit"), raceId, screenStateId: updated.id, actorUserId: ctx!.userId, action: "mode_changed", reason: reason?.trim() || null, payloadJson: JSON.stringify({ mode }) } });
+    return updated;
   });
   return ok("Screen mode已切换", state.id);
 }
 
-export async function toggleScreenFallback(ctx: AuthContext | null, raceId: string, enabled: boolean): Promise<Result> {
+export async function toggleScreenFallback(ctx: AuthContext | null, raceId: string, enabled: boolean, reason?: string): Promise<Result> {
   requireManagedRace(ctx, raceId);
-  const state = await prisma.screenState.upsert({
-    where: { raceId },
-    update: { fallbackEnabled: enabled, mode: enabled ? "fallback" : "live" },
-    create: { id: makeId("screen"), raceId, mode: enabled ? "fallback" : "live", fallbackEnabled: enabled }
+  if (ctx!.roles.includes("admin") && !ctx!.managedRaceIds.includes(raceId) && !reason?.trim()) return fail("Admin跨Race操作必须填写原因");
+  const state = await prisma.$transaction(async (tx) => {
+    const updated = await tx.screenState.upsert({
+      where: { raceId },
+      update: { fallbackEnabled: enabled, controlVersion: { increment: 1 } },
+      create: { id: makeId("screen"), raceId, mode: "live", fallbackEnabled: enabled }
+    });
+    await tx.screenControlAuditEvent.create({ data: { id: makeId("screen-audit"), raceId, screenStateId: updated.id, actorUserId: ctx!.userId, action: enabled ? "fallback_enabled" : "fallback_disabled", reason: reason?.trim() || null, payloadJson: JSON.stringify({ fallbackEnabled: enabled, mode: updated.mode }) } });
+    return updated;
   });
   return ok(enabled ? "Screen fallback已开启" : "Screen fallback已关闭", state.id);
 }
 
-export async function publishAnnouncement(ctx: AuthContext | null, input: { raceId: string; title: string; body: string }): Promise<Result> {
+export async function publishAnnouncement(ctx: AuthContext | null, input: { raceId: string; title: string; body: string; reason?: string }): Promise<Result> {
   requireManagedRace(ctx, input.raceId);
+  if (ctx!.roles.includes("admin") && !ctx!.managedRaceIds.includes(input.raceId) && !input.reason?.trim()) return fail("Admin跨Race操作必须填写原因");
   const title = input.title.trim();
   if (!title) return fail("公告标题不能为空");
-  const announcement = await prisma.announcement.create({
-    data: { id: makeId("ann"), raceId: input.raceId, title, body: input.body.trim(), visibility: "public", publishedAt: new Date() }
+  const announcement = await prisma.$transaction(async (tx) => {
+    const created = await tx.announcement.create({
+      data: { id: makeId("ann"), raceId: input.raceId, title, body: input.body.trim(), visibility: "public", publishedAt: new Date() }
+    });
+    const state = await tx.screenState.upsert({
+      where: { raceId: input.raceId },
+      update: { mode: "announcement", controlVersion: { increment: 1 } },
+      create: { id: makeId("screen"), raceId: input.raceId, mode: "announcement", fallbackEnabled: false }
+    });
+    await tx.screenControlAuditEvent.create({ data: { id: makeId("screen-audit"), raceId: input.raceId, screenStateId: state.id, actorUserId: ctx!.userId, action: "announcement_published", reason: input.reason?.trim() || null, payloadJson: JSON.stringify({ announcementId: created.id, mode: "announcement" }) } });
+    return created;
   });
-  await switchScreenMode(ctx, input.raceId, "announcement");
   return ok("公告已发布", announcement.id);
+}
+
+export async function bindTrackVersionToRound(ctx: AuthContext | null, input: { raceRoundId: string; trackProfileVersionId: string }): Promise<Result> {
+  requireAuth(ctx);
+  const round = await prisma.raceRound.findUnique({ where: { id: input.raceRoundId } });
+  if (!round) return fail("RaceRound不存在");
+  requireManagedRace(ctx, round.raceId);
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const currentRound = await tx.raceRound.findUnique({ where: { id: input.raceRoundId } });
+      if (!currentRound || currentRound.status !== "pending") return fail("只有pending Round可绑定赛道版本");
+      const version = await tx.trackProfileVersion.findUnique({ where: { id: input.trackProfileVersionId }, include: { track: true } });
+      if (!version || version.status !== "published") return fail("只能绑定published Track版本");
+      if (version.track.raceId && version.track.raceId !== currentRound.raceId) return fail("Race Track不能跨Race绑定");
+      const updated = await tx.raceRound.updateMany({ where: { id: currentRound.id, status: "pending" }, data: { trackProfileVersionId: version.id } });
+      if (updated.count !== 1) return fail("Round状态已变化，请刷新后重试");
+      await tx.screenControlAuditEvent.create({ data: { id: makeId("track-audit"), raceId: currentRound.raceId, actorUserId: ctx!.userId, action: "round_track_bound", payloadJson: JSON.stringify({ raceRoundId: currentRound.id, trackProfileVersionId: version.id }) } });
+      return ok("Round赛道版本已绑定", currentRound.id);
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") return fail("Round绑定并发冲突，请重试");
+    throw error;
+  }
 }
 export async function createBackup(ctx: AuthContext | null, raceId: string, scope = "race_day_core"): Promise<Result> {
   requireManagedRace(ctx, raceId);

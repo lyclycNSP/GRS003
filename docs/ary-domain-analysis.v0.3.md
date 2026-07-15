@@ -965,3 +965,21 @@ classDiagram
 | screen_feed_projection 应区分 feed item 类型 | 大屏可显示 current_leaderboard_projection 或 leaderboard_read_model，但二者不能混为同一种结果事实 |
 | Report 是评审后结果和总结 | 不用于表达实时过程状态 |
 | managed race 由 Race 与 Organizer User 的关系判定 | MVP 不引入 Organization；可由 Race 上的 organizer 用户集合或创建者关系表达 |
+## Race Live 领域补充（2026-07-14）
+
+- `RaceRound` 表达 Race 内的结构化轮次；`RaceRoundEntry` 将 approved Registration 固定到 Round，按 `displayOrder + id` 稳定排序。
+- 同一 Round 由 `ScreenDisplayGroup` 每 8 人切组，分组不是新的 Round。
+- `TrackProfileVersion` 是服务端不可变赛道事实；RaceRound 显式绑定一个 published 版本。
+- `AryRaceLiveProjectionBuilder` 将 ARY 领域事实转换为 `AryRaceLiveSnapshot`；`RaceLiveViewModelMapper` 只做展示映射。
+- 公共快照不包含 Coach、Cockpit、内部用户 ID、connector/signing key、原始 Session 或 ReviewFlag 内部摘要。
+
+## Race Live 与 Track Calibrator 增量模型
+
+* `TrackProfile` 是赛道身份与 scope（system / race）的根；`TrackProfileVersion` 是不可覆盖的发布事实，包含 Profile hash、背景 hash、公开资产引用、发布请求身份和发布人。
+* `RaceRound` 显式绑定一个 published `TrackProfileVersion`；只有 pending Round 可调整绑定，running / finished Round 保持赛道版本稳定。
+* `RaceRoundEntry` 属于一个 Round；Projection Builder 只接收同 Race、approved Registration 的 active Entry，并按每组最多 8 个生成 `DisplayGroup`。
+* `ScreenState` 保存 mode、fallback 数据源开关、稳定 Projection、当前 Round、组序和轮播 epoch；`fallbackEnabled` 不是额外 mode。
+* `ScreenControlAuditEvent` 追加记录模式、fallback、轮播和 Round 赛道绑定控制，不进入 Public DTO。
+* `CalibratorDraft` 是浏览器本地创作对象，不是服务端领域实体；发布成功后形成 `TrackProfileVersion` 才进入 ARY 事实源。
+
+GRS003 直接消费自身的 Track/Profile/Projection 模型，不保留 `GRS003Adapter` 作为运行时边界。GRS002 命名只在迁移来源与历史文档中保留；Coach/Cockpit 不属于 ARY 聚合。

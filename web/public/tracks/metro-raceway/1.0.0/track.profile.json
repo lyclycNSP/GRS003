@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "1.0.0",
+  "trackId": "metro-raceway",
+  "version": "1.0.0",
+  "name": "Metro Raceway",
+  "status": "published",
+  "viewBox": {
+    "width": 1600,
+    "height": 900
+  },
+  "background": {
+    "assetId": "metro-raceway-background-1.0.0",
+    "fileName": "background.webp",
+    "width": 1600,
+    "height": 900,
+    "checksum": "sha256:cb52f18fc1084be220db74372346d8b625630d040e3af34581f46a18f8d74047"
+  },
+  "centerline": {
+    "type": "polyline",
+    "closed": true,
+    "points": [
+      { "x": 105, "y": 480 },
+      { "x": 205, "y": 420 },
+      { "x": 465, "y": 378 },
+      { "x": 800, "y": 365 },
+      { "x": 1135, "y": 382 },
+      { "x": 1395, "y": 445 },
+      { "x": 1470, "y": 510 },
+      { "x": 1370, "y": 570 },
+      { "x": 1060, "y": 610 },
+      { "x": 710, "y": 625 },
+      { "x": 375, "y": 600 },
+      { "x": 150, "y": 535 }
+    ],
+    "smoothing": 0.65
+  },
+  "direction": "clockwise",
+  "startFinish": {
+    "s": 0.03,
+    "startDisplayOffset": -0.012,
+    "finishDisplayOffset": 0.012
+  },
+  "lanes": [
+    { "laneId": "lane-1", "offset": -28, "displayOrder": 1 },
+    { "laneId": "lane-2", "offset": -20, "displayOrder": 2 },
+    { "laneId": "lane-3", "offset": -12, "displayOrder": 3 },
+    { "laneId": "lane-4", "offset": -4, "displayOrder": 4 },
+    { "laneId": "lane-5", "offset": 4, "displayOrder": 5 },
+    { "laneId": "lane-6", "offset": 12, "displayOrder": 6 },
+    { "laneId": "lane-7", "offset": 20, "displayOrder": 7 },
+    { "laneId": "lane-8", "offset": 28, "displayOrder": 8 }
+  ],
+  "checkpoints": [
+    { "checkpointId": "north-turn", "label": "北侧弯道", "s": 0.25 },
+    { "checkpointId": "back-straight", "label": "后直道", "s": 0.5 },
+    { "checkpointId": "south-turn", "label": "南侧弯道", "s": 0.75 }
+  ],
+  "messageZones": [
+    {
+      "zoneId": "left-infield",
+      "polygon": [
+        { "x": 190, "y": 245 },
+        { "x": 650, "y": 245 },
+        { "x": 650, "y": 405 },
+        { "x": 250, "y": 420 }
+      ],
+      "priority": 1
+    },
+    {
+      "zoneId": "right-infield",
+      "polygon": [
+        { "x": 900, "y": 245 },
+        { "x": 1410, "y": 245 },
+        { "x": 1340, "y": 430 },
+        { "x": 930, "y": 405 }
+      ],
+      "priority": 2
+    },
+    {
+      "zoneId": "center-infield",
+      "polygon": [
+        { "x": 560, "y": 390 },
+        { "x": 1060, "y": 390 },
+        { "x": 1080, "y": 545 },
+        { "x": 540, "y": 545 }
+      ],
+      "priority": 3
+    }
+  ],
+  "noBubbleZones": [
+    {
+      "zoneId": "header-safe-zone",
+      "polygon": [
+        { "x": 0, "y": 0 },
+        { "x": 1600, "y": 0 },
+        { "x": 1600, "y": 190 },
+        { "x": 0, "y": 190 }
+      ],
+      "reason": "保留给 Jumbotron Header、TOP3 和 KPI"
+    },
+    {
+      "zoneId": "ticker-safe-zone",
+      "polygon": [
+        { "x": 0, "y": 790 },
+        { "x": 1600, "y": 790 },
+        { "x": 1600, "y": 900 },
+        { "x": 0, "y": 900 }
+      ],
+      "reason": "保留给 Attention Ticker 和 Footer"
+    }
+  ],
+  "createdAt": "2026-06-11T06:00:00.000Z",
+  "updatedAt": "2026-06-13T10:30:00.000Z",
+  "publishedAt": "2026-06-11T06:00:00.000Z"
+}

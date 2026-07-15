@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "1.0.0",
+  "trackId": "coastal-circuit",
+  "version": "1.0.0",
+  "name": "Coastal Circuit",
+  "status": "published",
+  "viewBox": {
+    "width": 1600,
+    "height": 900
+  },
+  "background": {
+    "assetId": "coastal-circuit-background-1.0.0",
+    "fileName": "background.webp",
+    "width": 1600,
+    "height": 900,
+    "checksum": "sha256:5aa1d339b00947446a31a123f972687a089208764f1da8b1d9c0d5bd826ec7aa"
+  },
+  "centerline": {
+    "type": "polyline",
+    "closed": true,
+    "points": [
+      { "x": 82, "y": 600 },
+      { "x": 125, "y": 545 },
+      { "x": 285, "y": 510 },
+      { "x": 620, "y": 485 },
+      { "x": 1060, "y": 465 },
+      { "x": 1375, "y": 480 },
+      { "x": 1480, "y": 520 },
+      { "x": 1480, "y": 565 },
+      { "x": 1400, "y": 595 },
+      { "x": 1060, "y": 610 },
+      { "x": 625, "y": 625 },
+      { "x": 235, "y": 640 },
+      { "x": 100, "y": 625 }
+    ],
+    "smoothing": 0.62
+  },
+  "direction": "clockwise",
+  "startFinish": {
+    "s": 0.965,
+    "startDisplayOffset": -0.012,
+    "finishDisplayOffset": 0.012
+  },
+  "lanes": [
+    { "laneId": "lane-1", "offset": -28, "displayOrder": 1 },
+    { "laneId": "lane-2", "offset": -20, "displayOrder": 2 },
+    { "laneId": "lane-3", "offset": -12, "displayOrder": 3 },
+    { "laneId": "lane-4", "offset": -4, "displayOrder": 4 },
+    { "laneId": "lane-5", "offset": 4, "displayOrder": 5 },
+    { "laneId": "lane-6", "offset": 12, "displayOrder": 6 },
+    { "laneId": "lane-7", "offset": 20, "displayOrder": 7 },
+    { "laneId": "lane-8", "offset": 28, "displayOrder": 8 }
+  ],
+  "checkpoints": [
+    { "checkpointId": "west-sweep", "label": "西侧大弯", "s": 0.2 },
+    { "checkpointId": "coastal-straight", "label": "海岸长直道", "s": 0.5 },
+    { "checkpointId": "east-bend", "label": "东侧回头弯", "s": 0.78 }
+  ],
+  "messageZones": [
+    {
+      "zoneId": "left-infield",
+      "polygon": [
+        { "x": 200, "y": 520 },
+        { "x": 560, "y": 515 },
+        { "x": 560, "y": 660 },
+        { "x": 220, "y": 660 }
+      ],
+      "priority": 1
+    },
+    {
+      "zoneId": "center-marsh",
+      "polygon": [
+        { "x": 635, "y": 505 },
+        { "x": 1010, "y": 500 },
+        { "x": 1010, "y": 650 },
+        { "x": 635, "y": 650 }
+      ],
+      "priority": 2
+    },
+    {
+      "zoneId": "right-infield",
+      "polygon": [
+        { "x": 1045, "y": 515 },
+        { "x": 1360, "y": 515 },
+        { "x": 1360, "y": 650 },
+        { "x": 1060, "y": 650 }
+      ],
+      "priority": 3
+    }
+  ],
+  "noBubbleZones": [
+    {
+      "zoneId": "header-safe-zone",
+      "polygon": [
+        { "x": 0, "y": 0 },
+        { "x": 1600, "y": 0 },
+        { "x": 1600, "y": 210 },
+        { "x": 0, "y": 210 }
+      ],
+      "reason": "保留给 Jumbotron Header、TOP3 和 KPI"
+    },
+    {
+      "zoneId": "ticker-safe-zone",
+      "polygon": [
+        { "x": 0, "y": 790 },
+        { "x": 1600, "y": 790 },
+        { "x": 1600, "y": 900 },
+        { "x": 0, "y": 900 }
+      ],
+      "reason": "保留给 Attention Ticker 和 Footer"
+    }
+  ],
+  "createdAt": "2026-06-11T15:45:00.000Z",
+  "updatedAt": "2026-06-13T10:30:00.000Z",
+  "publishedAt": "2026-06-11T15:45:00.000Z"
+}

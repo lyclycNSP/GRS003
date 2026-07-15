@@ -143,6 +143,14 @@ CA 证据链与作品提交链是两套独立控制。本基线对作品提交�
 
 这套控制保证 ARY 数据库内的提交版本可追溯、冻结后评审对象稳定、公开元数据可复算；它不证明 GitHub commit 在线存在或内容安全。
 
+## 3.8 Track Calibrator 与赛道资产
+
+* IndexedDB Draft、背景 Blob 和本地校验报告不是 ARY 服务端事实源；清除浏览器站点数据会丢失未导出 Draft。
+* 发布入口重新校验身份和 managed Race；只有 Admin 可发布 system Track，Organizer 只能发布自己 Race 的 Track。
+* Profile JSON 上限 1 MiB；背景上限 20 MiB，只接受内容匹配的 WebP/PNG/JPEG，尺寸不超过 4096，并要求服务端 SHA-256、像素尺寸与 Profile 声明一致。
+* 服务端生成资产 key，不使用客户端文件名拼路径；`publishRequestId`、`trackId + version` 唯一，已发布 TrackProfileVersion 不提供覆盖或删除动作。
+* production 的 `TRACK_ASSET_ROOT` 必须位于源码目录外、持久且可写；数据库只保存资产引用和 hash，不保存背景 Base64。
+
 ---
 
 # 4. 生产环境变量
@@ -156,6 +164,7 @@ CA 证据链与作品提交链是两套独立控制。本基线对作品提交�
 | `ENABLE_DEBUG_LOGIN` | 必须为 `false` 或不设置 |
 | `DEFAULT_CA_CONNECTOR_ID` | 默认登记 connector，必须存在于 key map |
 | `CA_CONNECTOR_KEYS` | JSON key map；每个 secret 至少 32 个高熵字符 |
+| `TRACK_ASSET_ROOT` | 源码目录外的持久、可写赛道资产根目录 |
 
 示例仅表达结构，不得把示例值用于正式赛事：
 

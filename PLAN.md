@@ -4,15 +4,17 @@
 
 ## 当前阶段
 
-ARY 已完成 PRD / UX / 领域模型 / 本地 MVP、WEB-1 全角色 E2E / CI，以及 SEC-1 代码级安全基线。Racer 作品提交完整性代码基线已落地不可变版本、UTC 提交窗口、全场冻结、commit SHA / canonical hash、审计事件和评审版本绑定；一次性 PostgreSQL migration deploy 仍待具备数据库环境后验收。
+ARY 已完成 PRD / UX / 领域模型 / 本地 MVP、WEB-1 全角色 E2E / CI，以及 SEC-1 代码级安全基线。Racer 作品提交完整性、Race Live 与 Track Calibrator 本地代码基线均已通过完整质量门；一次性 PostgreSQL 16 已验证全新库和已有 Race Live 基线库升级。真实 staging / production 证据仍未取得。
 
-当前从“代码级正式工程化”进入“真实环境验收”。仓库尚未取得生产 TLS、托管 PostgreSQL、真实 OAuth App、正式 CA 凭据、备份恢复、WAF / 限流、监控和 staging 彩排证据，真实赛事继续保持 no-go。
+当前从“代码级正式工程化”进入“真实环境验收”。Race Live 与 Track Calibrator 已并入同一 ARY Next.js 应用，本地草稿使用浏览器 IndexedDB，服务端发布形成不可变 TrackProfileVersion；完整全量回归与 PostgreSQL migration 实库验收仍是收口门禁。仓库尚未取得生产 TLS、托管 PostgreSQL、真实 OAuth App、正式 CA 凭据、备份恢复、WAF / 限流、监控和 staging 彩排证据，真实赛事继续保持 no-go。
 
 ## 当前主线
 
+Race Live 与 Track Calibrator 接入已完成本地实现、独立审查和全量回归。本轮不引入独立 GRS002 服务、Coach/Cockpit 或在线仓库抓取；下一主线回到 Hosted CI 与真实 staging 基础设施验收。
+
 | 优先级 | 工作项 | 目标 | 完成口径 | 下一入口 |
 | --- | --- | --- | --- | --- |
-| P0 | Hosted CI 首次验证 | 确认安全与作品提交完整性基线在远端环境可重复执行 | 静态检查、完整领域/契约测试、类型检查、PostgreSQL migration + production build、生产配置预检和 14 个 E2E 均通过 | `.github/workflows/web-ci.yml`、`web/e2e/`、`web/prisma/migrations/` |
+| P0 | Hosted CI 首次验证 | 确认安全、作品提交、Race Live 与 Track Calibrator 基线在远端环境可重复执行 | 静态检查、完整领域/契约测试、类型检查、PostgreSQL migration + production build、生产配置预检和 18 个 E2E 均通过 | `.github/workflows/web-ci.yml`、`web/e2e/`、`web/prisma/migrations/` |
 | P0 | Staging 基础设施 | 建立托管 PostgreSQL、TLS ingress、secret manager、WAF / 限流、集中日志和监控 | `docs/ary-production-security-baseline.md` 的部署门禁在 staging 有可追溯证据 | `docs/ary-production-security-baseline.md` |
 | P0 | 真实 GitHub OAuth 验收 | 使用真实 OAuth App 验证身份与会话闭环 | state、登录、过期、Logout、角色变化和跨会话策略在 staging 通过 | `web/lib/auth.ts`、`web/app/api/auth/`、`docs/ary-permission-matrix.md` |
 
@@ -22,7 +24,7 @@ ARY 已完成 PRD / UX / 领域模型 / 本地 MVP、WEB-1 全角色 E2E / CI，
 | --- | --- | --- |
 | 1 | 真实 CAConnector | 完成凭据交付、轮换 / 吊销、HTTP snapshot fetch，以及篡改、过期和重放演练 |
 | 2 | 数据可靠性演练 | 完成 migration、备份恢复、回滚和本地 / E2E / staging 数据隔离验证 |
-| 3 | 浏览器与非功能验收 | 在 14 个 E2E 基础上补截图、移动端、弱网、负载和权限负向路径 |
+| 3 | 浏览器与非功能验收 | 在 18 个 E2E 基础上补截图、移动端、弱网、负载和权限负向路径 |
 | 4 | Production go/no-go | 完成 P0 回归、发布检查、回滚彩排、监控和事故响应；任一硬门禁缺失则保持 no-go |
 | 5 | 仓库与 Demo 内容安全 | 在线证明 commit 属于声明仓库，补不可变归档、secret / 依赖扫描、文件杀毒和 Demo 沙箱；与当前格式校验/冻结基线分开立项 |
 

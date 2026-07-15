@@ -15,3 +15,7 @@ export function getAppUrl() {
 export function hasGithubOAuthConfig() {
   return Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
 }
+
+export function getTrackAssetRoot() {
+  return process.env.TRACK_ASSET_ROOT ?? `${process.cwd()}/.data/track-assets`;
+}

@@ -5,8 +5,11 @@ import { redirect } from "next/navigation";
 import { clearSession, getAuthContext } from "@/lib/auth";
 import { createRidingSignalAttestation, type RidingSignalPayload } from "@/lib/ca-attestation";
 import { makeId } from "@/lib/ids";
+import { configureScreenRotation, moveScreenDisplayGroup, pauseScreenRotation, resumeScreenRotation } from "@/lib/race-live/controls";
+import { publishTrackProfileVersion } from "@/lib/track-calibrator/publish";
 import {
   approveRegistration,
+  bindTrackVersionToRound,
   assignJudge,
   createBackup,
   createRace,
@@ -339,14 +342,47 @@ export async function runP0Action(formData: FormData) {
 
 export async function switchScreenModeAction(formData: FormData) {
   const ctx = await getAuthContext();
-  const result = await switchScreenMode(ctx, value(formData, "raceId"), value(formData, "mode"));
+  const result = await switchScreenMode(ctx, value(formData, "raceId"), value(formData, "mode"), value(formData, "reason"));
   refresh("/screen");
   if (!result.ok) redirect(`/screen?error=${encodeURIComponent(result.message)}`);
 }
 
 export async function toggleScreenFallbackAction(formData: FormData) {
   const ctx = await getAuthContext();
-  const result = await toggleScreenFallback(ctx, value(formData, "raceId"), value(formData, "enabled") === "true");
+  const result = await toggleScreenFallback(ctx, value(formData, "raceId"), value(formData, "enabled") === "true", value(formData, "reason"));
+  refresh("/screen");
+  if (!result.ok) redirect(`/screen?error=${encodeURIComponent(result.message)}`);
+}
+
+export async function pauseScreenRotationAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await pauseScreenRotation(ctx, { raceId: value(formData, "raceId"), reason: value(formData, "reason") });
+  refresh("/screen");
+  if (!result.ok) redirect(`/screen?error=${encodeURIComponent(result.message)}`);
+}
+
+export async function resumeScreenRotationAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await resumeScreenRotation(ctx, { raceId: value(formData, "raceId"), reason: value(formData, "reason") });
+  refresh("/screen");
+  if (!result.ok) redirect(`/screen?error=${encodeURIComponent(result.message)}`);
+}
+
+export async function moveScreenDisplayGroupAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const direction = value(formData, "direction") === "previous" ? "previous" : "next";
+  const result = await moveScreenDisplayGroup(ctx, { raceId: value(formData, "raceId"), direction, reason: value(formData, "reason") });
+  refresh("/screen");
+  if (!result.ok) redirect(`/screen?error=${encodeURIComponent(result.message)}`);
+}
+
+export async function configureScreenRotationAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await configureScreenRotation(ctx, {
+    raceId: value(formData, "raceId"),
+    intervalSeconds: Number(value(formData, "intervalSeconds")),
+    reason: value(formData, "reason")
+  });
   refresh("/screen");
   if (!result.ok) redirect(`/screen?error=${encodeURIComponent(result.message)}`);
 }
@@ -356,10 +392,31 @@ export async function publishAnnouncementAction(formData: FormData) {
   const result = await publishAnnouncement(ctx, {
     raceId: value(formData, "raceId"),
     title: value(formData, "title"),
-    body: value(formData, "body")
+    body: value(formData, "body"),
+    reason: value(formData, "reason")
   });
   refresh("/screen");
   if (!result.ok) redirect(`/screen?error=${encodeURIComponent(result.message)}`);
+}
+
+export async function publishTrackProfileVersionAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const background = formData.get("background");
+  if (!(background instanceof File)) return { ok: false as const, message: "请选择背景文件" };
+  return publishTrackProfileVersion(ctx, {
+    publishRequestId: value(formData, "publishRequestId"),
+    raceId: value(formData, "raceId") || undefined,
+    profileJson: value(formData, "profileJson"),
+    background
+  });
+}
+
+export async function bindTrackVersionToRoundAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const raceId = value(formData, "raceId");
+  const result = await bindTrackVersionToRound(ctx, { raceRoundId: value(formData, "raceRoundId"), trackProfileVersionId: value(formData, "trackProfileVersionId") });
+  refresh("/console/tracks");
+  if (!result.ok) redirect(`/console/tracks?raceId=${encodeURIComponent(raceId)}&error=${encodeURIComponent(result.message)}`);
 }
 export async function updateRolesAction(formData: FormData) {
   const ctx = await getAuthContext();

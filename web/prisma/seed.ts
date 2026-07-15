@@ -1,14 +1,19 @@
 import { PrismaClient } from "@prisma/client";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { createWorkSubmissionIntegrityHash, WORK_SUBMISSION_HASH_SCHEMA } from "../lib/work-submission";
 
 const prisma = new PrismaClient();
 const includeE2EFixtures = process.env.DATABASE_URL?.includes("e2e.db") ?? false;
+const metroProfileJson = readFileSync(new URL("../public/tracks/metro-raceway/1.0.0/track.profile.json", import.meta.url), "utf8");
+const coastalProfileJson = readFileSync(new URL("../public/tracks/coastal-circuit/1.0.0/track.profile.json", import.meta.url), "utf8");
 
 function json(value: unknown) {
   return JSON.stringify(value);
 }
 
 async function main() {
+  await prisma.screenControlAuditEvent.deleteMany();
   await prisma.screenState.deleteMany();
   await prisma.releaseChecklistItem.deleteMany();
   await prisma.incident.deleteMany();
@@ -28,6 +33,10 @@ async function main() {
   await prisma.session.deleteMany();
   await prisma.cAConnection.deleteMany();
   await prisma.raceProject.deleteMany();
+  await prisma.raceRoundEntry.deleteMany();
+  await prisma.raceRound.deleteMany();
+  await prisma.trackProfileVersion.deleteMany();
+  await prisma.trackProfile.deleteMany();
   await prisma.registration.deleteMany();
   await prisma.teamMember.deleteMany();
   await prisma.team.deleteMany();
@@ -158,6 +167,40 @@ async function main() {
     ]
   });
 
+  await prisma.trackProfile.createMany({
+    data: [
+      { id: "track-metro", trackId: "metro-raceway", name: "Metro Raceway", scope: "system" },
+      { id: "track-coastal", trackId: "coastal-circuit", name: "Coastal Circuit", scope: "system" }
+    ]
+  });
+
+  await prisma.trackProfileVersion.createMany({
+    data: [
+      {
+        id: "track-version-metro-1",
+        trackId: "metro-raceway",
+        version: "1.0.0",
+        status: "published",
+        schemaVersion: "1.0.0",
+        profileJson: metroProfileJson,
+        checksum: "sha256:cb52f18fc1084be220db74372346d8b625630d040e3af34581f46a18f8d74047",
+        backgroundAssetRef: "/tracks/metro-raceway/1.0.0/background.webp",
+        publishedAt: new Date("2026-06-11T06:00:00.000Z")
+      },
+      {
+        id: "track-version-coastal-1",
+        trackId: "coastal-circuit",
+        version: "1.0.0",
+        status: "published",
+        schemaVersion: "1.0.0",
+        profileJson: coastalProfileJson,
+        checksum: "sha256:5aa1d339b00947446a31a123f972687a089208764f1da8b1d9c0d5bd826ec7aa",
+        backgroundAssetRef: "/tracks/coastal-circuit/1.0.0/background.webp",
+        publishedAt: new Date("2026-06-12T06:00:00.000Z")
+      }
+    ]
+  });
+
   await prisma.registration.createMany({
     data: [
       { id: "reg_mira", raceId: "race_bay_2026", userId: "user_rider_1", status: "approved", submittedAt: new Date("2026-06-18T09:00:00Z"), approvedAt: new Date("2026-06-18T09:20:00Z") },
@@ -173,6 +216,26 @@ async function main() {
       { id: "rp_mira", registrationId: "reg_mira", repoUrl: "mock://repo/gba-wandermate", aggregateIngestionStatus: "active", connectionHealth: "ok", metricsJson: json({ progressPercent: 92, tokens: 12000, messageCount: 80, toolCallCount: 20 }) },
       { id: "rp_ana", registrationId: "reg_ana", repoUrl: "mock://repo/localjoy-agent", aggregateIngestionStatus: "connected", connectionHealth: "partial_failed", metricsJson: json({ progressPercent: 84, tokens: 9400, messageCount: 64, toolCallCount: 17 }) },
       ...(includeE2EFixtures ? [{ id: "rp_rider_e2e", registrationId: "reg_rider_e2e", repoUrl: "mock://repo/e2e-rider", aggregateIngestionStatus: "connected", connectionHealth: "ok", metricsJson: json({ progressPercent: 0, tokens: 0, messageCount: 0, toolCallCount: 0 }) }] : [])
+    ]
+  });
+
+  await prisma.raceRound.create({
+    data: {
+      id: "round_bay_1",
+      raceId: "race_bay_2026",
+      trackProfileVersionId: "track-version-metro-1",
+      name: "Round 1",
+      order: 1,
+      status: "running",
+      scheduledStartAt: new Date("2026-07-14T10:00:00.000Z"),
+      scheduledEndAt: new Date("2026-07-14T14:00:00.000Z"),
+      actualStartedAt: new Date("2026-07-14T10:00:00.000Z")
+    }
+  });
+  await prisma.raceRoundEntry.createMany({
+    data: [
+      { id: "round-entry-mira", raceRoundId: "round_bay_1", registrationId: "reg_mira", displayOrder: 1, status: "active" },
+      { id: "round-entry-ana", raceRoundId: "round_bay_1", registrationId: "reg_ana", displayOrder: 2, status: "active" }
     ]
   });
 
@@ -357,13 +420,30 @@ async function main() {
     ]
   });
 
+  const raceLiveEntries = [
+    { entryId: "round-entry-mira", registrationId: "reg_mira", raceProjectId: "rp_mira", participantType: "individual", entrantDisplayName: "Mira Chen", participantCount: 1, onlineParticipantCount: 0, rank: 1, roundProgress: 0.92, overallProgress: 0.92, reachedProgressAt: "2026-07-14T12:00:00.000Z", raceStatus: "running", dataStatus: "fresh", riskLevel: "none", agentProviders: ["codex"], costTokens: 12000, updatedAt: "2026-07-14T12:00:00.000Z" },
+    { entryId: "round-entry-ana", registrationId: "reg_ana", raceProjectId: "rp_ana", participantType: "individual", entrantDisplayName: "Ana Ruiz", participantCount: 1, onlineParticipantCount: 0, rank: 2, roundProgress: 0.84, overallProgress: 0.84, reachedProgressAt: "2026-07-14T12:00:00.000Z", raceStatus: "running", dataStatus: "fresh", riskLevel: "medium", agentProviders: ["claude"], costTokens: 9400, updatedAt: "2026-07-14T12:00:00.000Z" }
+  ];
+  const raceLiveSnapshot = {
+    schemaVersion: "ary.race-live.v1", raceId: "race_bay_2026", roundId: "round_bay_1", sequence: 1, generatedAt: "2026-07-14T12:00:00.000Z",
+    race: { raceId: "race_bay_2026", title: "湾区开心游", organizerDisplayName: "Lin Organizer", status: "live", trackProfileId: "metro-raceway", trackProfileVersion: "1.0.0" },
+    round: { roundId: "round_bay_1", name: "Round 1", order: 1, status: "running", scheduledStartAt: "2026-07-14T10:00:00.000Z", scheduledEndAt: "2026-07-14T14:00:00.000Z", actualStartedAt: "2026-07-14T10:00:00.000Z" },
+    runtimeConfig: { staleThresholdSeconds: 60, participantOnlineWindowSeconds: 120, bubbleDurationSeconds: 8, maxVisibleBubbles: 3, maxEntriesPerGroup: 8 },
+    kpi: { raceRoundProgress: 0.88, totalParticipants: 2, onlineParticipants: 0, activeEntries: 2, totalTokens: 21400 }, totalEntryCount: 2, entries: raceLiveEntries,
+    displayGroups: [{ groupId: "round_bay_1:group:1", order: 1, entryIds: raceLiveEntries.map((entry) => entry.entryId) }],
+    globalRanking: raceLiveEntries.map((entry) => ({ entryId: entry.entryId, rank: entry.rank, entrantDisplayName: entry.entrantDisplayName, roundProgress: entry.roundProgress })), ridingMessages: [], attentionItems: []
+  };
+  await prisma.projection.create({
+    data: { id: "projection_bay_race_live_1", raceId: "race_bay_2026", type: "ary_race_live", status: "stable", payloadJson: json(raceLiveSnapshot), stableVersionId: "projection_bay_race_live_1", lastRebuiltAt: new Date(raceLiveSnapshot.generatedAt), schemaVersion: raceLiveSnapshot.schemaVersion, sequence: 1, generatedAt: new Date(raceLiveSnapshot.generatedAt), sourceWatermark: "round_bay_1:seed", payloadHash: createHash("sha256").update(json(raceLiveSnapshot)).digest("hex") }
+  });
+
   await prisma.announcement.create({
     data: { id: "ann_seed", raceId: "race_bay_2026", title: "Registration desk open", body: "Organizer desk is validating rider profiles and CA connectors.", visibility: "public", publishedAt: new Date() }
   });
 
 
   await prisma.screenState.create({
-    data: { id: "screen_bay", raceId: "race_bay_2026", mode: "live", fallbackEnabled: false }
+    data: { id: "screen_bay", raceId: "race_bay_2026", mode: "live", fallbackEnabled: false, currentRoundId: "round_bay_1", stableProjectionId: "projection_bay_race_live_1" }
   });
   for (const item of [
     ["p0_regression", "P0回归一键跑通"],

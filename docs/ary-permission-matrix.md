@@ -311,3 +311,26 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 5. 审计日志：记录被拒绝的越权请求，便于 QA 和安全复盘。
 
 正式权限测试需在服务端鉴权接入后，按本矩阵全量回归；本节当前只反映本地 MVP 实现口径。
+## Race Live / Screen 权限补充
+
+| 动作 | Public/Rider/Judge | Organizer | Admin |
+| --- | --- | --- | --- |
+| 查看公开 Race Live | 允许 | 允许 | 允许 |
+| 暂停/继续、前后组、配置间隔 | 禁止 | 仅 managed Race | 允许；跨 Race 必填原因 |
+| fallback 开关和展示模式 | 禁止 | 仅 managed Race | 允许 |
+| 修改 RaceRound/Track 绑定 | 禁止 | 仅 managed Race 且符合 Round 状态 | 允许 |
+
+Routine control 归 Organizer；Admin 仅提供紧急全局覆盖。Coach/Cockpit 不参与 ARY 授权模型。
+
+## Race Live / Track Calibrator 增量权限
+
+| 动作 | Rider | Judge | Organizer | Admin |
+| --- | --- | --- | --- | --- |
+| 查看公开 Race Live | 允许 | 允许 | 允许 | 允许 |
+| 控制自动轮播 / mode / fallback | 禁止 | 禁止 | 仅 managed Race | 允许；跨 Race 必填原因 |
+| 打开 Track Calibrator | 禁止 | 禁止 | 仅 managed Race | 允许 |
+| 发布 Race Track | 禁止 | 禁止 | 仅 managed Race | 允许 |
+| 发布 system Track | 禁止 | 禁止 | 禁止 | 允许 |
+| 绑定 TrackProfileVersion 到 Round | 禁止 | 禁止 | 仅 managed Race 的 pending Round | 允许；仅 pending Round |
+
+Track Calibrator 的 IndexedDB Draft 不参与服务端授权，也不是 ARY 事实源；每次发布仍在服务端重新鉴权和校验。

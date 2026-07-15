@@ -9,23 +9,26 @@ test.describe("Screen E2E", () => {
     await expect(page.getByTestId("screen-current-mode")).toHaveText("live");
   });
 
-  test("Organizer 可切换模式，Display 同步并可启用 fallback", async ({ page }) => {
+  test("Organizer 可切换模式，已打开的 Display 轮询同步且 fallback 不改变 mode", async ({ page, context }) => {
     await page.goto("/api/debug/login?user=organizer");
     await page.goto("/screen");
     await expect(page.getByTestId("screen-current-mode")).toHaveText("live");
 
+    const display = await context.newPage();
+    await display.goto("/screen/display");
+    await expect(display.getByTestId("race-live-stage")).toBeVisible();
+
     await page.getByTestId("screen-mode-leaderboard").click();
     await expect(page.getByTestId("screen-current-mode")).toHaveText("leaderboard");
-    await page.getByTestId("screen-display-link").click();
-    await expect(page).toHaveURL(/\/screen\/display$/);
-    await expect(page.getByTestId("screen-display-mode")).toContainText("leaderboard");
-    await expect(page.getByText("Mira Chen", { exact: true })).toBeVisible();
+    await expect(display.getByText("湾区开心游 榜单", { exact: true })).toBeVisible({ timeout: 6_000 });
+    await expect(display.getByText("Mira Chen", { exact: true })).toBeVisible();
 
-    await page.goto("/screen");
     await page.getByTestId("screen-fallback-toggle").click();
     await expect(page.getByTestId("screen-output-source")).toHaveText("fallback enabled");
-    await page.goto("/screen/display");
-    await expect(page.getByTestId("screen-display-mode")).toContainText("fallback");
-    await expect(page.getByRole("heading", { name: "Fallback: stable Projection / public works / announcement ready." })).toBeVisible();
+    await expect(display.getByText("stable fallback source", { exact: true })).toBeVisible({ timeout: 6_000 });
+    await expect(display.getByText("湾区开心游 榜单", { exact: true })).toBeVisible();
+
+    await page.getByTestId("screen-mode-live").click();
+    await expect(display.getByTestId("race-live-stage")).toBeVisible({ timeout: 6_000 });
   });
 });

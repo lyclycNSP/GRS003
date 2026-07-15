@@ -109,11 +109,9 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   if (!user) return null;
   const actualRoles = fromJson<Role[]>(user.rolesJson, []);
   const roles = (await getDebugRoleOverride(actualRoles)) ?? actualRoles;
-  const managedRaces = roles.includes("admin")
-    ? await prisma.race.findMany({ select: { id: true } })
-    : (await prisma.race.findMany({ select: { id: true, organizerJson: true } }))
-        .filter((race) => isRaceOrganizer(race.organizerJson, user.id))
-        .map((race) => ({ id: race.id }));
+  const managedRaces = (await prisma.race.findMany({ select: { id: true, organizerJson: true } }))
+    .filter((race) => isRaceOrganizer(race.organizerJson, user.id))
+    .map((race) => ({ id: race.id }));
   return {
     userId: user.id,
     roles,

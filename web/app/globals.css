@@ -4495,3 +4495,12 @@ body {
     font-size: 44px;
   }
 }
+/* ARY Race Live keeps the public stage bounded at venue display sizes. */
+.race-live-shell{width:min(100%,1600px);margin:0 auto;color:#f5f7ff;display:grid;gap:12px}.race-live-header,.race-live-footer{display:flex;align-items:center;justify-content:space-between;gap:20px}.race-live-header h1{margin:4px 0;font-size:clamp(24px,3vw,48px)}.race-live-header p,.race-live-header span,.race-live-footer{color:#a9b6d3}.race-live-kpis{display:grid;text-align:right}.race-live-kpis b{font-size:clamp(30px,4vw,58px);color:#68e7c5}.race-live-top3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.race-live-top3 article{display:flex;gap:12px;align-items:center;padding:10px 14px;border:1px solid #293d66;border-radius:12px;background:#101b31}.race-live-top3 em{margin-left:auto;color:#68e7c5}.race-live-stage{position:relative;aspect-ratio:16/9;width:100%;overflow:hidden;border-radius:18px;background-position:center;background-size:cover;box-shadow:inset 0 0 0 1px #ffffff2b}.race-live-horse{position:absolute;transform:translate(-50%,-50%);display:grid;justify-items:center;filter:drop-shadow(0 3px 5px #000b);transition:left .8s linear,top .8s linear}.race-live-horse>span{font-size:clamp(26px,3vw,52px)}.race-live-horse strong,.race-live-horse small{white-space:nowrap;padding:2px 7px;border-radius:8px;background:#08101ddd}.race-live-horse small{color:#9debd5}.risk-high strong,.risk-critical strong{background:#8a233ddd}.race-live-footer{font-size:13px}.screen-display:has(.race-live-shell)>main{width:100%}@media(max-width:800px){.race-live-top3{grid-template-columns:1fr}.race-live-top3 article:nth-child(n+2){display:none}.race-live-header{align-items:flex-start}.race-live-stage{border-radius:10px}}
+.calibrator-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1rem; }
+.calibrator-canvas, .calibrator-preview { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background-size: cover; background-position: center; min-height: 320px; }
+.calibrator-canvas canvas { display: block; width: 100%; height: auto; cursor: crosshair; }
+.calibrator-preview { min-height: 260px; }
+.calibrator-preview span { position: absolute; transform: translate(-50%, -50%); font-size: 1.8rem; }
+.race-live-mode-panel { min-height: 50vh; display: grid; place-items: center; text-align: center; }
+@media (max-width: 900px) { .calibrator-grid { grid-template-columns: 1fr; } }

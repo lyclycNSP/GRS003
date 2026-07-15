@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { fromJson } from "@/lib/json";
+import { AryRaceLiveSnapshotSchema } from "@/lib/race-live/contracts";
+import { parseTrackProfile } from "@/lib/track-profile";
+import { isPublishedTrackAssetRef } from "@/lib/track-assets/public-ref";
 
 export type EntrantRegistration = {
   participantType: string;
@@ -439,6 +442,71 @@ export async function getScreenSnapshot(slug?: string) {
   const works = await getPublicWorks(race.id);
   const stableProjection = race.projections.find((projection) => projection.status === "stable") ?? null;
   const failedProjection = race.projections.find((projection) => projection.status === "failed") ?? null;
-  const screenState = race.screenState ?? { mode: "live", fallbackEnabled: false };
+  const screenState = race.screenState ?? {
+    mode: "live",
+    fallbackEnabled: false,
+    activeGroupOrder: 1,
+    autoRotateEnabled: true,
+    rotationIntervalSeconds: 15
+  };
   return { race, works, stableProjection, failedProjection, screenState };
+}
+
+export async function getPublicRaceLiveSnapshot(raceId = "race_bay_2026") {
+  const state = await prisma.screenState.findUnique({
+    where: { raceId },
+    include: {
+      stableProjection: true,
+      currentRound: { include: { trackProfileVersion: true } }
+    }
+  });
+  if (!state?.stableProjection || state.stableProjection.status !== "stable" || state.stableProjection.type !== "ary_race_live") return null;
+  const parsed = AryRaceLiveSnapshotSchema.safeParse(fromJson<unknown>(state.stableProjection.payloadJson, null));
+  const version = state.currentRound?.trackProfileVersion;
+  if (!parsed.success || parsed.data.raceId !== raceId || parsed.data.roundId !== state.currentRoundId || !version) return null;
+  let trackProfile;
+  try {
+    trackProfile = parseTrackProfile(version.profileJson);
+  } catch {
+    return null;
+  }
+  if (
+    version.status !== "published" || trackProfile.status !== "published" ||
+    version.trackId !== trackProfile.trackId || version.version !== trackProfile.version ||
+    parsed.data.race.trackProfileId !== trackProfile.trackId || parsed.data.race.trackProfileVersion !== trackProfile.version ||
+    version.checksum !== trackProfile.background.checksum ||
+    !isPublishedTrackAssetRef({ trackId: trackProfile.trackId, version: trackProfile.version, fileName: trackProfile.background.fileName, checksum: version.checksum, backgroundHash: version.backgroundHash, backgroundAssetRef: version.backgroundAssetRef })
+  ) return null;
+  const screenModes = ["live", "leaderboard", "works", "announcement"] as const;
+  const mode = screenModes.find((candidate) => candidate === state.mode);
+  if (!mode) return null;
+  return {
+    snapshot: parsed.data,
+    trackProfile,
+    backgroundAssetRef: version.backgroundAssetRef,
+    screenState: {
+      activeGroupOrder: state.activeGroupOrder,
+      autoRotateEnabled: state.autoRotateEnabled,
+      rotationIntervalSeconds: state.rotationIntervalSeconds,
+      rotationEpochAt: state.rotationEpochAt.toISOString(),
+      fallbackEnabled: state.fallbackEnabled,
+      mode
+    }
+  };
+}
+
+export async function getTrackManagementSnapshot(raceId: string) {
+  const [race, tracks, rounds] = await Promise.all([
+    prisma.race.findUnique({ where: { id: raceId }, select: { id: true, slug: true, title: true } }),
+    prisma.trackProfile.findMany({
+      where: { OR: [{ raceId: null }, { raceId }] },
+      select: {
+        id: true, trackId: true, raceId: true, name: true, scope: true,
+        versions: { select: { id: true, version: true, status: true, checksum: true, backgroundAssetRef: true, publishedAt: true }, orderBy: { publishedAt: "desc" } }
+      },
+      orderBy: { name: "asc" }
+    }),
+    prisma.raceRound.findMany({ where: { raceId }, select: { id: true, name: true, status: true, trackProfileVersionId: true }, orderBy: { order: "asc" } })
+  ]);
+  return race ? { race, tracks, rounds } : null;
 }

@@ -15,9 +15,9 @@ cur = conn.cursor()
 cur.execute("PRAGMA foreign_keys=OFF")
 
 tables = [
-    "ReleaseChecklistItem", "Incident", "Backup", "ScreenState", "Announcement", "Projection", "Report", "Award",
+    "ReleaseChecklistItem", "Incident", "Backup", "ScreenControlAuditEvent", "ScreenState", "Announcement", "Projection", "Report", "Award",
     "JudgingRecord", "JudgeAssignment", "SubmissionAuditEvent", "WorkSubmissionVersion", "ReviewFlag", "Evidence", "Work", "CAIngestionReceipt", "Session", "CAConnection",
-    "RaceProject", "Registration", "TeamMember", "Team", "Race", "AuthSession", "AuthAccount", "User"
+    "RaceRoundEntry", "RaceRound", "TrackProfileVersion", "TrackProfile", "RaceProject", "Registration", "TeamMember", "Team", "Race", "AuthSession", "AuthAccount", "User"
 ]
 for table in tables:
     cur.execute(f'DROP TABLE IF EXISTS "{table}"')
@@ -119,6 +119,62 @@ CREATE TABLE "RaceProject" (
   "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "lastSyncedAt" DATETIME
 );
+CREATE TABLE "TrackProfile" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "trackId" TEXT NOT NULL UNIQUE,
+  "raceId" TEXT,
+  "name" TEXT NOT NULL,
+  "scope" TEXT NOT NULL DEFAULT 'system',
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "TrackProfile_raceId_idx" ON "TrackProfile"("raceId");
+CREATE TABLE "TrackProfileVersion" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "trackId" TEXT NOT NULL,
+  "version" TEXT NOT NULL,
+  "status" TEXT NOT NULL,
+  "schemaVersion" TEXT NOT NULL,
+  "profileJson" TEXT NOT NULL,
+  "checksum" TEXT NOT NULL,
+  "backgroundAssetRef" TEXT NOT NULL,
+  "publishRequestId" TEXT,
+  "profileHash" TEXT,
+  "backgroundHash" TEXT,
+  "validationReportJson" TEXT,
+  "publishedByUserId" TEXT,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "publishedAt" DATETIME
+);
+CREATE UNIQUE INDEX "TrackProfileVersion_trackId_version_key" ON "TrackProfileVersion"("trackId", "version");
+CREATE UNIQUE INDEX "TrackProfileVersion_publishRequestId_key" ON "TrackProfileVersion"("publishRequestId");
+CREATE INDEX "TrackProfileVersion_status_idx" ON "TrackProfileVersion"("status");
+CREATE INDEX "TrackProfileVersion_publishedByUserId_idx" ON "TrackProfileVersion"("publishedByUserId");
+CREATE TABLE "RaceRound" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "raceId" TEXT NOT NULL,
+  "trackProfileVersionId" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "order" INTEGER NOT NULL,
+  "status" TEXT NOT NULL,
+  "scheduledStartAt" DATETIME NOT NULL,
+  "scheduledEndAt" DATETIME NOT NULL,
+  "actualStartedAt" DATETIME,
+  "actualEndedAt" DATETIME,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX "RaceRound_raceId_order_key" ON "RaceRound"("raceId", "order");
+CREATE INDEX "RaceRound_trackProfileVersionId_idx" ON "RaceRound"("trackProfileVersionId");
+CREATE TABLE "RaceRoundEntry" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "raceRoundId" TEXT NOT NULL,
+  "registrationId" TEXT NOT NULL,
+  "displayOrder" INTEGER NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'active',
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX "RaceRoundEntry_raceRoundId_registrationId_key" ON "RaceRoundEntry"("raceRoundId", "registrationId");
+CREATE UNIQUE INDEX "RaceRoundEntry_raceRoundId_displayOrder_key" ON "RaceRoundEntry"("raceRoundId", "displayOrder");
+CREATE INDEX "RaceRoundEntry_registrationId_idx" ON "RaceRoundEntry"("registrationId");
 CREATE TABLE "CAConnection" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "raceProjectId" TEXT NOT NULL,
@@ -289,8 +345,14 @@ CREATE TABLE "Projection" (
   "status" TEXT NOT NULL,
   "payloadJson" TEXT NOT NULL,
   "stableVersionId" TEXT,
-  "lastRebuiltAt" DATETIME NOT NULL
+  "lastRebuiltAt" DATETIME NOT NULL,
+  "schemaVersion" TEXT,
+  "sequence" INTEGER,
+  "generatedAt" DATETIME,
+  "sourceWatermark" TEXT,
+  "payloadHash" TEXT
 );
+CREATE UNIQUE INDEX "Projection_raceId_type_sequence_key" ON "Projection"("raceId", "type", "sequence");
 CREATE TABLE "Announcement" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "raceId" TEXT NOT NULL,
@@ -304,8 +366,30 @@ CREATE TABLE "ScreenState" (
   "raceId" TEXT NOT NULL UNIQUE,
   "mode" TEXT NOT NULL,
   "fallbackEnabled" BOOLEAN NOT NULL DEFAULT false,
+  "currentRoundId" TEXT,
+  "stableProjectionId" TEXT,
+  "activeGroupOrder" INTEGER NOT NULL DEFAULT 1,
+  "autoRotateEnabled" BOOLEAN NOT NULL DEFAULT true,
+  "rotationIntervalSeconds" INTEGER NOT NULL DEFAULT 15,
+  "rotationEpochAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "rotationPausedAt" DATETIME,
+  "controlVersion" INTEGER NOT NULL DEFAULT 0,
   "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX "ScreenState_currentRoundId_idx" ON "ScreenState"("currentRoundId");
+CREATE INDEX "ScreenState_stableProjectionId_idx" ON "ScreenState"("stableProjectionId");
+CREATE TABLE "ScreenControlAuditEvent" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "raceId" TEXT NOT NULL,
+  "screenStateId" TEXT,
+  "actorUserId" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "reason" TEXT,
+  "payloadJson" TEXT NOT NULL,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "ScreenControlAuditEvent_raceId_createdAt_idx" ON "ScreenControlAuditEvent"("raceId", "createdAt");
+CREATE INDEX "ScreenControlAuditEvent_actorUserId_idx" ON "ScreenControlAuditEvent"("actorUserId");
 CREATE TABLE "Backup" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "raceId" TEXT NOT NULL,

@@ -25,6 +25,7 @@ import {
   submitTeamRegistration,
   submitWork,
   switchScreenMode,
+  toggleScreenFallback,
   updateProfile,
   updateUserRoles
 } from "../lib/domain";
@@ -357,12 +358,14 @@ async function main() {
   });
 
   await test("screen mode switches through supported modes", async () => {
-    for (const mode of ["live", "leaderboard", "works", "announcement", "fallback"]) {
+    for (const mode of ["live", "leaderboard", "works", "announcement"]) {
       const result = await switchScreenMode(organizer, "race_bay_2026", mode);
       assert.equal(result.ok, true);
     }
+    assert.equal((await switchScreenMode(organizer, "race_bay_2026", "fallback")).ok, false);
+    assert.equal((await toggleScreenFallback(organizer, "race_bay_2026", true)).ok, true);
     const state = await prisma.screenState.findUnique({ where: { raceId: "race_bay_2026" } });
-    assert.equal(state?.mode, "fallback");
+    assert.equal(state?.mode, "announcement");
     assert.equal(state?.fallbackEnabled, true);
   });
   await test("report visibility keeps rider_report private and review_summary public", async () => {
