@@ -4,9 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { AryRaceLiveSnapshotSchema, type AryRaceLiveSnapshot } from "@/lib/race-live/contracts";
 import { resolveActiveGroup } from "@/lib/race-live/rotation";
-import { RaceLiveViewModelMapper } from "@/lib/race-live/view-model";
-import { compileTrack, sampleHorsePose } from "@/lib/track-runtime";
+import { buildRaceLivePresentation, parseRaceLiveInitialNow } from "@/lib/race-live/presentation";
+import { compileTrack } from "@/lib/track-runtime";
 import { parseTrackProfile, type TrackProfile } from "@/lib/track-profile";
+import { RaceLiveAttentionTicker } from "./components/RaceLiveAttentionTicker";
+import { RaceLiveFooter } from "./components/RaceLiveFooter";
+import { RaceLiveHeader } from "./components/RaceLiveHeader";
+import { RaceLiveKpis } from "./components/RaceLiveKpis";
+import { RaceLiveMiniMap } from "./components/RaceLiveMiniMap";
+import { RaceLiveStage } from "./components/RaceLiveStage";
+import { RaceLiveTopThree } from "./components/RaceLiveTopThree";
 
 const PublicScreenStateSchema = z.object({
   activeGroupOrder: z.number().int().positive(),
@@ -20,8 +27,9 @@ type PublicScreenState = z.infer<typeof PublicScreenStateSchema>;
 type PublicScreenWork = { id: string; title: string; summary: string; entrantDisplayName: string };
 type PublicAnnouncement = { title: string; body: string } | null;
 
-export function RaceLiveClient({ raceSlug, snapshot: initialSnapshot, trackProfile: initialTrackProfile, backgroundAssetRef: initialBackgroundAssetRef, screenState: initialScreenState, announcement: initialAnnouncement, works: initialWorks }: {
+export function RaceLiveClient({ raceSlug, initialNow, snapshot: initialSnapshot, trackProfile: initialTrackProfile, backgroundAssetRef: initialBackgroundAssetRef, screenState: initialScreenState, announcement: initialAnnouncement, works: initialWorks }: {
   raceSlug: string;
+  initialNow: string;
   snapshot: AryRaceLiveSnapshot;
   trackProfile: TrackProfile;
   backgroundAssetRef: string;
@@ -29,7 +37,7 @@ export function RaceLiveClient({ raceSlug, snapshot: initialSnapshot, trackProfi
   announcement: PublicAnnouncement;
   works: PublicScreenWork[];
 }) {
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState(() => parseRaceLiveInitialNow(initialNow));
   const [raceLive, setRaceLive] = useState({ snapshot: initialSnapshot, trackProfile: initialTrackProfile, backgroundAssetRef: initialBackgroundAssetRef, screenState: initialScreenState, announcement: initialAnnouncement, works: initialWorks });
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -64,29 +72,24 @@ export function RaceLiveClient({ raceSlug, snapshot: initialSnapshot, trackProfi
     intervalSeconds: screenState.rotationIntervalSeconds,
     now
   });
-  const view = RaceLiveViewModelMapper(snapshot, activeOrder);
   const track = useMemo(() => compileTrack(trackProfile), [trackProfile]);
+  const presentation = buildRaceLivePresentation(snapshot, activeOrder, now);
 
   if (screenState.mode === "announcement") return <section className="race-live-shell"><header className="race-live-header"><div><span>ARY RACE LIVE</span><h1>{announcement?.title ?? snapshot.race.title}</h1></div></header><section className="race-live-mode-panel"><h2>{announcement?.body ?? "暂无公告"}</h2></section><footer className="race-live-footer"><span>announcement</span><span>{screenState.fallbackEnabled ? "stable fallback source" : "primary projection"}</span></footer></section>;
   if (screenState.mode === "leaderboard") return <section className="race-live-shell"><header className="race-live-header"><div><span>ARY RACE LIVE</span><h1>{snapshot.race.title} 榜单</h1></div></header><section className="screen-board-list">{snapshot.globalRanking.map((entry) => <article key={entry.entryId}><b>#{entry.rank}</b><span>{entry.entrantDisplayName}</span><em>{Math.round(entry.roundProgress * 100)}%</em></article>)}</section><footer className="race-live-footer"><span>leaderboard</span><span>{screenState.fallbackEnabled ? "stable fallback source" : "primary projection"}</span></footer></section>;
   if (screenState.mode === "works") return <section className="race-live-shell"><header className="race-live-header"><div><span>ARY RACE LIVE</span><h1>{snapshot.race.title} 作品</h1></div></header><section className="screen-board-list">{works.map((work) => <article key={work.id}><b>{work.entrantDisplayName}</b><span>{work.title}</span><em>{work.summary}</em></article>)}</section><footer className="race-live-footer"><span>works</span><span>{screenState.fallbackEnabled ? "stable fallback source" : "primary projection"}</span></footer></section>;
 
   return <section className="race-live-shell">
-    <header className="race-live-header">
-      <div><span>ARY RACE LIVE</span><h1>{snapshot.race.title}</h1><p>{snapshot.round.name} · Group {activeOrder}/{snapshot.displayGroups.length}</p></div>
-      <div className="race-live-kpis"><b>{Math.round(snapshot.kpi.raceRoundProgress * 100)}%</b><span>{snapshot.kpi.activeEntries} active · {snapshot.kpi.totalTokens.toLocaleString()} tokens</span></div>
-    </header>
-    <section className="race-live-top3" data-testid="race-live-top3">
-      {view.top3.map((entry) => <article key={entry.entryId}><b>#{entry.rank}</b><span>{entry.entrantDisplayName}</span><em>{Math.round(entry.roundProgress * 100)}%</em></article>)}
+    <RaceLiveHeader snapshot={snapshot} presentation={presentation} autoRotateEnabled={screenState.autoRotateEnabled} />
+    <section className="race-live-summary-row">
+      <RaceLiveTopThree items={presentation.top3} />
+      <RaceLiveKpis snapshot={snapshot} share={presentation.providerShare} />
     </section>
-    <section className="race-live-stage" data-testid="race-live-stage" style={{ backgroundImage: `url(${backgroundAssetRef})` }}>
-      {view.entries.map((entry, index) => {
-        const pose = sampleHorsePose({ track, entryId: entry.entryId, progress: entry.roundProgress, laneId: `lane-${index + 1}`, visualState: entry.raceStatus === "finished" ? "finished" : entry.dataStatus === "stale" ? "stale" : "running" });
-        return <article className={`race-live-horse risk-${entry.riskLevel}`} data-testid="race-live-horse" key={entry.entryId} style={{ left: `${pose.x / trackProfile.viewBox.width * 100}%`, top: `${pose.y / trackProfile.viewBox.height * 100}%`, zIndex: pose.zIndex }}>
-          <span aria-hidden>🐎</span><strong>{entry.entrantDisplayName}</strong><small>#{entry.rank} · {Math.round(entry.roundProgress * 100)}%</small>
-        </article>;
-      })}
+    <section className="race-live-track-row">
+      <RaceLiveMiniMap profile={trackProfile} track={track} entries={presentation.entries} backgroundAssetRef={backgroundAssetRef} />
+      <RaceLiveStage profile={trackProfile} track={track} entries={presentation.entries} bubbles={presentation.bubbles} backgroundAssetRef={backgroundAssetRef} />
     </section>
-    <footer className="race-live-footer"><span>{snapshot.race.organizerDisplayName}</span><span>Projection #{snapshot.sequence} · {screenState.fallbackEnabled ? "stable fallback source" : "primary projection"}</span><span>{screenState.autoRotateEnabled ? `${screenState.rotationIntervalSeconds}s auto` : "paused"}</span></footer>
+    <RaceLiveAttentionTicker items={presentation.attentionItems} />
+    <RaceLiveFooter snapshot={snapshot} presentation={presentation} autoRotateEnabled={screenState.autoRotateEnabled} rotationIntervalSeconds={screenState.rotationIntervalSeconds} now={now} />
   </section>;
 }

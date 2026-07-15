@@ -129,6 +129,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
         {hasRole(roles, "admin") ? <a href="#admin">Admin Console</a> : null}
         <Link href={`/console/risk-center?raceId=${race.id}`}>Risk Center</Link>
         {canManageCurrentRace ? <Link href="/screen">Screen Console</Link> : null}
+        {canManageCurrentRace ? <Link href={`/console/tracks?raceId=${race.id}`}>Track Management</Link> : null}
         <Link href="/screen/display">Screen Display</Link>
         <Link href="/profile">Profile</Link>
         {canManageCurrentRace ? <Link href={`/ops?raceId=${race.id}`}>Ops</Link> : null}

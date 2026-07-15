@@ -4,13 +4,13 @@
 
 ## 当前阶段
 
-ARY 已完成 PRD / UX / 领域模型 / 本地 MVP、WEB-1 全角色 E2E / CI，以及 SEC-1 代码级安全基线。Racer 作品提交完整性、Race Live 与 Track Calibrator 本地代码基线均已通过完整质量门；一次性 PostgreSQL 16 已验证全新库和已有 Race Live 基线库升级。真实 staging / production 证据仍未取得。
+ARY 已完成 PRD / UX / 领域模型 / 本地 MVP、WEB-1 全角色 E2E / CI，以及 SEC-1 代码级安全基线。Racer 作品提交完整性、Race Live 页面与 Track Calibrator 核心工具链已迁入同一 ARY 应用；一次性 PostgreSQL 16 已验证全新库和已有 Race Live 基线库升级，真实 staging / production 证据仍未取得。
 
-当前从“代码级正式工程化”进入“真实环境验收”。Race Live 与 Track Calibrator 已并入同一 ARY Next.js 应用，本地草稿使用浏览器 IndexedDB，服务端发布形成不可变 TrackProfileVersion；完整全量回归与 PostgreSQL migration 实库验收仍是收口门禁。仓库尚未取得生产 TLS、托管 PostgreSQL、真实 OAuth App、正式 CA 凭据、备份恢复、WAF / 限流、监控和 staging 彩排证据，真实赛事继续保持 no-go。
+当前从“代码级正式工程化”进入“真实环境验收”。Race Live 与 Track Calibrator 已并入同一 ARY Next.js 应用，本地草稿使用浏览器 IndexedDB，服务端发布形成不可变 TrackProfileVersion；GRS002 不再作为运行时服务或数据源。仓库尚未取得生产 TLS、托管 PostgreSQL、真实 OAuth App、正式 CA 凭据、备份恢复、WAF / 限流、监控和 staging 彩排证据，真实赛事继续保持 no-go。
 
 ## 当前主线
 
-Race Live 与 Track Calibrator 接入已完成本地实现、独立审查和全量回归。本轮不引入独立 GRS002 服务、Coach/Cockpit 或在线仓库抓取；下一主线回到 Hosted CI 与真实 staging 基础设施验收。
+Race Live 的独立 16:9 五层信息大屏、同 Round 每组最多 8 人自动轮播，以及 Track Calibrator 的可发现入口、浏览器 Draft、完整编辑/预览/人工核验和版本生命周期已迁入；GRS003 是唯一事实源。本轮未引入独立 GRS002 服务、Coach/Cockpit 或在线仓库抓取。
 
 | 优先级 | 工作项 | 目标 | 完成口径 | 下一入口 |
 | --- | --- | --- | --- | --- |

@@ -33,6 +33,14 @@ export interface CalibratorDraftRepository {
   getBackground(assetId: string): Promise<Blob | null>;
   deleteDraft(draftId: string): Promise<void>;
   exportDraftBundle(draftId: string): Promise<Blob>;
+  importDraftBundle(file: Blob): Promise<{ draft: CalibratorDraft; background: Blob | null }>;
+}
+
+function decodeBase64(value: string, mimeType: string): Blob {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new Blob([bytes], { type: mimeType });
 }
 
 export function createCalibratorDraftRepository(options?: { indexedDb?: IDBFactory; dbName?: string }): CalibratorDraftRepository {
@@ -87,6 +95,22 @@ export function createCalibratorDraftRepository(options?: { indexedDb?: IDBFacto
         backgroundBase64 = btoa(binary);
       }
       return new Blob([JSON.stringify({ format: "ary-track-calibrator-draft", version: 1, draft, background: background ? { mimeType: background.type, size: background.size, base64: backgroundBase64 } : null }, null, 2)], { type: "application/json" });
+    },
+    async importDraftBundle(file) {
+      const input = JSON.parse(await file.text()) as unknown;
+      if (!input || typeof input !== "object") throw new Error("Draft bundle 格式无效");
+      const bundle = input as { format?: unknown; version?: unknown; draft?: unknown; background?: unknown };
+      if (bundle.format !== "ary-track-calibrator-draft" || bundle.version !== 1) throw new Error("不支持的 Draft bundle 版本");
+      const draft = parseCalibratorDraft(bundle.draft);
+      let background: Blob | null = null;
+      if (bundle.background !== null && bundle.background !== undefined) {
+        if (typeof bundle.background !== "object") throw new Error("Draft 背景格式无效");
+        const value = bundle.background as { mimeType?: unknown; size?: unknown; base64?: unknown };
+        if (typeof value.mimeType !== "string" || !value.mimeType.startsWith("image/") || typeof value.base64 !== "string") throw new Error("Draft 背景格式无效");
+        background = decodeBase64(value.base64, value.mimeType);
+        if (typeof value.size === "number" && background.size !== value.size) throw new Error("Draft 背景大小校验失败");
+      }
+      return { draft, background };
     }
   };
 }

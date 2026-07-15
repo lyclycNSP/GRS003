@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { fromJson } from "@/lib/json";
 import { getEntrantDisplay, getPublicRaceLiveSnapshot, getScreenSnapshot } from "@/lib/queries";
 import { RaceLiveClient } from "./RaceLiveClient";
@@ -22,18 +21,17 @@ export default async function ScreenDisplayPage() {
   const mode = screenState.mode;
   const publicWorks = works.map((work) => ({ id: work.id, title: work.title, summary: work.summary, entrantDisplayName: getEntrantDisplay(work.registration).name }));
   const publicAnnouncement = announcement ? { title: announcement.title, body: announcement.body } : null;
+  const initialNow = new Date().toISOString();
 
   return (
     <section className="screen-display">
-      <header>
-        <span>ARY Live Screen</span>
-        <Link href="/screen">Console</Link>
-      </header>
       <main>
-        <p data-testid="screen-display-mode">{race.title} / {mode}</p>
-        <h1>{mode === "announcement" ? announcement?.title ?? race.title : race.title}</h1>
-        {raceLive ? <RaceLiveClient raceSlug={race.slug} snapshot={raceLive.snapshot} trackProfile={raceLive.trackProfile} backgroundAssetRef={raceLive.backgroundAssetRef} screenState={raceLive.screenState} announcement={publicAnnouncement} works={publicWorks} /> : null}
-        {mode === "live" && !raceLive ? (
+        {raceLive ? (
+          <RaceLiveClient raceSlug={race.slug} initialNow={initialNow} snapshot={raceLive.snapshot} trackProfile={raceLive.trackProfile} backgroundAssetRef={raceLive.backgroundAssetRef} screenState={raceLive.screenState} announcement={publicAnnouncement} works={publicWorks} />
+        ) : null}
+        {!raceLive ? <p data-testid="screen-display-mode">{race.title} / {mode}</p> : null}
+        {!raceLive ? <h1>{mode === "announcement" ? announcement?.title ?? race.title : race.title}</h1> : null}
+        {!raceLive && mode === "live" ? (
           <div className="screen-stat-grid">
             {Object.entries(payload.headlineMetrics ?? payload.totals ?? {}).map(([key, value]) => (
               <article key={key}><span>{key}</span><b>{String(value)}</b></article>

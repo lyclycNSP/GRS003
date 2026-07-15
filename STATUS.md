@@ -14,13 +14,13 @@
 * `web/tests/domain.test.ts`已提供关键领域回归测试；当前已补充 CA 防伪 / 防篡改 attestation 用例，缺少 OCR Desktop App / connector 认证声明的信号会被隔离。
 * `SEC-1` 代码级安全基线已完成：production Prisma datasource / migration 已切换 PostgreSQL；SQLite 仅保留本地和 E2E；会话、OAuth state、Public DTO、CA HMAC / 防重放、安全头和配置门禁已有自动化证据。本轮已封闭匿名 / 无关角色对 Ops 数据的读取，并将 Organizer 授权改为精确 ID 匹配。
 * Racer 作品提交完整性代码基线已实现：只有 approved Registration 本人可提交不可变版本，服务端固定 GitHub Repo / commit SHA / canonical hash；窗口冻结后 JudgeAssignment、Work 发布和关联 Award 绑定明确版本。CA 证据安全与作品提交完整性是两套独立控制。
-* Race Live 已迁入同一 ARY 应用：同一 Round 按每组最多 8 名 Racer 自动轮播，Organizer 控制、Admin 跨 Race 带原因、公开 allowlist DTO、稳定 Projection、Track Runtime 和控制审计均已实现；Coach/Cockpit 不进入 ARY。
-* Track Calibrator 已迁入同一 ARY 应用：浏览器 IndexedDB 保存未发布 Draft/背景/校验报告，服务端重新鉴权、校验 MIME/尺寸/checksum/几何并发布幂等不可变 TrackProfileVersion；pending Round 可显式绑定 system 或本 Race 的 published 版本。完整质量门和一次性 PostgreSQL 全新库/基线升级均已通过。
+* Race Live 已迁入同一 ARY 应用：同一 Round 按每组最多 8 名 Racer 自动轮播，Organizer 控制、Admin 跨 Race 带原因、公开 allowlist DTO、稳定 Projection、Track Runtime 和控制审计均已实现；独立 16:9 页面包含 Header、TOP3、KPI、Mini Map、真实马匹赛道、风险 Ticker 和 Footer。Coach/Cockpit 不进入 ARY。
+* Track Calibrator 核心工具链已迁入同一 ARY 应用：主 Console 可发现入口；浏览器 IndexedDB 保存未发布 Draft/背景/自动与人工校验，支持导入导出、撤销重做、反向、Inspector 和共享 Runtime 预览；服务端重新鉴权、校验 MIME/尺寸/checksum/几何并要求 8 项人工核验，发布幂等不可变版本。被 Round 引用的版本不能归档，只有未引用 archived 版本可删除。
 * 当前尚未取得生产 TLS、托管 PostgreSQL、真实 OAuth App、正式 CA 凭证、备份恢复、WAF / 限流、监控和 staging 彩排证据；按真实赛事 go-live 口径仍为 no-go。
 * 已新增`web/`正式集成应用入口：Next.js App Router、Prisma、SQLite、GitHub OAuth路由、服务端权限上下文、Public API和Console/Ops服务端动作；DEV-2/DEV-3高保真页面闭环已迁入正式应用。
 * `web/` 已完成角色数据流修正：Console 按 Race 取数，Debug Login 可隔离 Organizer/Admin/Rider/Judge，Screen Console 对非管理者只读，非公开 Work 不再公开详情，Judge 提交后有保存反馈。
 * `web/e2e/` 已新增 Judge、Public、Screen 三组 6 个 Playwright 场景并全部通过；E2E 使用独立 `prisma/e2e.db`，同时补齐 Judge 页面按 assignment 服务端授权。
-* 全角色、Public、Security、Race Live 与 Track Calibrator E2E 已补齐并全量 18/18 通过；完整领域/契约测试、静态烟测、TypeScript、PostgreSQL production build、production config preflight 和一次性 migration deploy 同步通过。
+* 全角色、Public、Security、Race Live 与 Track Calibrator E2E 已补齐并全量 20/20 通过；完整领域/契约测试、静态烟测、TypeScript 和 production build 同步通过。本次未改 Prisma schema，沿用既有 PostgreSQL migration deploy 证据。
 * `DEV-8` 风险评审中心已在 `web/` 落地：ReviewFlag 新增处置说明 / 处理人 / 更新时间，风险按状态与严重度排序，提供优先级摘要和快速筛选；Organizer 可筛选并处理风险，Rider 只看本人整改项，Judge 可在评审上下文中看到未解决风险和处置记录。
 * `docs/ary-risk-center.md` 已落盘，作为风险评审中心的专题说明和后续合并入口。
 * 本阶段修改说明和 Riding Record 已落盘，分别承接工程变更事实与第一人称理解、引导、决策和指挥过程。
@@ -51,8 +51,8 @@
 | `SEC-1` 真实赛事安全与生产就绪基线 | 代码完成 / 环境待验收 | 已修复 OAuth fallback / state、裸 userId Cookie、公开 API 过量披露、Ops 未授权读取、Organizer 子串授权和 dev-signature；新增 PostgreSQL baseline migration、HMAC 防重放 CA API、安全响应头、production preflight 和 Security E2E。真实赛事需完成外部硬门禁后才能 go-live。 | `docs/ary-production-security-baseline.md`、`web/lib/auth.ts`、`web/app/ops/page.tsx`、`web/e2e/security.spec.ts` |
 | `SEC-WORK-1` Racer 作品提交完整性基线 | 本地完成 / staging 待验收 | 不可变 v1/v2、输入/URL 策略、UTC 窗口、全场冻结/Admin 受限重开、审计事件、Judge/Award/Public 版本绑定及 legacy 兼容已实现；本地完整质量门与 PostgreSQL 16 全新库/已有基线升级已验证。 | `web/lib/work-submission.ts`、`web/lib/domain.ts`、`web/prisma/migrations/20260714_work_submission_integrity/`、`web/tests/work-submission*.test.ts`、`web/e2e/rider.spec.ts` |
 | `WEB-2 Rider 团队参赛功能` | 已完成 | 新增 Team / TeamMember / participantType / CAConnection.ownerUserId 数据口径；Rider View 支持创建团队、邀请码加入、提交团队报名和团队状态查看；团队成员可登记 CAConnection，队长统一提交团队 Work；领域测试已覆盖完整团队参赛链路。 | `web/prisma/schema.prisma`、`web/app/console/page.tsx`、`web/lib/domain.ts`、`web/lib/queries.ts`、`web/tests/domain.test.ts` |
-| `RACE-LIVE-1` GRS002 大屏能力迁入 | 本地完成 / staging 待验收 | Race Live 使用 ARY Projection 和 TrackProfileVersion，同一 Round 自动分组轮播；公开屏幕轮询同步 mode、fallback、Projection 和控制状态；完整质量门已通过。 | `web/lib/race-live/`、`web/app/screen/`、`web/e2e/screen-race-live.spec.ts` |
-| `TRACK-CAL-1` Track Calibrator 迁入 | 本地完成 / staging 待验收 | IndexedDB Draft 与服务端事实源分离；受保护发布使用 checksum、完整幂等指纹、不可变版本和内容寻址资产边界；pending Round 可绑定 published 版本；完整质量门已通过。 | `web/lib/track-calibrator/`、`web/lib/track-assets/`、`web/app/console/tracks/`、`web/e2e/track-calibrator.spec.ts` |
+| `RACE-LIVE-1` GRS002 大屏能力迁入 | 已完成 | Race Live 使用 ARY Projection 和 TrackProfileVersion，同一 Round 自动分组轮播；公开 DTO、fallback、控制状态和独立 16:9 五层信息输出均已完成。 | `web/lib/race-live/`、`web/app/screen/`、`web/e2e/screen-race-live.spec.ts` |
+| `TRACK-CAL-1` Track Calibrator 迁入 | 已完成 | Console 入口、IndexedDB Draft 导入导出、编辑历史、共享 Runtime 预览、自动/人工核验、服务端不可变发布、Round 绑定和引用保护生命周期均已完成。 | `web/lib/track-calibrator/`、`web/lib/track-assets/`、`web/app/console/tracks/`、`web/e2e/track-calibrator.spec.ts` |
 | `DEV-8 风险评审中心` | 已完成 | ReviewFlag 已形成可处置对象，具备优先级摘要、快速筛选、时间/来源上下文和 Judge 只读风险回流；当前包含 Organizer 处置席、Rider 整改席、Judge 风险上下文、状态机和审计字段，并已形成专题文档承接后续合并。 | `web/app/console/risk-center/page.tsx`、`web/lib/domain.ts`、`web/lib/queries.ts`、`web/tests/domain.test.ts`、`docs/ary.plan.md`、`docs/ary-risk-center.md` |
 
 ## 证据索引
@@ -152,5 +152,5 @@
 - 已实现 Track Profile/Runtime、两条内置赛道、RaceRound/RaceRoundEntry、TrackProfileVersion、严格公开快照、Projection Builder、每组最多 8 人、自动轮播和 Organizer/Admin 审计控制。
 - 已通过静态检查、43 项领域/契约测试、类型检查、production build、Race Live 两尺寸 E2E、原 Screen E2E，以及修复后的 5 项 Security E2E。
 - 一次全量 16 项 E2E 在第 14 项发现公共 Race API 暴露原始 Projection；改为显式 allowlist 后最终全量复跑 16/16 通过。
-- PostgreSQL migration 尚未在一次性全新库和既有基线库执行，不视为已验收。
-- Track Calibrator 尚未开始实现。
+- PostgreSQL migration 已在既有一次性 PostgreSQL 16 全新库和模拟基线库执行；本次页面/生命周期补齐未修改 Prisma schema，无新增 migration。
+- Track Calibrator 核心工具链已实现；仓库在线验证、资产垃圾回收和多人实时协同仍不在本轮范围。

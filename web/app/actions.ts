@@ -7,6 +7,7 @@ import { createRidingSignalAttestation, type RidingSignalPayload } from "@/lib/c
 import { makeId } from "@/lib/ids";
 import { configureScreenRotation, moveScreenDisplayGroup, pauseScreenRotation, resumeScreenRotation } from "@/lib/race-live/controls";
 import { publishTrackProfileVersion } from "@/lib/track-calibrator/publish";
+import { archiveTrackProfileVersion, deleteArchivedTrackProfileVersion } from "@/lib/track-calibrator/version-lifecycle";
 import {
   approveRegistration,
   bindTrackVersionToRound,
@@ -420,8 +421,24 @@ export async function publishTrackProfileVersionAction(formData: FormData) {
     publishRequestId: value(formData, "publishRequestId"),
     raceId: value(formData, "raceId") || undefined,
     profileJson: value(formData, "profileJson"),
+    validationReportJson: value(formData, "validationReportJson"),
+    manualValidationJson: value(formData, "manualValidationJson"),
     background
   });
+}
+
+export async function archiveTrackProfileVersionAction(formData: FormData) {
+  const result = await archiveTrackProfileVersion(await getAuthContext(), value(formData, "versionId"));
+  refresh("/console/tracks");
+  refresh("/console/tracks/calibrator");
+  return result;
+}
+
+export async function deleteArchivedTrackProfileVersionAction(formData: FormData) {
+  const result = await deleteArchivedTrackProfileVersion(await getAuthContext(), value(formData, "versionId"));
+  refresh("/console/tracks");
+  refresh("/console/tracks/calibrator");
+  return result;
 }
 
 export async function bindTrackVersionToRoundAction(formData: FormData) {

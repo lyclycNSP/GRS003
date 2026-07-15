@@ -109,11 +109,12 @@ async function main() {
   });
 
   await test("Rider team can create, join, submit and share CA access", async () => {
-    const captainId = "user_team_captain_test";
-    const memberId = "user_team_member_test";
+    const runSuffix = Date.now().toString(36);
+    const captainId = `user_team_captain_test_${runSuffix}`;
+    const memberId = `user_team_member_test_${runSuffix}`;
     for (const [id, slug, displayName] of [
-      [captainId, "team-captain-test", "Team Captain Test"],
-      [memberId, "team-member-test", "Team Member Test"]
+      [captainId, `team-captain-test-${runSuffix}`, "Team Captain Test"],
+      [memberId, `team-member-test-${runSuffix}`, "Team Member Test"]
     ]) {
       await prisma.user.upsert({
         where: { id },

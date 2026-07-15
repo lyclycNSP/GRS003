@@ -9,4 +9,6 @@ tsconfig.tsbuildinfo
 dev-server*.log
 playwright-report
 test-results
+output/
+.playwright-cli/
 .data/

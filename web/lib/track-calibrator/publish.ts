@@ -6,6 +6,7 @@ import { LocalTrackAssetStore } from "../track-assets/local-store";
 import type { TrackAssetStore } from "../track-assets/store";
 import { validateTrackPublishInput, TrackPublishInputError } from "./publish-input";
 import { parseTrackProfile, type TrackProfile } from "../track-profile";
+import { CalibratorValidationReportSchema, ManualValidationSchema } from "./draft-types";
 
 type PublishResult = { ok: true; message: string; id: string; profileHash: string; backgroundHash: string } | { ok: false; message: string };
 
@@ -22,7 +23,7 @@ function sourceFingerprint(profile: TrackProfile): string {
 
 export async function publishTrackProfileVersion(
   ctx: AuthContext | null,
-  input: { publishRequestId: string; raceId?: string; profileJson: string; background: File },
+  input: { publishRequestId: string; raceId?: string; profileJson: string; validationReportJson: string; manualValidationJson: string; background: File },
   assetStore: TrackAssetStore = new LocalTrackAssetStore()
 ): Promise<PublishResult> {
   if (!ctx) return { ok: false, message: "请先登录" };
@@ -32,6 +33,17 @@ export async function publishTrackProfileVersion(
   if (input.raceId) {
     if (!canManageRace(ctx, input.raceId)) return { ok: false, message: "无权发布该Race的Track" };
   } else if (!ctx.roles.includes("admin")) return { ok: false, message: "只有Admin可发布system Track" };
+
+  let clientValidation;
+  let manualValidation;
+  try {
+    clientValidation = CalibratorValidationReportSchema.parse(JSON.parse(input.validationReportJson));
+    manualValidation = ManualValidationSchema.parse(JSON.parse(input.manualValidationJson));
+  } catch {
+    return { ok: false, message: "Track发布核验数据无效" };
+  }
+  if (!clientValidation.valid) return { ok: false, message: "自动校验未通过，不能发布" };
+  if (!Object.values(manualValidation.confirmations).every(Boolean) || !manualValidation.confirmedAt) return { ok: false, message: "请完成全部人工核验后再发布" };
 
   let validated;
   try { validated = await validateTrackPublishInput(input); }
@@ -77,7 +89,7 @@ export async function publishTrackProfileVersion(
           publishRequestId: requestId,
           profileHash,
           backgroundHash: validated.backgroundHash,
-          validationReportJson: JSON.stringify(validated.validationReport),
+          validationReportJson: JSON.stringify({ client: clientValidation, server: validated.validationReport, manual: manualValidation }),
           publishedByUserId: ctx.userId,
           publishedAt: now
         }

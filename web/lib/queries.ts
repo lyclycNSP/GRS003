@@ -576,3 +576,36 @@ export async function getTrackManagementSnapshot(raceId: string) {
   ]);
   return race ? { race, tracks, rounds } : null;
 }
+
+export async function getTrackCalibratorVersions(raceId: string) {
+  const tracks = await prisma.trackProfile.findMany({
+    where: { OR: [{ raceId: null }, { raceId }] },
+    select: {
+      trackId: true,
+      raceId: true,
+      name: true,
+      scope: true,
+      versions: {
+        select: {
+          id: true,
+          version: true,
+          status: true,
+          profileHash: true,
+          backgroundHash: true,
+          publishedAt: true,
+          raceRounds: { select: { id: true, name: true, raceId: true } }
+        },
+        orderBy: { publishedAt: "desc" }
+      }
+    },
+    orderBy: { name: "asc" }
+  });
+  return tracks.flatMap((track) => track.versions.map((version) => ({
+    ...version,
+    trackId: track.trackId,
+    trackName: track.name,
+    scope: track.scope,
+    manageable: track.raceId === raceId,
+    publishedAt: version.publishedAt?.toISOString() ?? null
+  })));
+}

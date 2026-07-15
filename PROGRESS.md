@@ -1,5 +1,13 @@
 # PROGRESS
 
+## 2026-07-15 GRS002 Race Live 与 Track Calibrator 保真迁移
+
+- 问题：此前把数据、权限、运行时和发布安全基线完成误写成 GRS002 页面与工具完整迁移，导致本地页面缺少 GRS002 的 16:9 五层信息构图，Calibrator 也缺少可发现入口和完整工作台。
+- 解决方式：以 GRS002 验收截图、Race Live 源码和 Calibrator 交互为展示/交互事实源；在 GRS003 内重建独立投屏、TOP3/KPI/Mini Map/真实马匹/Ticker，并补齐 IndexedDB Draft 导入导出、编辑历史、运行时预览、8 项人工核验、服务端发布门禁和版本生命周期。GRS003 继续作为唯一事实源和权限边界。
+- 后续避免：迁移任务必须分别验收领域模型、权限安全、入口可发现性、核心交互和同视口视觉保真；不能用领域测试或接口存在替代页面验收。视觉复核必须连接隔离测试服务，避免把用户现有开发服务状态误当成验收环境。
+- 验证：停止本地开发服务后，独立 SQLite 测试库上的静态烟测、完整领域/契约测试、TypeScript、production build 和标准 `npm.cmd run test:e2e` 20/20 全部通过；Race Live 已完成 1366x768、1920x1080 同视口截图复核。本次未修改 Prisma schema，无新增 migration。
+- git commit ID：未提交。
+
 ## 2026-07-14 Racer 作品提交完整性基线
 
 - 问题：既有 CA attestation 只保护实时骑行证据，Work 仍是可变投影，缺少明确提交窗口、不可变版本、代码 commit 身份、冻结后评审绑定和提交审计；CA 安全不能证明 Racer 作品提交链安全。
@@ -58,3 +66,11 @@
 * 避免复发：跨分支合并 ReviewFlag 时同时检查角色可见集合、顶部派生统计和数据库 migration，不能只检查处置卡片是否按角色隐藏。
 * 验证：静态检查、Prisma schema、完整领域/契约测试、TypeScript、production config/build、Playwright 18/18、一次性 PostgreSQL 16 migration deploy 均通过；Rider/Judge 的 `allFlags` 负向测试完成红绿验证。
 * git commit ID：`0bbc507`。
+
+## 2026-07-15 Race Live 空内容与 hydration 修复
+
+* 问题：本地 `dev.db` 被测试残留状态污染，Screen 指向无参赛者的 pending Round 且赛道版本状态异常，导致 `/screen/display` 只显示稀疏公告；恢复 Live Projection 后，服务端与客户端分别取当前时间又触发 Header 计时 hydration mismatch。
+* 解决：只修复受影响的开发数据并重建 `round_bay_1` Projection；页面服务端生成唯一 `initialNow`，客户端以同一 ISO 时间初始化，挂载后再由 interval 更新时间。
+* 避免复发：领域和 E2E 测试继续使用独立数据库；真实浏览器验收需同时检查页面内容与 console error；并行 Next.js 服务不应共享同一 `.next` 输出目录。
+* 验证：presentation 定向测试、TypeScript、production build、完整 Chromium E2E 20/20、真实浏览器内容与 console 检查、`git diff --check` 均通过。
+* git commit ID：未提交。
