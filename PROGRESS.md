@@ -6,7 +6,7 @@
 - 解决方式：以 GRS002 验收截图、Race Live 源码和 Calibrator 交互为展示/交互事实源；在 GRS003 内重建独立投屏、TOP3/KPI/Mini Map/真实马匹/Ticker，并补齐 IndexedDB Draft 导入导出、编辑历史、运行时预览、8 项人工核验、服务端发布门禁和版本生命周期。GRS003 继续作为唯一事实源和权限边界。
 - 后续避免：迁移任务必须分别验收领域模型、权限安全、入口可发现性、核心交互和同视口视觉保真；不能用领域测试或接口存在替代页面验收。视觉复核必须连接隔离测试服务，避免把用户现有开发服务状态误当成验收环境。
 - 验证：停止本地开发服务后，独立 SQLite 测试库上的静态烟测、完整领域/契约测试、TypeScript、production build 和标准 `npm.cmd run test:e2e` 20/20 全部通过；Race Live 已完成 1366x768、1920x1080 同视口截图复核。本次未修改 Prisma schema，无新增 migration。
-- git commit ID：未提交。
+- git commit ID：`a42a185`。
 
 ## 2026-07-14 Racer 作品提交完整性基线
 
@@ -73,4 +73,4 @@
 * 解决：只修复受影响的开发数据并重建 `round_bay_1` Projection；页面服务端生成唯一 `initialNow`，客户端以同一 ISO 时间初始化，挂载后再由 interval 更新时间。
 * 避免复发：领域和 E2E 测试继续使用独立数据库；真实浏览器验收需同时检查页面内容与 console error；并行 Next.js 服务不应共享同一 `.next` 输出目录。
 * 验证：presentation 定向测试、TypeScript、production build、完整 Chromium E2E 20/20、真实浏览器内容与 console 检查、`git diff --check` 均通过。
-* git commit ID：未提交。
+* git commit ID：`a42a185`。
