@@ -17,6 +17,7 @@ Race Live 与 Track Calibrator 接入已完成本地实现、独立审查和全�
 | P0 | Hosted CI 首次验证 | 确认安全、作品提交、Race Live 与 Track Calibrator 基线在远端环境可重复执行 | 静态检查、完整领域/契约测试、类型检查、PostgreSQL migration + production build、生产配置预检和 18 个 E2E 均通过 | `.github/workflows/web-ci.yml`、`web/e2e/`、`web/prisma/migrations/` |
 | P0 | Staging 基础设施 | 建立托管 PostgreSQL、TLS ingress、secret manager、WAF / 限流、集中日志和监控 | `docs/ary-production-security-baseline.md` 的部署门禁在 staging 有可追溯证据 | `docs/ary-production-security-baseline.md` |
 | P0 | 真实 GitHub OAuth 验收 | 使用真实 OAuth App 验证身份与会话闭环 | state、登录、过期、Logout、角色变化和跨会话策略在 staging 通过 | `web/lib/auth.ts`、`web/app/api/auth/`、`docs/ary-permission-matrix.md` |
+| P1 | DEV-8 风险评审中心 | 建立 Organizer 处置、Rider 整改、Judge 上下文三端风险闭环 | `web/` 中具备风险筛选、状态流转、处置记录和评审回流；长期任务与权限口径同步落盘 | `docs/ary.plan.md`、`docs/ary-permission-matrix.md`、`web/app/console/risk-center/page.tsx` |
 
 ## 后续队列
 
@@ -49,6 +50,7 @@ Race Live 与 Track Calibrator 接入已完成本地实现、独立审查和全�
 * 当前状态与风险：`STATUS.md`
 * 生产安全基线：`docs/ary-production-security-baseline.md`
 * 权限基线：`docs/ary-permission-matrix.md`
+* 风险中心专题：`docs/ary-risk-center.md`
 * CA 契约：`docs/ary-ca-integration-spec.md`
 * 工程运行：`web/README.md`
 * WEB-1 E2E / CI 总结：`docs/ary-web-e2e-ci-change-summary.md`

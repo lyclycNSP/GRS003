@@ -127,6 +127,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
         {hasRole(roles, "rider") ? <a href="#rider">Rider View</a> : null}
         {hasRole(roles, "judge") ? <a href="#judge">Judge View</a> : null}
         {hasRole(roles, "admin") ? <a href="#admin">Admin Console</a> : null}
+        <Link href={`/console/risk-center?raceId=${race.id}`}>Risk Center</Link>
         {canManageCurrentRace ? <Link href="/screen">Screen Console</Link> : null}
         <Link href="/screen/display">Screen Display</Link>
         <Link href="/profile">Profile</Link>
@@ -171,7 +172,7 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
           <article>
             <span>Review Risk</span>
             <b>{riskFlags.length} flags</b>
-            <p>{riskFlags[0]?.judgeVisibleSummary ?? "当前没有评审前风险提示。"}</p>
+            <p>{riskFlags[0]?.judgeVisibleSummary ?? "当前没有评审前风险提示。"} <Link className="inline-action" href={`/console/risk-center?raceId=${race.id}`}>进入风险评审中心</Link></p>
           </article>
         </section>
         <section className="role-entry-grid">
@@ -266,6 +267,11 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
                   </div>
                 )) : <div className="empty-state">暂无 CAConnection。Rider 审核通过后先登记并握手，再接入带 attestation 的 CA Signal。</div>}
               </div>
+            </section>
+            <section className="form-card">
+              <h2>风险评审中心入口</h2>
+              <p className="form-hint">ReviewFlag 已升级为可处置对象。Organizer 可以在风险评审中心中按状态、严重度、类型和 Rider 筛选，并保留处置记录回流给 Judge。</p>
+              <Link className="inline-action" href={`/console/risk-center?raceId=${race.id}`}>打开风险评审中心</Link>
             </section>
             <section className="form-card">
               <h2>发布与报告</h2>
@@ -378,6 +384,11 @@ export default async function ConsolePage({ searchParams }: { searchParams?: Pro
               <span>CA anti-forgery</span>
               <b>{ownConnection?.handshakeAt ? "OCR / connector signature required" : "waiting for CA handshake"}</b>
               <p>{ownConnection ? `connectorId: ${ownConnection.connectorId} / signingKeyId: ${ownConnection.signingKeyId}。合法信号必须通过完整载荷 HMAC-SHA256 验签。` : "登记 CAConnection 后，系统会展示签名来源和接入状态。"}</p>
+            </div>
+            <div className="ca-attestation-panel">
+              <span>Risk readiness</span>
+              <b>{ownRegistration?.reviewFlags.length ? `${ownRegistration.reviewFlags.length} flags` : "no current flags"}</b>
+              <p>{ownRegistration?.reviewFlags[0]?.judgeVisibleSummary ?? "当前没有与你相关的评审前风险提示。"} <Link className="inline-action" href={`/console/risk-center?raceId=${race.id}`}>去整改</Link></p>
             </div>
             {!ownRegistration && ownTeam ? (
               <section className="rider-step-card">

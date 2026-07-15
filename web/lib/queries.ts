@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isRaceOrganizer } from "@/lib/auth";
 import { fromJson } from "@/lib/json";
 import { AryRaceLiveSnapshotSchema } from "@/lib/race-live/contracts";
 import { parseTrackProfile } from "@/lib/track-profile";
@@ -381,7 +382,17 @@ export async function getConsoleSnapshotForUser(userId?: string | null, raceId?:
       },
       judgeAssignments: {
         where: snapshot.race ? { raceId: snapshot.race.id } : undefined,
-        include: { work: { include: { registration: { include: { user: true, team: { include: { members: { include: { user: true } } } }, race: true } } } }, workSubmissionVersion: true, judgingRecord: true }
+        include: {
+          work: {
+            include: {
+              registration: { include: { user: true, team: { include: { members: { include: { user: true } } } }, race: true } },
+              reviewFlags: true,
+              evidences: true
+            }
+          },
+          workSubmissionVersion: true,
+          judgingRecord: true
+        }
       }
     }
   }) : null;
@@ -391,6 +402,61 @@ export async function getConsoleSnapshotForUser(userId?: string | null, raceId?:
     ...currentUser.teamMemberships.map((membership) => membership.team.registration).filter((registration) => registration !== null)
   ].filter((registration, index, all) => all.findIndex((candidate) => candidate.id === registration.id) === index);
   return { ...snapshot, currentUser: { ...currentUser, registrations } };
+}
+
+export async function getRiskCenterSnapshotForUser(userId?: string | null, raceId?: string | null) {
+  const snapshot = await getConsoleSnapshotForUser(userId, raceId);
+  const race = snapshot.race;
+  const currentUser = snapshot.currentUser;
+  const usersById = new Map(snapshot.users.map((user) => [user.id, user.displayName]));
+  const registrations = race?.registrations ?? [];
+  const allFlags = registrations.flatMap((registration) =>
+    registration.reviewFlags.map((flag) => ({
+      ...flag,
+      riderName: registration.user.displayName,
+      riderUserId: registration.userId,
+      raceTitle: race?.title ?? "",
+      workTitle: registration.work?.title ?? null,
+      workSlug: registration.work?.slug ?? null,
+      workVisibility: registration.work?.visibility ?? null,
+      projectStatus: registration.raceProject?.aggregateIngestionStatus ?? "not_configured",
+      connectionHealth: registration.raceProject?.connectionHealth ?? "no_signal",
+      connectionCount: registration.raceProject?.caConnections.length ?? 0,
+      resolvedByName: flag.resolvedByUserId ? usersById.get(flag.resolvedByUserId) ?? flag.resolvedByUserId : null
+    }))
+  );
+  const ownFlags = currentUser?.registrations.flatMap((registration) =>
+    registration.reviewFlags.map((flag) => ({
+      ...flag,
+      riderName: registration.userId === userId ? "你" : currentUser.displayName,
+      riderUserId: registration.userId,
+      raceTitle: registration.race.title,
+      workTitle: registration.work?.title ?? null,
+      workSlug: registration.work?.slug ?? null,
+      projectStatus: registration.raceProject?.aggregateIngestionStatus ?? "not_configured",
+      connectionHealth: registration.raceProject?.connectionHealth ?? "no_signal",
+      connectionCount: registration.raceProject?.caConnections.length ?? 0,
+      resolvedByName: flag.resolvedByUserId ? usersById.get(flag.resolvedByUserId) ?? flag.resolvedByUserId : null
+    }))
+  ) ?? [];
+  const judgeFlags = currentUser?.judgeAssignments.flatMap((assignment) =>
+    assignment.work.reviewFlags.map((flag) => ({
+      ...flag,
+      assignmentId: assignment.id,
+      assignmentStatus: assignment.status,
+      workTitle: assignment.work.title,
+      workSlug: assignment.work.slug,
+      riderName: assignment.work.registration.user.displayName,
+      resolvedByName: flag.resolvedByUserId ? usersById.get(flag.resolvedByUserId) ?? flag.resolvedByUserId : null
+    }))
+  ) ?? [];
+  const roles = fromJson<string[]>(currentUser?.rolesJson ?? "[]", []);
+  const canManageAllFlags = Boolean(
+    currentUser
+    && race
+    && (roles.includes("admin") || isRaceOrganizer(race.organizerJson, currentUser.id))
+  );
+  return { ...snapshot, allFlags: canManageAllFlags ? allFlags : [], ownFlags, judgeFlags };
 }
 
 async function findConsoleRace(raceId?: string | null) {

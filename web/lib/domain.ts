@@ -78,7 +78,11 @@ async function createReviewFlag(input: {
         raceProjectId: input.raceProjectId ?? existing.raceProjectId,
         workId: input.workId ?? existing.workId,
         severity: input.severity,
+        status: existing.status === "resolved" ? "open" : existing.status,
         judgeVisibleSummary: input.summary,
+        resolutionNote: null,
+        resolvedByUserId: null,
+        resolvedAt: null,
         sourceRefJson: toJson(input.sourceRef ?? {})
       }
     });
@@ -143,6 +147,21 @@ async function createInviteCode() {
     if (!existing) return code;
   }
   return makeId("invite").replace(/^invite_?/, "").toUpperCase();
+}
+
+function isReviewFlagStatus(status: string) {
+  return ["open", "in_review", "resolved"].includes(status);
+}
+
+async function getReviewFlagWithScope(flagId: string) {
+  return prisma.reviewFlag.findUnique({
+    where: { id: flagId },
+    include: {
+      registration: { include: { user: true, race: true, raceProject: { include: { caConnections: true } }, work: true } },
+      work: true,
+      raceProject: { include: { caConnections: true } }
+    }
+  });
 }
 
 
@@ -376,6 +395,15 @@ export async function registerCAConnection(ctx: AuthContext | null, raceProjectI
     where: { id: raceProjectId },
     data: { aggregateIngestionStatus: "connected", connectionHealth: "ok" }
   });
+  await prisma.reviewFlag.updateMany({
+    where: { registrationId: project.registrationId, raceProjectId, type: "no_ca_data", status: { not: "resolved" } },
+    data: {
+      status: "resolved",
+      resolutionNote: "已登记至少一个CAConnection，等待握手和信号接入。",
+      resolvedByUserId: ctx.userId,
+      resolvedAt: new Date()
+    }
+  });
   return ok("CAConnection已登记", connection.id);
 }
 
@@ -493,6 +521,19 @@ export async function ingestRidingSignal(input: RidingSignalPayload & { attestat
           visibility: "public"
         }
       });
+      await tx.reviewFlag.updateMany({
+        where: {
+          registrationId: input.registrationId,
+          raceProjectId: input.raceProjectId,
+          type: { in: ["no_ca_data", "empty_riding"] },
+          status: { not: "resolved" }
+        },
+        data: {
+          status: "resolved",
+          resolutionNote: "已接入有效CA信号，证据链恢复。",
+          resolvedAt: new Date()
+        }
+      });
       return storedSession;
     });
     return ok("CA信号已接入", session.id);
@@ -541,6 +582,41 @@ export async function disableCAConnection(ctx: AuthContext | null, caConnectionI
     });
   }
   return ok("CAConnection已禁用", caConnectionId);
+}
+
+export async function updateReviewFlagStatus(
+  ctx: AuthContext | null,
+  input: { flagId: string; status: string; resolutionNote?: string }
+): Promise<Result> {
+  requireAuth(ctx);
+  if (!isReviewFlagStatus(input.status)) return fail("ReviewFlag状态不合法");
+  const flag = await getReviewFlagWithScope(input.flagId);
+  if (!flag) return fail("ReviewFlag不存在");
+  const isOwner = flag.registration.userId === ctx.userId;
+  const canManage = canManageRace(ctx, flag.raceId);
+  if (input.status === "resolved" || input.status === "in_review") {
+    if (!canManage && !ctx.roles.includes("admin")) return fail("只有Organizer/Admin可以处理风险");
+  } else if (input.status === "open") {
+    if (!canManage && !isOwner && !ctx.roles.includes("admin")) return fail("只有相关Rider或Organizer/Admin可以重新打开风险");
+  }
+  const note = input.resolutionNote?.trim() || null;
+  await prisma.reviewFlag.update({
+    where: { id: input.flagId },
+    data: {
+      status: input.status,
+      resolutionNote: input.status === "open" ? null : note,
+      resolvedByUserId: input.status === "open" ? null : ctx.userId,
+      resolvedAt: input.status === "resolved" ? new Date() : null
+    }
+  });
+  return ok(
+    input.status === "resolved"
+      ? "风险已标记为 resolved"
+      : input.status === "in_review"
+        ? "风险已进入 in_review"
+        : "风险已重新打开",
+    input.flagId
+  );
 }
 
 export async function configureSubmissionWindow(

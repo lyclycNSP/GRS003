@@ -154,6 +154,25 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 * 公开端只展示可公开 Evidence 摘要，不暴露敏感原始 Session。
 * Rider 默认管理 Evidence 可见性和摘要，不直接读取敏感原始来源。
 
+## 3.5A ReviewFlag / Review Readiness
+
+| Action | Public | Rider | Judge | Organizer | Admin |
+|---|---|---|---|---|---|
+| view_public | - | - | - | - | - |
+| view_private | - | own | assigned work context | managed race | system |
+| mark_in_review | - | - | - | managed race | system |
+| resolve | - | - | - | managed race | system |
+| reopen | - | own related flag | assigned context summary only | managed race | system |
+| add_resolution_note | - | - | assigned context summary only | managed race | system |
+
+规则：
+
+* `ReviewFlag` 用于表达空骑行、无 CA 数据、缺材料、接入异常、疑似违规和过程性风险提示，不自动替代人工评审。
+* Rider 只能看到与自己相关且对整改有帮助的风险摘要，不读取 Organizer 内部判断或原始 CA 证据。
+* Judge 只能读取分配作品相关的风险摘要和处置结果，用于评审上下文，不直接执行风险关闭。
+* Organizer 或 Admin 可以将风险标记为 `open`、`in_review` 或 `resolved`，并记录最小处置说明。
+* 风险被 `resolved` 后仍保留审计记录，并继续在 Judge 评审上下文中可见。
+
 ## 3.6 JudgeAssignment
 
 | Action | Public | Rider | Judge | Organizer | Admin |

@@ -44,6 +44,7 @@ function expectBalancedCss(relativePath) {
 const routeFiles = [
   "app/page.tsx",
   "app/console/page.tsx",
+  "app/console/risk-center/page.tsx",
   "app/profile/page.tsx",
   "app/ops/page.tsx",
   "app/debug-login/page.tsx",
@@ -172,6 +173,7 @@ expectIncludes("app/console/page.tsx", [
   "Rider View",
   "Judge View",
   "Admin Console",
+  "Risk Center",
   "Screen Console",
   "href=\"/screen\"",
   "console-flow-strip",
@@ -187,6 +189,18 @@ expectIncludes("app/console/page.tsx", [
   "rider-signal-form",
   "rider-work-form",
   "admin-user-"
+]);
+
+expectIncludes("app/console/risk-center/page.tsx", [
+  "风险评审中心",
+  "Organizer 处置席",
+  "Rider 整改席",
+  "Judge 评审上下文",
+  "updateReviewFlagStatusAction",
+  "risk-priority-strip",
+  "risk-quick-filters",
+  "sourceLabel",
+  "formatTime"
 ]);
 
 expectIncludes("app/ops/page.tsx", [
@@ -251,7 +265,11 @@ expectIncludes("app/globals.css", [
   ".release-readiness-panel",
   ".status-pill",
   ".ca-attestation-panel",
-  ".screen-preview-card"
+  ".screen-preview-card",
+  ".risk-flag-grid",
+  ".risk-center-page",
+  ".risk-quick-filters",
+  ".risk-card-actions"
 ]);
 
 if (failures.length > 0) {

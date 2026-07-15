@@ -376,8 +376,47 @@ async function main() {
 
   await prisma.reviewFlag.createMany({
     data: [
-      { id: "flag_ana_cost", raceId: "race_bay_2026", registrationId: "reg_ana", raceProjectId: "rp_ana", workId: "work-localjoy", type: "cost_watch", severity: "warning", status: "open", judgeVisibleSummary: "进入成本观察，作品材料仍可提交。", sourceRefJson: json({ scope: "race_project", id: "rp_ana" }) },
-      { id: "flag_ana_summary", raceId: "race_bay_2026", registrationId: "reg_ana", raceProjectId: "rp_ana", workId: "work-localjoy", type: "evidence_summary_ready", severity: "info", status: "open", judgeVisibleSummary: "本地摘要已生成：偏好建模 → 路线验证。", sourceRefJson: json({ scope: "work", id: "work-localjoy" }) }
+      {
+        id: "flag_ana_cost",
+        raceId: "race_bay_2026",
+        registrationId: "reg_ana",
+        raceProjectId: "rp_ana",
+        workId: "work-localjoy",
+        type: "cost_watch",
+        severity: "warning",
+        status: "in_review",
+        judgeVisibleSummary: "进入成本观察，作品材料仍可提交。",
+        resolutionNote: "Organizer 已要求 Rider 在评审前补充成本解释和纠偏说明。",
+        resolvedByUserId: "user_org_1",
+        sourceRefJson: json({ scope: "race_project", id: "rp_ana" })
+      },
+      {
+        id: "flag_ana_missing",
+        raceId: "race_bay_2026",
+        registrationId: "reg_ana",
+        raceProjectId: "rp_ana",
+        workId: "work-localjoy",
+        type: "missing_required_material",
+        severity: "warning",
+        status: "open",
+        judgeVisibleSummary: "作品缺少可公开 Demo 说明，评审前需补齐关键材料。",
+        sourceRefJson: json({ scope: "work", id: "work-localjoy", missing: ["demo"] })
+      },
+      {
+        id: "flag_mira_resolved",
+        raceId: "race_bay_2026",
+        registrationId: "reg_mira",
+        raceProjectId: "rp_mira",
+        workId: "work-gba-wander",
+        type: "empty_riding",
+        severity: "info",
+        status: "resolved",
+        judgeVisibleSummary: "早期骑行摘要为空，后续已补入有效 CA Signal。",
+        resolutionNote: "Mira 已补充有效骑行会话，当前证据链完整。",
+        resolvedByUserId: "user_org_1",
+        resolvedAt: new Date(),
+        sourceRefJson: json({ scope: "race_project", id: "rp_mira" })
+      }
     ]
   });
 

@@ -46,6 +46,7 @@ import {
   submitWork,
   switchScreenMode,
   toggleScreenFallback,
+  updateReviewFlagStatus,
   updateProfile,
   updateUserRoles
 } from "@/lib/domain";
@@ -57,6 +58,7 @@ function value(formData: FormData, key: string) {
 function refresh(path = "/console") {
   revalidatePath("/");
   revalidatePath("/console");
+  revalidatePath("/console/risk-center");
   revalidatePath("/ops");
   revalidatePath(path);
 }
@@ -182,6 +184,17 @@ export async function disableCAConnectionAction(formData: FormData) {
   const ctx = await getAuthContext();
   const result = await disableCAConnection(ctx, value(formData, "caConnectionId"));
   refresh("/console");
+  if (!result.ok) throw new Error(result.message);
+}
+
+export async function updateReviewFlagStatusAction(formData: FormData) {
+  const ctx = await getAuthContext();
+  const result = await updateReviewFlagStatus(ctx, {
+    flagId: value(formData, "flagId"),
+    status: value(formData, "status"),
+    resolutionNote: value(formData, "resolutionNote")
+  });
+  refresh("/console/risk-center");
   if (!result.ok) throw new Error(result.message);
 }
 export async function submitWorkAction(formData: FormData) {

@@ -26,11 +26,12 @@ import {
   submitWork,
   switchScreenMode,
   toggleScreenFallback,
+  updateReviewFlagStatus,
   updateProfile,
   updateUserRoles
 } from "../lib/domain";
 import { isRaceOrganizer, type AuthContext } from "../lib/auth";
-import { getConsoleSnapshotForUser, getRaceResults, getWorkBySlug } from "../lib/queries";
+import { getConsoleSnapshotForUser, getRaceResults, getRiskCenterSnapshotForUser, getWorkBySlug } from "../lib/queries";
 import { createRidingSignalAttestation, type RidingSignalPayload } from "../lib/ca-attestation";
 
 const prisma = new PrismaClient();
@@ -266,6 +267,65 @@ async function main() {
     });
     assert.equal(result.ok, false);
     assert.equal(await prisma.reviewFlag.count({ where: { registrationId: "reg_mira", type: "ingestion_exception" } }), before);
+  });
+
+  await test("organizer can resolve and rider can reopen ReviewFlag", async () => {
+    const resolved = await updateReviewFlagStatus(organizer, {
+      flagId: "flag_ana_missing",
+      status: "resolved",
+      resolutionNote: "Rider 已补充说明，允许继续进入评审。"
+    });
+    assert.equal(resolved.ok, true);
+    const flagAfterResolve = await prisma.reviewFlag.findUnique({ where: { id: "flag_ana_missing" } });
+    assert.equal(flagAfterResolve?.status, "resolved");
+    assert.equal(flagAfterResolve?.resolvedByUserId, "user_org_1");
+    const riderTwo: AuthContext = {
+      userId: "user_rider_2",
+      roles: ["rider"],
+      profileCompleted: true,
+      managedRaceIds: [],
+      approvedRegistrationIds: ["reg_ana"],
+      assignedWorkIds: []
+    };
+    const reopened = await updateReviewFlagStatus(riderTwo, {
+      flagId: "flag_ana_missing",
+      status: "open"
+    });
+    assert.equal(reopened.ok, true);
+    const flagAfterReopen = await prisma.reviewFlag.findUnique({ where: { id: "flag_ana_missing" } });
+    assert.equal(flagAfterReopen?.status, "open");
+    assert.equal(flagAfterReopen?.resolutionNote, null);
+  });
+
+  await test("judge cannot update ReviewFlag status", async () => {
+    const judgeCtx: AuthContext = {
+      userId: "user_judge_1",
+      roles: ["judge"],
+      profileCompleted: true,
+      managedRaceIds: [],
+      approvedRegistrationIds: [],
+      assignedWorkIds: ["work-localjoy"]
+    };
+    const result = await updateReviewFlagStatus(judgeCtx, {
+      flagId: "flag_ana_missing",
+      status: "resolved",
+      resolutionNote: "Judge should not be allowed."
+    });
+    assert.equal(result.ok, false);
+    assert.match(result.message, /Organizer\/Admin/);
+  });
+
+  await test("risk center snapshot is role scoped", async () => {
+    const organizerRisk = await getRiskCenterSnapshotForUser("user_org_1", "race_bay_2026");
+    const riderRisk = await getRiskCenterSnapshotForUser("user_rider_2", "race_bay_2026");
+    const judgeRisk = await getRiskCenterSnapshotForUser("user_judge_1", "race_bay_2026");
+    assert.ok(organizerRisk.allFlags.length >= 3);
+    assert.ok(organizerRisk.allFlags[0].updatedAt instanceof Date);
+    assert.equal(riderRisk.allFlags.length, 0);
+    assert.equal(judgeRisk.allFlags.length, 0);
+    assert.ok(riderRisk.ownFlags.every((flag) => flag.riderUserId === "user_rider_2"));
+    assert.ok(judgeRisk.judgeFlags.length >= 1);
+    assert.ok(judgeRisk.judgeFlags.some((flag) => flag.workSlug === "work-localjoy"));
   });
 
   await test("valid CA signal creates Session and Evidence", async () => {

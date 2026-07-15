@@ -18,9 +18,11 @@
 * Track Calibrator 已迁入同一 ARY 应用：浏览器 IndexedDB 保存未发布 Draft/背景/校验报告，服务端重新鉴权、校验 MIME/尺寸/checksum/几何并发布幂等不可变 TrackProfileVersion；pending Round 可显式绑定 system 或本 Race 的 published 版本。完整质量门和一次性 PostgreSQL 全新库/基线升级均已通过。
 * 当前尚未取得生产 TLS、托管 PostgreSQL、真实 OAuth App、正式 CA 凭证、备份恢复、WAF / 限流、监控和 staging 彩排证据；按真实赛事 go-live 口径仍为 no-go。
 * 已新增`web/`正式集成应用入口：Next.js App Router、Prisma、SQLite、GitHub OAuth路由、服务端权限上下文、Public API和Console/Ops服务端动作；DEV-2/DEV-3高保真页面闭环已迁入正式应用。
-* `web/` 本轮已完成角色数据流修正：Console 按 Race 取数，Debug Login 可隔离 Organizer/Admin/Rider/Judge，Screen Console 对非管理者只读，非公开 Work 不再公开详情，Judge 提交后有保存反馈。
+* `web/` 已完成角色数据流修正：Console 按 Race 取数，Debug Login 可隔离 Organizer/Admin/Rider/Judge，Screen Console 对非管理者只读，非公开 Work 不再公开详情，Judge 提交后有保存反馈。
 * `web/e2e/` 已新增 Judge、Public、Screen 三组 6 个 Playwright 场景并全部通过；E2E 使用独立 `prisma/e2e.db`，同时补齐 Judge 页面按 assignment 服务端授权。
 * 全角色、Public、Security、Race Live 与 Track Calibrator E2E 已补齐并全量 18/18 通过；完整领域/契约测试、静态烟测、TypeScript、PostgreSQL production build、production config preflight 和一次性 migration deploy 同步通过。
+* `DEV-8` 风险评审中心已在 `web/` 落地：ReviewFlag 新增处置说明 / 处理人 / 更新时间，风险按状态与严重度排序，提供优先级摘要和快速筛选；Organizer 可筛选并处理风险，Rider 只看本人整改项，Judge 可在评审上下文中看到未解决风险和处置记录。
+* `docs/ary-risk-center.md` 已落盘，作为风险评审中心的专题说明和后续合并入口。
 * 本阶段修改说明和 Riding Record 已落盘，分别承接工程变更事实与第一人称理解、引导、决策和指挥过程。
 * `PLAN.md` 已从旧阶段完成清单收缩为正式工程化近期窗口；当前 P0 聚焦正式任务立项、真实 GitHub OAuth / 生产会话闭环和 Hosted CI 首次验证。
 * `web/` 本轮已完成 Rider 团队参赛功能：Rider 可创建团队、用邀请码加入团队、由队长提交团队报名；团队报名审核后生成 RaceProject，团队成员可接入各自 CAConnection，团队 Work 由队长提交。
@@ -42,7 +44,7 @@
 | `REL-1` 赛事彩排 / 灰度发布 / 正式发布 | 已交付并迁入 `web/` | 已提供P0回归、发布检查项和go/no-go证据记录；真实staging/production灰度和正式发布待基础设施接入。 | `web/app/ops/page.tsx`、`web/tests/domain.test.ts`、`docs/ary-release-ops-plan.md` |
 | `OPS-1` 赛事值守 / 回滚 / 赛后归档 | 已交付并迁入 `web/` | 已提供备份记录、事故记录、fallback记录和赛后归档入口；真实值守、回滚和生产归档待部署环境接入。 | `web/app/ops/page.tsx`、`web/lib/domain.ts`、`docs/ary-release-ops-plan.md` |
 | `WEB-1` 高保真前端 + 服务端领域动作正式集成 | DEV-2/DEV-3已迁入 | `web/`已建立Next.js全栈工程，迁入Public Home/Race/Live/Works/Work/Results/Review/Rider/Cooperation、Profile Completion、Organizer/Rider/Judge/Admin Console入口，并接入Prisma/SQLite、OAuth fallback、服务端领域动作、Public API和领域测试。 | `web/README.md`、`web/app/`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
-| `WEB-1 角色数据流与调试能力修正` | 已完成 | Playwright 审计发现的 Race 数据串流、Debug 角色串扰、Screen 控制台未授权入口、非公开 Work 详情暴露、Judge 提交无反馈和 seed 跨 Race Award 已修正。 | `docs/ary-role-flow-playwright-audit.md`、`web/app/console/page.tsx`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
+| `WEB-1 角色数据流与角色隔离修正` | 已完成 | Playwright 审计发现的 Race 数据串流、角色隔离、Screen 控制台未授权入口、非公开 Work 详情暴露、Judge 提交无反馈和 seed 跨 Race Award 已修正。 | `docs/ary-role-flow-playwright-audit.md`、`web/app/console/page.tsx`、`web/lib/queries.ts`、`web/lib/domain.ts`、`web/tests/domain.test.ts` |
 | `WEB-1 Judge / Public / Screen E2E` | 已完成 | 6 个 Playwright 场景覆盖 Judge 未授权 404、分配作品评审与持久化、Public Gallery/Live/Works/Results/Review、review-only 页面/API 隔离、Screen 只读权限、模式同步和 fallback。 | `web/playwright.config.ts`、`web/e2e/`、`web/scripts/e2e-prepare.mjs`、`web/README.md` |
 | `WEB-1 Rider / Organizer / Admin E2E + CI` | 已完成 | Rider 验证 CA Signal 与 Work 持久化，Organizer 验证 Race 创建/切换/发布及公共 API，Admin 验证 User.roles 持久化并恢复 Seed；CI 双 Job 已落盘。 | `web/e2e/rider.spec.ts`、`web/e2e/organizer.spec.ts`、`web/e2e/admin.spec.ts`、`.github/workflows/web-ci.yml` |
 | `WEB-1 E2E / CI 阶段总结与 Riding Record` | 已完成 | 修改说明覆盖内容、范围、意义、验证和未完成边界；Riding Record 展示第一人称项目理解、引导、关键决策和 Agent 指挥。 | `docs/ary-web-e2e-ci-change-summary.md`、`riding_records/ARY_WEB_E2E_CI_Riding_Record_2026-07-13.md` |
@@ -51,6 +53,7 @@
 | `WEB-2 Rider 团队参赛功能` | 已完成 | 新增 Team / TeamMember / participantType / CAConnection.ownerUserId 数据口径；Rider View 支持创建团队、邀请码加入、提交团队报名和团队状态查看；团队成员可登记 CAConnection，队长统一提交团队 Work；领域测试已覆盖完整团队参赛链路。 | `web/prisma/schema.prisma`、`web/app/console/page.tsx`、`web/lib/domain.ts`、`web/lib/queries.ts`、`web/tests/domain.test.ts` |
 | `RACE-LIVE-1` GRS002 大屏能力迁入 | 本地完成 / staging 待验收 | Race Live 使用 ARY Projection 和 TrackProfileVersion，同一 Round 自动分组轮播；公开屏幕轮询同步 mode、fallback、Projection 和控制状态；完整质量门已通过。 | `web/lib/race-live/`、`web/app/screen/`、`web/e2e/screen-race-live.spec.ts` |
 | `TRACK-CAL-1` Track Calibrator 迁入 | 本地完成 / staging 待验收 | IndexedDB Draft 与服务端事实源分离；受保护发布使用 checksum、完整幂等指纹、不可变版本和内容寻址资产边界；pending Round 可绑定 published 版本；完整质量门已通过。 | `web/lib/track-calibrator/`、`web/lib/track-assets/`、`web/app/console/tracks/`、`web/e2e/track-calibrator.spec.ts` |
+| `DEV-8 风险评审中心` | 已完成 | ReviewFlag 已形成可处置对象，具备优先级摘要、快速筛选、时间/来源上下文和 Judge 只读风险回流；当前包含 Organizer 处置席、Rider 整改席、Judge 风险上下文、状态机和审计字段，并已形成专题文档承接后续合并。 | `web/app/console/risk-center/page.tsx`、`web/lib/domain.ts`、`web/lib/queries.ts`、`web/tests/domain.test.ts`、`docs/ary.plan.md`、`docs/ary-risk-center.md` |
 
 ## 证据索引
 
@@ -110,6 +113,7 @@
 | WEB-1 全角色 / Public / Screen E2E 与 CI 已完成：Playwright 9/9、领域测试 20/20、静态烟测、TypeScript、Next build 通过；实际浏览器抽查三角色隔离通过 | `web/e2e/`、`.github/workflows/web-ci.yml`、`web/scripts/static-smoke.mjs`、`web/README.md` |
 | SEC-1 安全与生产基线验证通过：Playwright 14/14、领域测试 23/23、静态烟测、TypeScript、PostgreSQL client / production build、production config preflight 通过 | `web/e2e/security.spec.ts`、`web/tests/domain.test.ts`、`web/prisma/schema.prisma`、`web/scripts/check-production-config.mjs`、`docs/ary-production-security-baseline.md` |
 | SEC-WORK-1 本地代码质量门通过：37 条领域/契约测试、Playwright 14/14、静态烟测、TypeScript、PostgreSQL client / production build、独立 SQLite db:init + seed 和 production config preflight 通过 | `web/tests/work-submission.test.ts`、`web/tests/work-submission-domain.test.ts`、`web/e2e/`、`web/prisma/seed.ts` |
+| DEV-8 风险评审中心已验证：ReviewFlag 新增处置字段，Organizer 可 resolve / in_review，Rider 可 reopen，Judge 只读处置摘要；静态烟测、领域测试和构建口径应覆盖新页面和动作 | `web/app/console/risk-center/page.tsx`、`web/lib/domain.ts`、`web/tests/domain.test.ts`、`web/scripts/static-smoke.mjs` |
 
 ## 领域测试映射表
 
@@ -138,7 +142,7 @@
 | --- | --- |
 | 生产基础设施尚未建立 | PostgreSQL schema / migration 和配置门禁已入库；仍需实际托管 PostgreSQL、TLS、备份恢复、WAF / 限流、监控和部署流水线证据 |
 | `web/` 真实OAuth仍需外部配置 | OAuth state、随机会话和禁止 fallback 已实现；仍需配置真实 GitHub OAuth App 并在 staging 验证 callback、过期和 Logout |
-| ReviewFlag处理状态、CAConnection新增截止窗口和违规作品处理仍需产品化 | 当前本地MVP已实现open/resolved基础状态和风险可见性，正式实现需补细粒度处理流 |
+| Risk Center 仍需生产化 | 已具备 open / in_review / resolved 状态与角色视图；仍需补处置 SLA、通知、批量操作和违规作品升级策略 |
 | 服务端权限仍需系统化审计 | `web/` 已具备服务端权限上下文，且本轮修复 Judge assignment 边界；仍需按权限矩阵覆盖剩余资源动作 |
 | 浏览器自动化托管结果尚待首次推送确认 | 全角色 / Public / Screen / Security 14 个 E2E 和 CI 配置已在本地验证；推送后确认 GitHub-hosted Runner，并继续补截图基线、移动端和负载路径 |
 | PostgreSQL migration 仅有一次性本地证据 | PostgreSQL 16 全新库和模拟已有 Race Live 基线升级均已通过；仍需在 Hosted CI / staging 执行并保留环境级证据 |

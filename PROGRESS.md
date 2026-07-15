@@ -50,3 +50,11 @@
 * 避免复发：公开 Screen 只返回 allowlist DTO；Projection 只接收当前 Race 的 approved Entry；未知 ReviewFlag 不公开；发布资产路径只使用服务端生成 key；production 强制配置源码目录外可写的 TRACK_ASSET_ROOT。
 * 验证：`check:static`、完整 `npm test`、TypeScript、PostgreSQL Client 生成、production build、production config preflight、Playwright 18/18 和 `git diff --check` 均通过；一次性 PostgreSQL 16 全新库 5 个 migration 全部 deploy 成功，模拟已有 Race Live 基线后重新应用 Track publish migration 也成功并确认 5 个新增列。
 * git commit ID：`87b3e30`。
+
+## 2026-07-15 xst 风险评审中心并入
+
+* 问题：`origin/xst` 基于较早主线开发，和作品不可变版本、团队参赛、Race Live / Track Calibrator 在 Console、领域动作、查询和 Prisma schema 上产生冲突；原分支还缺少 PostgreSQL migration，且 Rider 页面顶部会从整场 `allFlags` 泄露其他参赛者的风险统计与焦点。
+* 解决：保留现有提交完整性和团队语义，接入 Organizer 处置、Rider 整改、Judge 只读上下文；有效 CA 信号在同一事务中关闭对应接入风险；新增向后兼容的 `20260715_risk_review_center` migration，并在 Query 与页面聚合两层限制非管理角色只能看到自身或已分配作品风险。
+* 避免复发：跨分支合并 ReviewFlag 时同时检查角色可见集合、顶部派生统计和数据库 migration，不能只检查处置卡片是否按角色隐藏。
+* 验证：静态检查、Prisma schema、完整领域/契约测试、TypeScript、production config/build、Playwright 18/18、一次性 PostgreSQL 16 migration deploy 均通过；Rider/Judge 的 `allFlags` 负向测试完成红绿验证。
+* git commit ID：未提交。

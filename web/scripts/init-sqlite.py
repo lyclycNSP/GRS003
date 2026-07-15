@@ -287,9 +287,12 @@ CREATE TABLE "ReviewFlag" (
   "severity" TEXT NOT NULL,
   "status" TEXT NOT NULL,
   "judgeVisibleSummary" TEXT NOT NULL,
+  "resolutionNote" TEXT,
+  "resolvedByUserId" TEXT,
   "sourceRefJson" TEXT NOT NULL,
   "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "resolvedAt" DATETIME
+  "resolvedAt" DATETIME,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE "JudgeAssignment" (
   "id" TEXT NOT NULL PRIMARY KEY,
