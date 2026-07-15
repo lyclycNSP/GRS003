@@ -57,4 +57,4 @@
 * 解决：保留现有提交完整性和团队语义，接入 Organizer 处置、Rider 整改、Judge 只读上下文；有效 CA 信号在同一事务中关闭对应接入风险；新增向后兼容的 `20260715_risk_review_center` migration，并在 Query 与页面聚合两层限制非管理角色只能看到自身或已分配作品风险。
 * 避免复发：跨分支合并 ReviewFlag 时同时检查角色可见集合、顶部派生统计和数据库 migration，不能只检查处置卡片是否按角色隐藏。
 * 验证：静态检查、Prisma schema、完整领域/契约测试、TypeScript、production config/build、Playwright 18/18、一次性 PostgreSQL 16 migration deploy 均通过；Rider/Judge 的 `allFlags` 负向测试完成红绿验证。
-* git commit ID：未提交。
+* git commit ID：`0bbc507`。
