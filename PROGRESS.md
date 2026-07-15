@@ -41,12 +41,12 @@
 - 问题：旧 Screen 将 fallback 混作 mode。解决：fallback 改为独立布尔状态，mode 仅保留 live/leaderboard/works/announcement。
 - 问题：公共 Race API 复用了内部 Projection 对象。解决：API 路由显式剥离 Projection/ScreenState；Race Live 使用专用 Zod DTO 查询。
 - 避免复发：新增严格 `.strict()` 快照契约、敏感字段负向测试、两尺寸 Race Live E2E、Screen 控制权限与审计测试。
-- Git commit：未提交。
+- Git commit：`87b3e30`。
 
-## 2026-07-14 Race Live 与 Track Calibrator 迁入（未提交）
+## 2026-07-14 Race Live 与 Track Calibrator 迁入
 
 * 问题：GRS002 的大屏和赛道标定原为独立服务，Coach/Cockpit 语义与 ARY 领域边界混杂；大屏还需要同一 Round 分组轮播、控制审计和公开 DTO 边界。
 * 解决：将 TrackProfile/Runtime、Race Live Projection/Screen Control 和 Track Calibrator 迁入 GRS003 Next.js；Coach/Cockpit 排除在 ARY 外。Calibrator Draft/背景只保存在浏览器 IndexedDB，服务端发布重新做权限、MIME/尺寸、SHA-256、几何和幂等校验，形成不可变 TrackProfileVersion，并允许 pending Round 显式绑定。
 * 避免复发：公开 Screen 只返回 allowlist DTO；Projection 只接收当前 Race 的 approved Entry；未知 ReviewFlag 不公开；发布资产路径只使用服务端生成 key；production 强制配置源码目录外可写的 TRACK_ASSET_ROOT。
 * 验证：`check:static`、完整 `npm test`、TypeScript、PostgreSQL Client 生成、production build、production config preflight、Playwright 18/18 和 `git diff --check` 均通过；一次性 PostgreSQL 16 全新库 5 个 migration 全部 deploy 成功，模拟已有 Race Live 基线后重新应用 Track publish migration 也成功并确认 5 个新增列。
-* git commit ID：未提交。
+* git commit ID：`87b3e30`。
