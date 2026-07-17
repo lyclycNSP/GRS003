@@ -1,5 +1,7 @@
 # ARY DEV-4到OPS-1交付与验收记录
 
+> 当前认证说明：普通登录现已严格使用 GitHub OAuth，不存在 OAuth fallback；Debug Login 仅在非生产环境且显式开关启用。下文 fallback 表述仅记录历史交付状态。
+
 版本：v0.2
 文档类型：Implementation Delivery
 状态：历史交付记录；根目录旧 `app/` 静态 MVP 已移除，当前可运行入口迁至 `../web/`

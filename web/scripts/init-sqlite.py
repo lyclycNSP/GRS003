@@ -16,8 +16,8 @@ cur.execute("PRAGMA foreign_keys=OFF")
 
 tables = [
     "ReleaseChecklistItem", "Incident", "Backup", "ScreenControlAuditEvent", "ScreenState", "Announcement", "Projection", "Report", "Award",
-    "JudgingRecord", "JudgeAssignment", "SubmissionAuditEvent", "WorkSubmissionVersion", "ReviewFlag", "Evidence", "Work", "CAIngestionReceipt", "Session", "CAConnection",
-    "RaceRoundEntry", "RaceRound", "TrackProfileVersion", "TrackProfile", "RaceProject", "Registration", "TeamMember", "Team", "Race", "AuthSession", "AuthAccount", "User"
+    "JudgingRecord", "JudgeAssignment", "JudgeAllocationBatch", "RaceJudgeMembership", "SubmissionAuditEvent", "WorkSubmissionVersion", "ReviewFlag", "Evidence", "Work", "CAIngestionReceipt", "Session", "CAConnection",
+    "RaceProblemAuditEvent", "RaceProblemVersion", "RaceProblemUploadIntent", "GitHubInstallation", "RaceRoundEntry", "RaceRound", "TrackProfileVersion", "TrackProfile", "RaceProject", "Registration", "TeamMember", "Team", "HomepageRaceCuration", "Race", "RoleApplication", "OrganizerProfile", "JudgeProfile", "RiderProfile", "UserRole", "AuthSession", "AuthAccount", "User"
 ]
 for table in tables:
     cur.execute(f'DROP TABLE IF EXISTS "{table}"')
@@ -29,12 +29,52 @@ CREATE TABLE "User" (
   "slug" TEXT NOT NULL UNIQUE,
   "displayName" TEXT NOT NULL,
   "githubLogin" TEXT,
+  "githubUserId" TEXT UNIQUE,
+  "email" TEXT UNIQUE,
+  "verifiedEmailsJson" TEXT NOT NULL DEFAULT '[]',
+  "emailVerifiedAt" DATETIME,
+  "emailConfirmedAt" DATETIME,
+  "avatarUrl" TEXT,
+  "timeZone" TEXT,
+  "locale" TEXT,
+  "termsVersion" TEXT,
+  "termsAcceptedAt" DATETIME,
+  "privacyVersion" TEXT,
+  "privacyAcceptedAt" DATETIME,
+  "preferredRole" TEXT,
   "profileCompleted" BOOLEAN NOT NULL DEFAULT false,
-  "rolesJson" TEXT NOT NULL,
   "city" TEXT,
   "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE "UserRole" (
+  "id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL, "role" TEXT NOT NULL, "status" TEXT NOT NULL DEFAULT 'active',
+  "source" TEXT NOT NULL, "grantedByUserId" TEXT, "grantedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "suspendedAt" DATETIME, "revokedAt" DATETIME, "reason" TEXT, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX "UserRole_userId_role_key" ON "UserRole"("userId", "role");
+CREATE INDEX "UserRole_role_status_idx" ON "UserRole"("role", "status");
+CREATE TABLE "RiderProfile" (
+  "id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL UNIQUE, "headline" TEXT, "skillsJson" TEXT NOT NULL DEFAULT '[]', "bio" TEXT,
+  "countryCode" TEXT, "city" TEXT, "organization" TEXT, "websiteUrl" TEXT, "socialLinksJson" TEXT NOT NULL DEFAULT '{}', "completedAt" DATETIME,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE "JudgeProfile" (
+  "id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL UNIQUE, "organization" TEXT, "title" TEXT, "expertiseJson" TEXT NOT NULL DEFAULT '[]',
+  "reviewBio" TEXT, "yearsExperience" INTEGER, "credentialUrl" TEXT, "conflictConfirmedAt" DATETIME, "completedAt" DATETIME,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE "OrganizerProfile" (
+  "id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL UNIQUE, "organizationName" TEXT, "position" TEXT, "eventCategoriesJson" TEXT NOT NULL DEFAULT '[]',
+  "organizerBio" TEXT, "organizationWebsite" TEXT, "completedAt" DATETIME, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE "RoleApplication" (
+  "id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL, "requestedRole" TEXT NOT NULL, "source" TEXT NOT NULL, "status" TEXT NOT NULL,
+  "reviewerId" TEXT, "reviewNote" TEXT, "submittedAt" DATETIME, "reviewedAt" DATETIME, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "RoleApplication_userId_requestedRole_status_idx" ON "RoleApplication"("userId", "requestedRole", "status");
+CREATE INDEX "RoleApplication_status_requestedRole_idx" ON "RoleApplication"("status", "requestedRole");
+CREATE UNIQUE INDEX "RoleApplication_userId_requestedRole_open_key" ON "RoleApplication"("userId", "requestedRole") WHERE "status" IN ('draft', 'pending', 'rejected');
 CREATE TABLE "AuthAccount" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "userId" TEXT NOT NULL,
@@ -51,6 +91,7 @@ CREATE TABLE "AuthSession" (
   "expiresAt" DATETIME NOT NULL,
   "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "lastSeenAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  ,"activeRole" TEXT
 );
 CREATE INDEX "AuthSession_userId_idx" ON "AuthSession"("userId");
 CREATE INDEX "AuthSession_expiresAt_idx" ON "AuthSession"("expiresAt");
@@ -74,12 +115,56 @@ CREATE TABLE "Race" (
   "submissionClosesAt" DATETIME,
   "submissionLockedAt" DATETIME,
   "submissionLockedByUserId" TEXT,
-  "submissionLockReason" TEXT
+  "submissionLockReason" TEXT,
+  "currentProblemVersionId" TEXT UNIQUE,
+  "reviewResultsPublishedAt" DATETIME,
+  "reviewResultsPublishedByUserId" TEXT
 );
+CREATE TABLE "RaceProblemVersion" (
+  "id" TEXT NOT NULL PRIMARY KEY, "raceId" TEXT NOT NULL, "revision" INTEGER NOT NULL, "displayName" TEXT NOT NULL,
+  "storageKey" TEXT NOT NULL UNIQUE, "sizeBytes" INTEGER NOT NULL, "mimeType" TEXT NOT NULL, "sha256" TEXT NOT NULL,
+  "storageProvider" TEXT NOT NULL DEFAULT 'platform_legacy', "storageOwnerUserId" TEXT,
+  "scanStatus" TEXT NOT NULL, "scanEngine" TEXT, "scanDetail" TEXT, "uploadedByUserId" TEXT NOT NULL,
+  "uploadedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "changeNote" TEXT, "publishedAt" DATETIME,
+  "disabledAt" DATETIME, "disabledReason" TEXT
+);
+CREATE TABLE "RaceProblemUploadIntent" (
+  "id" TEXT NOT NULL PRIMARY KEY, "tokenHash" TEXT NOT NULL UNIQUE, "userId" TEXT NOT NULL, "raceId" TEXT NOT NULL,
+  "expiresAt" DATETIME NOT NULL, "usedAt" DATETIME, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "RaceProblemUploadIntent_userId_createdAt_idx" ON "RaceProblemUploadIntent"("userId", "createdAt");
+CREATE INDEX "RaceProblemUploadIntent_expiresAt_idx" ON "RaceProblemUploadIntent"("expiresAt");
+CREATE UNIQUE INDEX "RaceProblemVersion_raceId_revision_key" ON "RaceProblemVersion"("raceId", "revision");
+CREATE INDEX "RaceProblemVersion_raceId_scanStatus_idx" ON "RaceProblemVersion"("raceId", "scanStatus");
+CREATE INDEX "RaceProblemVersion_sha256_idx" ON "RaceProblemVersion"("sha256");
+CREATE TABLE "RaceProblemAuditEvent" (
+  "id" TEXT NOT NULL PRIMARY KEY, "raceId" TEXT NOT NULL, "problemVersionId" TEXT, "actorUserId" TEXT NOT NULL,
+  "action" TEXT NOT NULL, "detailJson" TEXT NOT NULL DEFAULT '{}', "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "RaceProblemAuditEvent_raceId_createdAt_idx" ON "RaceProblemAuditEvent"("raceId", "createdAt");
+CREATE INDEX "RaceProblemAuditEvent_problemVersionId_idx" ON "RaceProblemAuditEvent"("problemVersionId");
+CREATE TABLE "GitHubInstallation" (
+  "id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL, "installationId" TEXT NOT NULL UNIQUE,
+  "accountLogin" TEXT NOT NULL, "accountType" TEXT NOT NULL, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "GitHubInstallation_userId_idx" ON "GitHubInstallation"("userId");
+CREATE TABLE "HomepageRaceCuration" (
+  "raceId" TEXT NOT NULL PRIMARY KEY,
+  "pinned" BOOLEAN NOT NULL DEFAULT false,
+  "hidden" BOOLEAN NOT NULL DEFAULT false,
+  "position" INTEGER,
+  "updatedByUserId" TEXT NOT NULL,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "HomepageRaceCuration_pinned_position_idx" ON "HomepageRaceCuration"("pinned", "position");
+CREATE INDEX "HomepageRaceCuration_hidden_idx" ON "HomepageRaceCuration"("hidden");
+CREATE INDEX "HomepageRaceCuration_updatedByUserId_idx" ON "HomepageRaceCuration"("updatedByUserId");
 CREATE TABLE "Team" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "raceId" TEXT NOT NULL,
   "name" TEXT NOT NULL,
+  "description" TEXT,
   "slug" TEXT NOT NULL UNIQUE,
   "inviteCode" TEXT NOT NULL UNIQUE,
   "status" TEXT NOT NULL DEFAULT 'draft',
@@ -105,7 +190,10 @@ CREATE TABLE "Registration" (
   "teamId" TEXT,
   "status" TEXT NOT NULL,
   "submittedAt" DATETIME NOT NULL,
-  "approvedAt" DATETIME
+  "approvedAt" DATETIME,
+  "reviewedByUserId" TEXT,
+  "reviewedAt" DATETIME,
+  "reviewNote" TEXT
 );
 CREATE UNIQUE INDEX "Registration_raceId_userId_key" ON "Registration"("raceId", "userId");
 CREATE UNIQUE INDEX "Registration_teamId_key" ON "Registration"("teamId");
@@ -240,6 +328,11 @@ CREATE TABLE "WorkSubmissionVersion" (
   "demoUrl" TEXT,
   "repoUrl" TEXT NOT NULL,
   "repoCommitSha" TEXT NOT NULL,
+  "repositoryNodeId" TEXT,
+  "repositoryVisibility" TEXT,
+  "repositoryVerifiedAt" DATETIME,
+  "repositoryVerificationStatus" TEXT NOT NULL DEFAULT 'legacy_unverified',
+  "repositoryVerificationDetail" TEXT,
   "hashSchemaVersion" TEXT NOT NULL,
   "integrityHash" TEXT NOT NULL,
   "submittedByUserId" TEXT NOT NULL,
@@ -302,9 +395,37 @@ CREATE TABLE "JudgeAssignment" (
   "assignedByUserId" TEXT NOT NULL,
   "status" TEXT NOT NULL,
   "assignedAt" DATETIME NOT NULL,
+  "slot" INTEGER NOT NULL CHECK ("slot" BETWEEN 1 AND 3),
+  "allocationBatchId" TEXT,
   "workSubmissionVersionId" TEXT
 );
 CREATE UNIQUE INDEX "JudgeAssignment_workId_judgeUserId_key" ON "JudgeAssignment"("workId", "judgeUserId");
+CREATE UNIQUE INDEX "JudgeAssignment_workId_slot_key" ON "JudgeAssignment"("workId", "slot");
+CREATE INDEX "JudgeAssignment_allocationBatchId_idx" ON "JudgeAssignment"("allocationBatchId");
+CREATE TABLE "RaceJudgeMembership" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "raceId" TEXT NOT NULL,
+  "judgeUserId" TEXT NOT NULL,
+  "selectedByUserId" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'active',
+  "selectedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX "RaceJudgeMembership_raceId_judgeUserId_key" ON "RaceJudgeMembership"("raceId", "judgeUserId");
+CREATE INDEX "RaceJudgeMembership_raceId_status_idx" ON "RaceJudgeMembership"("raceId", "status");
+CREATE INDEX "RaceJudgeMembership_judgeUserId_idx" ON "RaceJudgeMembership"("judgeUserId");
+CREATE TABLE "JudgeAllocationBatch" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "raceId" TEXT NOT NULL,
+  "createdByUserId" TEXT NOT NULL,
+  "seed" TEXT NOT NULL,
+  "algorithmVersion" TEXT NOT NULL,
+  "workCount" INTEGER NOT NULL,
+  "retainedCount" INTEGER NOT NULL,
+  "createdCount" INTEGER NOT NULL,
+  "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "JudgeAllocationBatch_raceId_createdAt_idx" ON "JudgeAllocationBatch"("raceId", "createdAt");
 CREATE TABLE "JudgingRecord" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "assignmentId" TEXT NOT NULL UNIQUE,

@@ -25,6 +25,8 @@ ARY MVP 的核心不是先构建完整社区平台，而是优先支撑第一场
 2. 让选手、评委、主办方分别进入各自的工作台完成参赛、提交、评审和管理。
 3. 让骑行监测能力沉淀为可展示、可评审、可复盘的 Agent Riding Skill 证据。
 
+2026-07-15 角色导航基线：账号菜单展示当前 `activeRole`、其他有效资格、待审申请和申请入口；切换只更新当前 AuthSession。`/console` 按激活角色进入 `/console/rider`、`/console/judge`、`/console/organizer` 或 `/console/admin`，每个工作台只呈现该角色的导航与数据。后续历史段落中的“按 `User.roles` 展示多个视图”均由此规则取代。
+
 因此，ARY MVP 采用 **Gallery-first 信息架构**。本文按以下概念层级组织：
 
 ```text
@@ -94,7 +96,7 @@ Screen Console
 
 公开端负责展示和转化，管理端负责组织和执行。
 
-Admin Console 只承载基础账号、个人资料状态和 `User.roles` 管理，不承担赛事执行、CA 接入维护或数据运营职责。
+Admin Console 只承载基础账号、角色申请和 `UserRole` 资格管理，不承担赛事执行、CA 接入维护或数据运营职责。
 
 Data / Ops Console 暂不进入 MVP 信息架构；CA 接入状态、Projection 重算和报告重跑先作为内部维护能力或 Race Console 的最小状态提示。
 
@@ -150,7 +152,7 @@ ARY
 ├─ Admin Console 账号与角色控制台
 │  ├─ Users 用户列表
 │  ├─ Profile Completion 资料补全状态
-│  └─ User.roles 角色维护
+│  └─ UserRole 资格维护
 │
 ├─ Screen Console 大屏控制台
 │  ├─ Race Selection 赛事选择
@@ -171,7 +173,7 @@ ARY
 
 * Public Site 是公开信息消费与传播入口。
 * Race Console 是赛事执行入口，以单场 Race Workspace 为核心上下文，按 `organizer`、`rider`、`judge` role 展示不同工作台。
-* Admin Console 只处理账号、资料状态和 `User.roles`，不承载赛事执行。
+* Admin Console 只处理账号、角色申请和 `UserRole` 资格状态，不承载赛事执行。
 * Screen Console 是大屏操作入口，不混入 Race Console。
 * Screen Display 是展示输出面，受 Screen Console 控制，不承担配置工作台职责。
 * Riding Intelligence 不作为应用体验面或页面导航层，而是通过 Projection、Evidence、Report 和 Read Model 被页面消费。
@@ -350,10 +352,10 @@ Console Shell
 └─ Screen Console
 ```
 
-多角色导航规则：
+多角色资格导航规则：
 
 * 用户可拥有多个 role。
-* Console Home 根据 `User.roles` 展示可进入的视图。
+* Console Home 根据当前会话 `activeRole` 重定向到唯一工作台；其他有效资格只在账号菜单中提供显式切换。
 * `rider` 进入 Rider View。
 * `judge` 进入 Judge View。
 * `organizer` 进入 Organizer View，并可进入 Screen Console。
@@ -408,7 +410,7 @@ Judge Sidebar
 Admin Sidebar
 ├─ Users
 ├─ Profile Completion
-└─ User.roles
+└─ UserRole qualifications
 ```
 
 ### Screen Console
@@ -451,6 +453,7 @@ Console / Screen / {Race} / {Mode}
 * 公开端优先使用赛事上下文，而不是后台模块上下文。
 * Console 内部必须保留当前 Race 上下文，避免跨赛事误操作。
 * Screen Console 必须清晰展示当前 Race 和当前 Display Mode。
+* 四角色工作台侧栏底部提供显式“返回公共主页”入口；该入口不属于角色业务导航，点击后卸载工作台侧栏并恢复公共顶栏。
 
 ---
 
@@ -492,7 +495,7 @@ Console / Screen / {Race} / {Mode}
 | Rider View | 当前 Race、报名状态、CA 状态 | 骑行状态、Work Submission、Review Result、Rider Report | 风险提示、截止时间 | 接入 CA / 提交作品 |
 | Rider Team Entry | 当前 Race 下的团队草稿、邀请码、成员列表和提交状态 | Team、TeamMember、团队 Registration | 人数不足、已提交、重复参赛提示 | 创建团队 / 加入团队 / 提交团队报名 |
 | Judge View | 分配作品、评审进度 | Work Detail、Evidence Summary、Score Form、Comments | 提交状态 | 提交评审 |
-| Admin Console | 用户列表、资料状态 | User.roles 维护 | 最近登录 / 异常账号 | 更新 roles |
+| Admin Console | 用户列表、申请状态 | UserRole 资格维护 | 最近登录 / 异常账号 | 审核申请、更新资格状态 |
 | Screen Console | 当前 Race、当前 Display Mode | Jumbotron、Billboard、Live、Leaderboard、Works、Announcement | Theme、Calibration、Fallback | 全屏展示 / 切换模式 |
 
 ---
@@ -566,7 +569,7 @@ IA 行为：
 * Rider 只能访问自己的报名、RaceProject、Work、Rider Report 和可见骑行摘要。
 * Judge 只能访问分配给自己的 Work、Evidence 摘要和 JudgingRecord。
 * Organizer 只能管理自己负责的 Race 及其相关资源。
-* Admin 只在 Admin Console 中维护用户、资料状态和 `User.roles`。
+* Admin 只在 Admin Console 中维护用户、角色申请和 `UserRole` 资格。
 * Screen Console 通常由 Organizer 或 Admin 使用。
 
 ---
@@ -584,7 +587,7 @@ IA 行为：
 | JudgingRecord draft | 不可见 | 不可见 | 自己可见 | managed race 可见 | system |
 | Report draft | 不可见 | 按个人报告权限 | 不可见 | managed race 可见 | system |
 | Report published | 可见公开报告 | 自己报告可见 | 可见公开报告 | 可见 | 可见 |
-| User.roles | 不可见 | 不可见 | 不可见 | 不可见 | 可维护 |
+| UserRole 资格状态 | 不可见 | 不可见 | 不可见 | 不可见 | 可维护 |
 
 ---
 
@@ -607,18 +610,21 @@ IA 行为：
 ```text
 Home / Race Gallery
 ├─ Hero / Featured Races / Live Race Switcher
-├─ Latest Results
-├─ Featured Works
-├─ Featured Riders
-├─ Past Races
-└─ CTA：报名 / 办赛 / 赞助 / 合作
+├─ Explore Public Races（搜索 / 状态筛选 / 分页）
+├─ Featured Works（最多 3 项摘要）
+├─ Latest Results（动态赛果摘要）
+└─ Cooperation CTA（窄版转化入口）
 ```
+
+Home 的摘要模块与完整目录职责不同：Featured Works 负责把高价值作品带入首屏后的发现路径，Latest Results 负责提供赛事结果与评审可信度，Cooperation CTA 负责承接办赛、赞助和合作转化；完整浏览、筛选和详情仍由 Works、Results、Race Page 与 Cooperation 页面承担。因此保留摘要，但降低其视觉权重，不重复铺陈完整列表。
 
 ### 7.1.1 Hero / Featured Races
 
 首屏展示当前最重要的一组赛事。MVP 首场可只有一场；当同时有多场重点赛事时，应以 Featured Races 列表或轮播表达，而不是把 Home 设计成单赛事落地页。
 
 当存在多场进行中 Race 时，Hero 本身承担 Live Race Switcher。用户应能在 Hero 中切换不同 live Race，切换后更新赛事名称、赛题、状态、活跃人数、作品数、进度和主 CTA；不再另设独立 Live Now 卡片。
+
+多赛事切换使用完整横向 slide track 表达空间位移，而不是在同一节点中瞬时替换文本。自动轮播、箭头、圆点与键盘控制共享同一状态；首尾切换应无反向跨越或闪白。悬停、焦点和页面不可见时暂停，手动切换后重新计时；非当前 slide 不进入键盘焦点顺序，并尊重 `prefers-reduced-motion`。
 
 每个 Featured Race 内容包括：
 
@@ -660,7 +666,7 @@ Home / Race Gallery
 
 ### 7.1.3 Latest Results
 
-展示最新发布的赛果。
+动态选择最近完成且已经有公开结果的赛事，作为紧凑赛果摘要；不得固定绑定某个演示赛事。
 
 内容包括：
 
@@ -676,7 +682,7 @@ Home / Race Gallery
 
 ### 7.1.4 Featured Works
 
-展示精选作品。
+最多展示 3 项精选作品，获奖公开作品优先，不足时按最新公开作品补齐，并提供进入完整 Works 目录的入口。
 
 内容包括：
 
@@ -959,6 +965,8 @@ Works
 
 Works 只展示已公开作品；隐藏或未发布作品不进入公开列表。
 
+全站 Works 目录支持 `q`、`race` 与 `page` 查询参数，服务端筛选后固定每页 9 条；翻页保留搜索和赛事条件。首页 Featured Works 不参与该分页，它是独立的精选摘要。
+
 ---
 
 ## 7.5 作品详情页 / Work Page
@@ -1081,6 +1089,8 @@ MVP 内容包括：
 * 公开作品链接
 
 Rider Profile 应优先基于用户资料、报名记录、作品、奖项、能力标签和公开 Evidence 生成，减少用户手动维护成本。
+
+公共 Riders 目录是 Rider Profile 的发现入口，支持 `q`、`skill` 与 `page` 查询参数，只返回有效 Rider 的公开字段，并在服务端技能筛选后固定每页 9 条。目录分页不改变单个 Rider Profile 的公开边界。
 
 ---
 
@@ -1250,7 +1260,9 @@ Screen Console 与 Screen Display 的关系：
 
 * Screen Console 是控制面。
 * Screen Display 是展示输出面。
-* 大屏模式包括 Jumbotron、Billboard、Live、Leaderboard、Works、Announcement。
+* Display 的 `live`、`leaderboard`、`works`、`announcement` 四模式共享暗色赛事框架与赛事状态、Ticker、Footer；`live` 使用完整 Race Live 舞台，其他模式只替换中部内容。
+* `live` 是默认模式，P0 彩排结束后回到 `live`；打开 Display 不覆盖 Organizer 已明确选择的模式。
+* 无有效 Projection 时使用真实赛事静态兜底，不伪造马匹、排名或进度。
 
 ---
 
@@ -1264,7 +1276,7 @@ Screen Console 与 Screen Display 的关系：
 Admin Console
 ├─ 用户列表
 ├─ 用户资料状态
-├─ User.roles 维护
+├─ UserRole 资格维护
 └─ 最小系统管理入口
 ```
 
@@ -1272,8 +1284,8 @@ Admin Console
 
 * 查看 GitHub 登录后的用户
 * 查看用户资料补全状态
-* 维护用户 `User.roles`
-* 支持同一用户的 `User.roles` 包含多个 role 值
+* 维护用户单个 `UserRole` 的状态、来源和授予记录
+* 支持同一用户拥有多个角色资格，但 Admin 操作和业务会话均不形成权限并集
 
 Admin Console 不承担赛事执行、CA 接入维护或数据运营职责。
 
@@ -1346,7 +1358,7 @@ Riding Intelligence
 | Race Console / Organizer View | Registration、Work、Judge Assignment、Judging Progress、Report | 工作台信息 |
 | Race Console / Rider View | Team、TeamMember、Registration、RaceProject、registration_status、Work、rider_report | 个人或团队参赛信息 |
 | Race Console / Judge View | Judge Assignment、Work、Evidence、Judging Record | 评审工作台 |
-| Admin Console | User、User.roles、用户资料状态 | 账号与角色管理 |
+| Admin Console | User、RoleApplication、UserRole、用户资料状态 | 账号、申请与资格管理 |
 | Screen Console | screen_feed_projection、current_leaderboard_projection、leaderboard_read_model、Announcement | 大屏展示信息 |
 
 ---
@@ -1411,7 +1423,7 @@ IA 中只表达读取路径，不把 Projection 当作最终结果事实源。
 /console/admin                         Admin Console 账号与角色控制台
 /console/admin/users                   用户列表
 /console/admin/profile-completion      资料补全状态
-/console/admin/roles                   User.roles 维护
+/console/admin/roles                   UserRole 资格维护
 
 /console/screen                        Screen Console 大屏控制台
 /console/screen/{raceSlug}             单场大屏控制
@@ -1422,7 +1434,7 @@ URL 规则：
 
 * URL 只是 IA 建议，最终路由以架构设计和前端实现为准。
 * `/` 是 Home / Race Gallery；`/races` 是同一 Race 列表能力的完整列表入口，二者不表达两个不同的信息对象。
-* Console 子路由必须结合 `User.roles`、当前 Race 关系和授权范围做访问控制。
+* Console 子路由必须结合 `AuthSession.activeRole`、当前 Race 关系和授权范围做访问控制，不能使用用户全部资格的权限并集。
 * Organizer View 限定用户管理的 Race；Rider View 限定用户已报名且未被拒绝的 Race；Judge View 限定用户被分配评审任务的 Race。
 * Public Site 的 URL 使用公开 slug；Console 内部可以使用 slug 或内部 id，由架构设计决定。
 * Screen Display 的实际播放 URL 可在后续 UI / 技术设计中单独定义。
@@ -1523,3 +1535,7 @@ Riding Intelligence → Projection / Evidence / Report / Read Model
 ```text
 让赛事可观看，让作品可传播，让能力可证明，让案例可沉淀，让平台可转化。
 ```
+
+## Race Live 控制面补充（2026-07-16）
+
+Screen Console 的大屏准备区展示候选 Round、状态、Track、active Entry、稳定 Projection 版本、阻断项和警告；高级配置区承载 Round 创建及 pending 名单同步、排除、恢复和排序。Display 仍为单场 Race 的独立输出面，轮询支持静态就绪页与完整 Race Live 双向切换，不承担配置职责。

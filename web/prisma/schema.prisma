@@ -8,28 +8,143 @@ datasource db {
 }
 
 model User {
-  id                    String                    @id
-  slug                  String                    @unique
-  displayName           String
-  githubLogin           String?
-  profileCompleted      Boolean                   @default(false)
-  rolesJson             String
-  city                  String?
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
-  authAccounts          AuthAccount[]
-  authSessions          AuthSession[]
-  registrations         Registration[]
-  createdRaces          Race[]                    @relation("RaceCreator")
-  judgeAssignments      JudgeAssignment[]         @relation("JudgeAssignments")
-  lockedSubmissionRaces Race[]                    @relation("SubmissionLocker")
-  submittedWorkVersions WorkSubmissionVersion[]   @relation("WorkVersionSubmitter")
-  submissionAuditEvents SubmissionAuditEvent[]    @relation("SubmissionAuditActor")
-  createdTeams          Team[]                    @relation("TeamCreator")
-  teamMemberships       TeamMember[]
-  caConnections         CAConnection[]            @relation("CAConnectionOwner")
-  screenControlEvents   ScreenControlAuditEvent[] @relation("ScreenControlActor")
-  publishedTrackVersions TrackProfileVersion[]    @relation("TrackVersionPublisher")
+  id                       String                    @id
+  slug                     String                    @unique
+  displayName              String
+  githubLogin              String?
+  githubUserId             String?                   @unique
+  email                    String?                   @unique
+  verifiedEmailsJson       String                    @default("[]")
+  emailVerifiedAt          DateTime?
+  emailConfirmedAt         DateTime?
+  avatarUrl                String?
+  timeZone                 String?
+  locale                   String?
+  termsVersion             String?
+  termsAcceptedAt          DateTime?
+  privacyVersion           String?
+  privacyAcceptedAt        DateTime?
+  preferredRole            String?
+  profileCompleted         Boolean                   @default(false)
+  city                     String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  authAccounts             AuthAccount[]
+  authSessions             AuthSession[]
+  roles                    UserRole[]                @relation("UserRoleOwner")
+  rolesGranted             UserRole[]                @relation("UserRoleGrantor")
+  riderProfile             RiderProfile?
+  judgeProfile             JudgeProfile?
+  organizerProfile         OrganizerProfile?
+  roleApplications         RoleApplication[]         @relation("RoleApplicant")
+  reviewedApplications     RoleApplication[]         @relation("RoleReviewer")
+  registrations            Registration[]
+  createdRaces             Race[]                    @relation("RaceCreator")
+  homepageCurations        HomepageRaceCuration[]    @relation("HomepageCurationUpdater")
+  judgeAssignments         JudgeAssignment[]         @relation("JudgeAssignments")
+  selectedJudgeMemberships RaceJudgeMembership[]     @relation("RaceJudgeMember")
+  judgePoolSelections      RaceJudgeMembership[]     @relation("RaceJudgeSelector")
+  judgeAllocationBatches   JudgeAllocationBatch[]    @relation("JudgeAllocationActor")
+  reviewedRegistrations    Registration[]            @relation("RegistrationReviewer")
+  publishedReviewRaces     Race[]                    @relation("RaceReviewPublisher")
+  lockedSubmissionRaces    Race[]                    @relation("SubmissionLocker")
+  submittedWorkVersions    WorkSubmissionVersion[]   @relation("WorkVersionSubmitter")
+  submissionAuditEvents    SubmissionAuditEvent[]    @relation("SubmissionAuditActor")
+  createdTeams             Team[]                    @relation("TeamCreator")
+  teamMemberships          TeamMember[]
+  caConnections            CAConnection[]            @relation("CAConnectionOwner")
+  screenControlEvents      ScreenControlAuditEvent[] @relation("ScreenControlActor")
+  publishedTrackVersions   TrackProfileVersion[]     @relation("TrackVersionPublisher")
+  uploadedRaceProblems     RaceProblemVersion[]      @relation("RaceProblemUploader")
+  raceProblemAuditEvents   RaceProblemAuditEvent[]   @relation("RaceProblemAuditActor")
+  githubInstallations      GitHubInstallation[]
+  raceProblemUploadIntents RaceProblemUploadIntent[]
+}
+
+model UserRole {
+  id              String    @id
+  userId          String
+  role            String
+  status          String    @default("active")
+  source          String
+  grantedByUserId String?
+  grantedAt       DateTime  @default(now())
+  suspendedAt     DateTime?
+  revokedAt       DateTime?
+  reason          String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation("UserRoleOwner", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy       User?     @relation("UserRoleGrantor", fields: [grantedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, role])
+  @@index([role, status])
+}
+
+model RiderProfile {
+  id              String    @id
+  userId          String    @unique
+  headline        String?
+  skillsJson      String    @default("[]")
+  bio             String?
+  countryCode     String?
+  city            String?
+  organization    String?
+  websiteUrl      String?
+  socialLinksJson String    @default("{}")
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model JudgeProfile {
+  id                  String    @id
+  userId              String    @unique
+  organization        String?
+  title               String?
+  expertiseJson       String    @default("[]")
+  reviewBio           String?
+  yearsExperience     Int?
+  credentialUrl       String?
+  conflictConfirmedAt DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OrganizerProfile {
+  id                  String    @id
+  userId              String    @unique
+  organizationName    String?
+  position            String?
+  eventCategoriesJson String    @default("[]")
+  organizerBio        String?
+  organizationWebsite String?
+  completedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RoleApplication {
+  id            String    @id
+  userId        String
+  requestedRole String
+  source        String
+  status        String
+  reviewerId    String?
+  reviewNote    String?
+  submittedAt   DateTime?
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation("RoleApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer      User?     @relation("RoleReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([userId, requestedRole, status])
+  @@index([status, requestedRole])
 }
 
 model AuthSession {
@@ -39,6 +154,7 @@ model AuthSession {
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
+  activeRole String?
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -58,48 +174,150 @@ model AuthAccount {
 }
 
 model Race {
-  id                       String                    @id
-  slug                     String                    @unique
-  title                    String
-  status                   String
-  visibility               String
-  challenge                String
-  summary                  String
-  taskId                   String?
-  organizerJson            String
-  scheduleJson             String
-  rulesJson                String
-  metricsJson              String
-  createdByUserId          String
-  createdAt                DateTime                  @default(now())
-  archivedAt               DateTime?
-  submissionOpensAt        DateTime?
-  submissionClosesAt       DateTime?
-  submissionLockedAt       DateTime?
-  submissionLockedByUserId String?
-  submissionLockReason     String?
-  createdBy                User                      @relation("RaceCreator", fields: [createdByUserId], references: [id])
-  submissionLockedBy       User?                     @relation("SubmissionLocker", fields: [submissionLockedByUserId], references: [id], onDelete: SetNull)
-  registrations            Registration[]
-  teams                    Team[]
-  awards                   Award[]
-  reports                  Report[]
-  projections              Projection[]
-  announcements            Announcement[]
-  backups                  Backup[]
-  incidents                Incident[]
-  releaseItems             ReleaseChecklistItem[]
-  screenState              ScreenState?
-  submissionAuditEvents    SubmissionAuditEvent[]
-  raceRounds               RaceRound[]
-  trackProfiles            TrackProfile[]
-  screenControlEvents      ScreenControlAuditEvent[]
+  id                             String                    @id
+  slug                           String                    @unique
+  title                          String
+  status                         String
+  visibility                     String
+  challenge                      String
+  summary                        String
+  taskId                         String?
+  organizerJson                  String
+  scheduleJson                   String
+  rulesJson                      String
+  metricsJson                    String
+  createdByUserId                String
+  createdAt                      DateTime                  @default(now())
+  archivedAt                     DateTime?
+  submissionOpensAt              DateTime?
+  submissionClosesAt             DateTime?
+  submissionLockedAt             DateTime?
+  submissionLockedByUserId       String?
+  submissionLockReason           String?
+  createdBy                      User                      @relation("RaceCreator", fields: [createdByUserId], references: [id])
+  submissionLockedBy             User?                     @relation("SubmissionLocker", fields: [submissionLockedByUserId], references: [id], onDelete: SetNull)
+  registrations                  Registration[]
+  teams                          Team[]
+  awards                         Award[]
+  reports                        Report[]
+  projections                    Projection[]
+  announcements                  Announcement[]
+  backups                        Backup[]
+  incidents                      Incident[]
+  releaseItems                   ReleaseChecklistItem[]
+  screenState                    ScreenState?
+  submissionAuditEvents          SubmissionAuditEvent[]
+  raceRounds                     RaceRound[]
+  trackProfiles                  TrackProfile[]
+  screenControlEvents            ScreenControlAuditEvent[]
+  homepageCuration               HomepageRaceCuration?
+  currentProblemVersionId        String?                   @unique
+  currentProblemVersion          RaceProblemVersion?       @relation("CurrentRaceProblem", fields: [currentProblemVersionId], references: [id], onDelete: SetNull)
+  problemVersions                RaceProblemVersion[]      @relation("RaceProblemVersions")
+  problemAuditEvents             RaceProblemAuditEvent[]
+  problemUploadIntents           RaceProblemUploadIntent[]
+  judgeMemberships               RaceJudgeMembership[]
+  judgeAllocationBatches         JudgeAllocationBatch[]
+  reviewResultsPublishedAt       DateTime?
+  reviewResultsPublishedByUserId String?
+  reviewResultsPublishedBy       User?                     @relation("RaceReviewPublisher", fields: [reviewResultsPublishedByUserId], references: [id], onDelete: SetNull)
+}
+
+model RaceProblemUploadIntent {
+  id        String    @id
+  tokenHash String    @unique
+  userId    String
+  raceId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  race      Race      @relation(fields: [raceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model RaceProblemVersion {
+  id                 String                  @id
+  raceId             String
+  revision           Int
+  displayName        String
+  storageKey         String                  @unique
+  storageProvider    String                  @default("platform_legacy")
+  storageOwnerUserId String?
+  sizeBytes          Int
+  mimeType           String
+  sha256             String
+  scanStatus         String
+  scanEngine         String?
+  scanDetail         String?
+  uploadedByUserId   String
+  uploadedAt         DateTime                @default(now())
+  changeNote         String?
+  publishedAt        DateTime?
+  disabledAt         DateTime?
+  disabledReason     String?
+  race               Race                    @relation("RaceProblemVersions", fields: [raceId], references: [id], onDelete: Cascade)
+  currentForRace     Race?                   @relation("CurrentRaceProblem")
+  uploadedBy         User                    @relation("RaceProblemUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  auditEvents        RaceProblemAuditEvent[]
+
+  @@unique([raceId, revision])
+  @@index([raceId, scanStatus])
+  @@index([sha256])
+  @@index([storageProvider])
+}
+
+model RaceProblemAuditEvent {
+  id               String              @id
+  raceId           String
+  problemVersionId String?
+  actorUserId      String
+  action           String
+  detailJson       String              @default("{}")
+  createdAt        DateTime            @default(now())
+  race             Race                @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  problemVersion   RaceProblemVersion? @relation(fields: [problemVersionId], references: [id], onDelete: SetNull)
+  actor            User                @relation("RaceProblemAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([raceId, createdAt])
+  @@index([problemVersionId])
+}
+
+model GitHubInstallation {
+  id             String   @id
+  userId         String
+  installationId String   @unique
+  accountLogin   String
+  accountType    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model HomepageRaceCuration {
+  raceId          String   @id
+  pinned          Boolean  @default(false)
+  hidden          Boolean  @default(false)
+  position        Int?
+  updatedByUserId String
+  updatedAt       DateTime @updatedAt
+  race            Race     @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  updatedBy       User     @relation("HomepageCurationUpdater", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([pinned, position])
+  @@index([hidden])
+  @@index([updatedByUserId])
 }
 
 model Team {
   id              String        @id
   raceId          String
   name            String
+  description     String?
   slug            String        @unique
   inviteCode      String        @unique
   status          String        @default("draft")
@@ -136,8 +354,12 @@ model Registration {
   status                String
   submittedAt           DateTime
   approvedAt            DateTime?
+  reviewedByUserId      String?
+  reviewedAt            DateTime?
+  reviewNote            String?
   race                  Race                   @relation(fields: [raceId], references: [id], onDelete: Cascade)
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy            User?                  @relation("RegistrationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   team                  Team?                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
   raceProject           RaceProject?
   work                  Work?
@@ -178,24 +400,24 @@ model TrackProfile {
 }
 
 model TrackProfileVersion {
-  id                 String       @id
-  trackId            String
-  version            String
-  status             String
-  schemaVersion      String
-  profileJson        String
-  checksum           String
-  backgroundAssetRef String
-  publishRequestId   String?      @unique
-  profileHash        String?
-  backgroundHash     String?
+  id                   String       @id
+  trackId              String
+  version              String
+  status               String
+  schemaVersion        String
+  profileJson          String
+  checksum             String
+  backgroundAssetRef   String
+  publishRequestId     String?      @unique
+  profileHash          String?
+  backgroundHash       String?
   validationReportJson String?
-  publishedByUserId  String?
-  createdAt          DateTime     @default(now())
-  publishedAt        DateTime?
-  track              TrackProfile @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
-  publishedBy        User?         @relation("TrackVersionPublisher", fields: [publishedByUserId], references: [id], onDelete: SetNull)
-  raceRounds         RaceRound[]
+  publishedByUserId    String?
+  createdAt            DateTime     @default(now())
+  publishedAt          DateTime?
+  track                TrackProfile @relation(fields: [trackId], references: [trackId], onDelete: Cascade)
+  publishedBy          User?        @relation("TrackVersionPublisher", fields: [publishedByUserId], references: [id], onDelete: SetNull)
+  raceRounds           RaceRound[]
 
   @@unique([trackId, version])
   @@index([status])
@@ -318,24 +540,29 @@ model Work {
 }
 
 model WorkSubmissionVersion {
-  id                    String                 @id
-  workId                String
-  versionNumber         Int
-  title                 String
-  summary               String
-  demoUrl               String?
-  repoUrl               String
-  repoCommitSha         String
-  hashSchemaVersion     String
-  integrityHash         String
-  submittedByUserId     String
-  submittedAt           DateTime
-  work                  Work                   @relation("WorkVersions", fields: [workId], references: [id], onDelete: Cascade)
-  currentForWork        Work?                  @relation("CurrentWorkVersion")
-  submittedBy           User                   @relation("WorkVersionSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
-  judgeAssignments      JudgeAssignment[]
-  awards                Award[]
-  submissionAuditEvents SubmissionAuditEvent[]
+  id                           String                 @id
+  workId                       String
+  versionNumber                Int
+  title                        String
+  summary                      String
+  demoUrl                      String?
+  repoUrl                      String
+  repoCommitSha                String
+  repositoryNodeId             String?
+  repositoryVisibility         String?
+  repositoryVerifiedAt         DateTime?
+  repositoryVerificationStatus String                 @default("legacy_unverified")
+  repositoryVerificationDetail String?
+  hashSchemaVersion            String
+  integrityHash                String
+  submittedByUserId            String
+  submittedAt                  DateTime
+  work                         Work                   @relation("WorkVersions", fields: [workId], references: [id], onDelete: Cascade)
+  currentForWork               Work?                  @relation("CurrentWorkVersion")
+  submittedBy                  User                   @relation("WorkVersionSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  judgeAssignments             JudgeAssignment[]
+  awards                       Award[]
+  submissionAuditEvents        SubmissionAuditEvent[]
 
   @@unique([workId, versionNumber])
   @@unique([workId, id])
@@ -407,13 +634,52 @@ model JudgeAssignment {
   assignedByUserId        String
   status                  String
   assignedAt              DateTime
+  slot                    Int
+  allocationBatchId       String?
   workSubmissionVersionId String?
   work                    Work                   @relation(fields: [workId], references: [id], onDelete: Cascade)
   workSubmissionVersion   WorkSubmissionVersion? @relation(fields: [workId, workSubmissionVersionId], references: [workId, id], onDelete: Restrict)
   judge                   User                   @relation("JudgeAssignments", fields: [judgeUserId], references: [id], onDelete: Cascade)
+  allocationBatch         JudgeAllocationBatch?  @relation(fields: [allocationBatchId], references: [id], onDelete: SetNull)
   judgingRecord           JudgingRecord?
 
   @@unique([workId, judgeUserId])
+  @@unique([workId, slot])
+  @@index([allocationBatchId])
+}
+
+model RaceJudgeMembership {
+  id               String   @id
+  raceId           String
+  judgeUserId      String
+  selectedByUserId String
+  status           String   @default("active")
+  selectedAt       DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  race             Race     @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  judge            User     @relation("RaceJudgeMember", fields: [judgeUserId], references: [id], onDelete: Cascade)
+  selectedBy       User     @relation("RaceJudgeSelector", fields: [selectedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([raceId, judgeUserId])
+  @@index([raceId, status])
+  @@index([judgeUserId])
+}
+
+model JudgeAllocationBatch {
+  id               String            @id
+  raceId           String
+  createdByUserId  String
+  seed             String
+  algorithmVersion String
+  workCount        Int
+  retainedCount    Int
+  createdCount     Int
+  createdAt        DateTime          @default(now())
+  race             Race              @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  createdBy        User              @relation("JudgeAllocationActor", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  assignments      JudgeAssignment[]
+
+  @@index([raceId, createdAt])
 }
 
 model JudgingRecord {

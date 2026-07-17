@@ -1,0 +1,24 @@
+.outcomeWrap {
+  width: min(100%, 1540px);
+  padding: 28px 38px 0;
+}
+
+.outcomeAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #1265ec;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #0758db, #2186ff);
+  box-shadow: 0 8px 20px rgba(18, 99, 230, .18);
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .outcomeWrap { padding: 20px 18px 0; }
+}

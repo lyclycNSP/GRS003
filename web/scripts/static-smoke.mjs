@@ -44,8 +44,18 @@ function expectBalancedCss(relativePath) {
 const routeFiles = [
   "app/page.tsx",
   "app/console/page.tsx",
+  "app/console/RoleWorkspace.tsx",
+  "app/console/rider/page.tsx",
+  "app/console/judge/page.tsx",
+  "app/console/organizer/page.tsx",
+  "app/console/organizer/races/[raceId]/page.tsx",
+  "app/console/admin/page.tsx",
   "app/console/risk-center/page.tsx",
   "app/profile/page.tsx",
+  "app/role-switch/page.tsx",
+  "app/onboarding/role/page.tsx",
+  "app/onboarding/[role]/page.tsx",
+  "app/onboarding/status/page.tsx",
   "app/ops/page.tsx",
   "app/debug-login/page.tsx",
   "app/screen/page.tsx",
@@ -59,6 +69,7 @@ const routeFiles = [
   "app/works/page.tsx",
   "app/works/[slug]/page.tsx",
   "app/works/[slug]/judge/page.tsx",
+  "app/works/[slug]/demo/page.tsx",
   "app/riders/[id]/page.tsx"
 ];
 
@@ -78,6 +89,14 @@ const apiFiles = [
   "app/api/public/works/route.ts",
   "app/api/public/works/[slug]/route.ts",
   "app/api/public/riders/[id]/route.ts"
+  ,"app/api/console/races/route.ts"
+  ,"app/api/console/races/[raceId]/problem-upload-intent/route.ts"
+  ,"app/api/console/races/[raceId]/problem-versions/route.ts"
+  ,"app/api/console/races/[raceId]/problem-versions/[versionId]/publish/route.ts"
+  ,"app/api/race-problems/[versionId]/download/route.ts"
+  ,"app/api/github-app/install/route.ts"
+  ,"app/api/github-app/callback/route.ts"
+  ,"app/api/admin/race-problems/[versionId]/disable/route.ts"
 ];
 
 for (const file of routeFiles) expectFile(file);
@@ -91,6 +110,7 @@ for (const file of [
   "e2e/organizer.spec.ts",
   "e2e/admin.spec.ts",
   "e2e/security.spec.ts",
+  "e2e/role-switch.spec.ts",
   "scripts/e2e-prepare.mjs"
 ]) expectFile(file);
 expectFile("../.github/workflows/web-ci.yml");
@@ -127,6 +147,11 @@ expectIncludes(".env.example", [
 
 expectIncludes("prisma/schema.prisma", [
   "model User",
+  "model UserRole",
+  "model RoleApplication",
+  "model RiderProfile",
+  "model JudgeProfile",
+  "model OrganizerProfile",
   "model Race",
   "model Registration",
   "model RaceProject",
@@ -145,6 +170,8 @@ expectIncludes("prisma/schema.prisma", [
 expectIncludes("lib/auth.ts", [
   "ary_session",
   "profileCompleted",
+  "availableRoles",
+  "activeRole",
   "managedRaceIds",
   "approvedRegistrationIds",
   "assignedWorkIds",
@@ -161,34 +188,77 @@ expectIncludes("app/api/debug/login/route.ts", [
 ]);
 
 expectIncludes("app/debug-login/page.tsx", [
-  "Debug Role Login",
+  "Debug Login",
   "/api/debug/login?user=organizer",
   "/api/debug/login?user=rider",
   "/api/debug/login?user=judge",
   "/api/debug/login?user=admin"
 ]);
 
-expectIncludes("app/console/page.tsx", [
-  "Organizer View",
+expectIncludes("app/console/RoleWorkspace.tsx", [
+  'role === "organizer"',
   "Rider View",
   "Judge View",
-  "Admin Console",
   "Risk Center",
   "Screen Console",
-  "href=\"/screen\"",
-  "console-flow-strip",
-  "console-signal-bar",
-  "ca-attestation-panel",
+  "LifecycleStepper",
+  "StatusSummary",
+  "StatRail",
   "Verified by OCR / connector",
   "Approve + RaceProject",
   "connectorId",
   "接入合法 CA Signal",
   "发布 Award",
   "重建 Projection",
-  "organizer-race-create-form",
   "rider-signal-form",
-  "rider-work-form",
+  "rider-work-form"
+]);
+
+expectIncludes("app/console/organizer/page.tsx", [
+  "organizer-portfolio",
+  "Owner",
+  "Collaborator",
+  "/console/organizer/races/"
+]);
+expectIncludes("app/console/organizer/CreateRaceSecureForm.tsx", ["organizer-race-create-form", "race-problem-file"]);
+
+expectIncludes("app/console/organizer/races/[raceId]/page.tsx", [
+  "managedRaceIds.includes",
+  "notFound()",
+  "RoleWorkspacePage"
+]);
+
+expectIncludes("app/races/[slug]/page.tsx", [
+  "registration-message",
+  "registration-state",
+  "RaceRegistrationDialog",
+  "registrationCount"
+]);
+
+expectIncludes("app/races/[slug]/RaceRegistrationDialog.tsx", [
+  "registration-dialog",
+  "registration-submit",
+  "team-create-submit",
+  "team-join-submit"
+]);
+
+expectIncludes("app/console/admin/page.tsx", [
+  "账号与角色资格管理",
+  "reviewRoleApplicationAction",
+  "setUserRoleStatusAction",
   "admin-user-"
+]);
+
+expectIncludes("app/components/SiteChrome.tsx", [
+  "publicRoute",
+  "工作台",
+  "returnPath"
+]);
+
+expectIncludes("app/components/RoleSwitcher.tsx", [
+  "switchActiveRoleAction",
+  "role-switcher",
+  "管理或申请角色"
 ]);
 
 expectIncludes("app/console/risk-center/page.tsx", [
@@ -197,14 +267,16 @@ expectIncludes("app/console/risk-center/page.tsx", [
   "Rider 整改席",
   "Judge 评审上下文",
   "updateReviewFlagStatusAction",
-  "risk-priority-strip",
+  "StatusSummary",
+  "StatRail",
   "risk-quick-filters",
   "sourceLabel",
   "formatTime"
 ]);
 
 expectIncludes("app/ops/page.tsx", [
-  "release-readiness-panel",
+  "StatusSummary",
+  "StatRail",
   "Release readiness",
   "Next action"
 ]);

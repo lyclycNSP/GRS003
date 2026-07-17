@@ -124,6 +124,10 @@ ARY MVP 包含五个交付承载：
 ### 公开端
 
 * 首页 / Race Gallery
+  * Hero 最多展示六场公开且非 draft 的精选赛事，默认按实际已批准唯一 Rider 数、公开已发布 Work 数和时间排序；以可感知横向位移的无缝轮播支持自动、箭头、圆点和键盘切换，并在悬停、焦点或页面不可见时暂停。
+  * Admin 可置顶、排序、隐藏或恢复 Hero 赛事；隐藏只影响首页，不改变 Race 的公开状态或直接访问。
+  * 首页 Race 目录及 Works、Riders 公共目录提供 URL 搜索/筛选与分页，每页固定 9 条；翻页保留当前查询条件，不改变既有公开可见性边界。
+  * 首页下方只保留紧凑摘要：最多 3 项精选 Works、最近完成且已有公开结果的动态赛果，以及窄版 Cooperation CTA。三者分别服务作品发现、结果信任与合作转化，不替代完整 Works、Results 或 Cooperation 页面。
 * 赛事详情页 / Race Page
 * 实况大厅 / Live Hall
 * 作品列表 / Works
@@ -132,6 +136,7 @@ ARY MVP 包含五个交付承载：
 * 评审总结基础页 / Review
 * 骑手档案基础版 / Rider Profile
 * Cooperation 基础页
+* 公共页面始终使用公共顶栏；已登录用户仅显示“工作台”和“退出”，公共内容不嵌入角色侧栏。角色工作台只展示账号私有或获授权资产。
 
 ### 管理端
 
@@ -139,12 +144,16 @@ ARY MVP 包含五个交付承载：
 * Race Console 赛事控制台基础版
   * Organizer View：创建赛事、管理报名、配置评审、发布赛果
   * Rider View：报名、接入 CA 数据、查看状态、提交成果
+    * Race Page 报名弹窗支持个人报名、创建团队和通过当前 Race 邀请码加入团队；团队区分队长与队员权限。
   * Judge View：查看作品、参考骑行摘要、评分和评语
 * Admin Console 账号与角色控制台基础版
   * 用户列表
   * 用户资料补全状态
-  * User.roles 维护
+  * UserRole 资格与角色申请维护
 * Screen Console 大屏控制台基础版
+  * 每场 Race 拥有独立 ScreenState 与 `/screen/display/{raceId}`；控制台不允许缺失或越权 Race 上下文，公开展示与私有预览按赛事可见性隔离。
+  * `live`、`leaderboard`、`works`、`announcement` 四模式共享暗色赛事框架；`live` 是新赛事及 P0 彩排结束后的默认模式，其他模式只替换中部内容，不退化为白色空页。
+  * 没有有效 Race Live Projection 时使用静态兜底展示真实赛事名称、状态、报名数、作品数和等待配置提示，所有模式持续轮询且不得输出不可读空白面板或伪造排名。
 
 ### 底层能力
 
@@ -189,11 +198,13 @@ MVP 阶段暂不做：
 | Rider 参赛骑手 | 拥有 `rider` role 的个人参赛用户 | 报名赛事、接入 CA 数据、查看个人进度 / 成本 / 风险、提交作品、查看评审结果和选手报告 |
 | Organizer 主办方 | 组织和运营赛事的用户 | 创建发布赛事、管理报名和选手名册、配置提交和评审、查看赛事进度、发布赛果和总结 |
 | Judge 评委 | 完成作品评审和骑行能力评价的用户 | 查看分配作品、参考作品和骑行摘要、按 MVP 固定评分项打分并提交评语 |
-| Admin 管理员 | 最小系统管理与身份维护用户 | 维护用户 `User.roles`，开通主办方、评委和必要内部维护人员身份，处理必要系统异常 |
+| Admin 管理员 | 最小系统管理与身份维护用户 | 审核角色申请，维护单个 `UserRole` 资格状态，授予 Admin，并处理必要系统异常 |
 | Screen Operator 大屏操作职责 | 现场、课堂或直播大屏操作职责，不新增独立 role | 切换大屏视图，展示实况、榜单、作品和公告，保障现场展示稳定 |
 | Data Maintainer 数据维护职责 | 内部数据维护职责，不提供独立 Data / Ops Console | 查看 CA 接入、Session、Projection 和 Report 状态，执行必要重算、重跑和异常数据处理 |
 
-MVP 当前支持个人参赛和轻量团队参赛；团队由 `Team` / `TeamMember` 表达，最终仍通过一条 `Registration` 进入赛事闭环。身份通过 `User.roles` 集合表达，不建立独立 `RoleAssignment` 实体；Screen Operator 和 Data Maintainer 是操作职责，通常由 `organizer` 或 `admin` role 承担。
+MVP 当前支持个人参赛和轻量团队参赛；团队由 `Team` / `TeamMember` 表达，最终仍通过一条 `Registration` 进入赛事闭环。身份资格通过规范化 `UserRole` 表达，一个用户可持有多个资格，但每个 `AuthSession` 只激活一个 `activeRole`；所有页面与服务端动作只使用当前激活角色。Screen Operator 和 Data Maintainer 是 Organizer 范围内的操作职责；Admin 不通过权限并集执行赛事业务。
+
+普通登录严格使用 GitHub OAuth，并读取 `/user` 与 `/user/emails`；没有已验证邮箱或 OAuth 未配置时不得创建普通会话。首次登录先确认公共账号资料、邮箱和协议，再选择 Rider、Judge 或 Organizer。三类角色使用独立资料；Rider 可直接开通，Judge 与 Organizer 进入 Admin 审核，Admin 不在注册入口展示。
 
 ---
 
@@ -277,7 +288,7 @@ MVP 当前支持个人参赛和轻量团队参赛；团队由 `Team` / `TeamMemb
 进入 Admin Console
 → 查看 GitHub 登录用户
 → 查看资料补全状态
-→ 维护用户 User.roles
+→ 维护用户 UserRole 资格
 → 确认主办方、评委、选手和管理员身份可用
 ```
 
@@ -291,7 +302,7 @@ ARY MVP 采用 Gallery-first 信息架构，但具体页面层级、导航结构
 
 * Public Site：公开展示赛事、实况、作品、赛果、评审总结、骑手档案和合作入口。
 * Race Console：按 `organizer`、`rider`、`judge` role 展示办赛、参赛、评审视图。
-* Admin Console：由 `admin` role 管理基础账号、个人资料状态和 `User.roles`。
+* Admin Console：由当前会话激活 `admin` 角色管理基础账号、角色申请和 `UserRole` 资格状态。
 * Screen Console：控制现场、课堂、直播大屏展示。
 * Riding Intelligence：支撑 CA 接入、过程指标、Evidence、Projection 和 Report。
 
@@ -327,7 +338,7 @@ MVP 管理端由 Race Console、Admin Console 和 Screen Console 组成，不把
 | Race Console / Rider View | 支持个人报名、创建团队、通过邀请码加入团队；报名通过后查看赛程、进入 ARY 自动生成的 RaceProject、在参赛过程中配置一个或多个 CAConnection、查看接入健康度和提交作品 | 选手可独立报名或以团队报名；团队成员可维护自己的 CA 接入，团队 Work 由队长统一提交；选手可查看个人进度 / 成本 / 风险和证据完整度，并查看评审结果和报告 |
 | Race Console / Judge View | 支持评委查看分配作品、骑行摘要、评分和评语提交 | 评委可按 MVP 固定评分项提交 `scoreResult`、`scoreRiding` 和 `comments` |
 | Screen Console | 支持现场、课堂和直播大屏展示 | 操作员可选择赛事、切换 Live / 榜单 / 作品 / 公告和全屏展示；大屏配置不影响公开网页数据 |
-| Admin Console | 支持最小账号与角色管理 | Admin 可查看 GitHub 登录用户、资料补全状态并维护 `User.roles`；Admin Console 不承担赛事执行或数据运营 |
+| Admin Console | 支持最小账号与角色管理 | Admin 可查看 GitHub 登录用户、角色申请并维护单个 `UserRole` 资格；Admin Console 不承担赛事执行或数据运营 |
 | Internal Data Maintenance | 支持 CA 接入、Projection、Report 的最低限度内部维护 | `organizer` 或 `admin` 可查看接入状态、手动重算 Projection、重跑 Report、标记影响公开展示的异常数据 |
 
 MVP 固定评分项只作为评委填写说明，不建模为可配置 Score Rubric / Score Item。作品结果参考完成度、产品理解、技术实现、体验表达、创新性、可展示性；骑行能力参考目标拆解、Agent 协同、纠偏、技术路线判断、成本控制、风险处理和复盘表达。
@@ -363,7 +374,7 @@ MVP 固定评分项只作为评委填写说明，不建模为可配置 Score Rub
 | 对象 | PRD 保留的产品语义 | 细节权威 |
 |---|---|---|
 | Race | 一场 Agent Racing 活动，是公开展示、报名、过程展示、评审、赛果和报告的核心内容对象 | `ary-domain-analysis.v0.3.md` |
-| User / Account | GitHub 登录并补全资料后的 ARY 用户，通过 `User.roles` 参与不同职责 | `ary-domain-analysis.v0.3.md`、`ary-permission-matrix.md` |
+| User / Account | GitHub 登录并补全资料后的 ARY 用户，通过多个 `UserRole` 持有资格、通过 `AuthSession.activeRole` 执行当前职责 | `ary-domain-analysis.v0.3.md`、`ary-permission-matrix.md` |
 | Team / TeamMember | 同一 Race 下的轻量参赛团队和成员关系；队长创建团队并提交团队报名，成员通过邀请码加入 | `ary-domain-analysis.v0.3.md`、`ary-permission-matrix.md` |
 | Registration | User 参加某场 Race 的报名事实，是参赛流程、RaceProject、Work、Evidence、Award 和 rider_report 的追溯中枢 | `ary-domain-analysis.v0.3.md` |
 | RaceProject | Registration 对应的本场比赛骑行工作区，由 approved Registration 自动生成，可关联 GitHub Repo 作为作品代码材料入口，承载多个 CAConnection 的聚合实时 CA 接入健康度 | `ary-domain-analysis.v0.3.md`、`ary-ca-integration-spec.md` |
@@ -409,10 +420,10 @@ MVP 固定评分项只作为评委填写说明，不建模为可配置 Score Rub
 | Rider | 只能管理自己的报名、RaceProject、Work、报告和可见骑行摘要 |
 | Organizer | 只能管理自己负责的 Race 及其报名、提交、评审、榜单、报告和展示 |
 | Judge | 只能访问分配给自己的评审任务、相关作品和 Evidence 摘要 |
-| Admin | 可以维护用户 `User.roles`，并进行必要系统管理和异常处理 |
+| Admin | 可以审核角色申请、维护 `UserRole` 资格，并进行必要系统管理和异常处理 |
 | Internal Data Maintenance | 由 `organizer` 或 `admin` 承担，只处理接入状态、Projection、Report 和异常展示数据 |
 
-MVP 权限硬约束：后台访问必须登录；多 role 用户按授权范围切换视图；原始 CA Session、未公开作品、未发布评分和未发布 Report 不得被公开端或未授权用户读取。
+MVP 权限硬约束：后台访问必须登录；多资格用户必须显式切换当前会话 `activeRole`，不能合并资格权限；原始 CA Session、未公开作品、未发布评分和未发布 Report 不得被公开端或未授权用户读取。
 
 ---
 
@@ -435,7 +446,7 @@ MVP 权限硬约束：后台访问必须登录；多 role 用户按授权范围�
 ### 管理端
 
 * 基础账号能力：GitHub 登录、资料补全
-* Admin Console 基础版：用户列表、资料补全状态、Admin 维护 User.roles
+* Admin Console 基础版：用户列表、角色申请和单个 UserRole 资格维护
 * Race Console 基础版
   * Organizer View：创建赛事、报名管理、评审配置、榜单发布
   * Rider View：CA 接入、骑行状态、成果提交
@@ -569,7 +580,7 @@ ARY MVP 验收时，应满足以下条件。
 
 * 主办方可以通过 Race Console 创建并发布一场赛事。
 * 用户可以通过 GitHub 登录并补全个人资料。
-* Admin 可以维护用户的 `User.roles`。
+* Admin 可以维护用户的 `UserRole` 资格。
 * 用户可以在公开首页看到该赛事。
 * 选手可以报名并进入 Race Console 的 Rider View。
 * 选手可以完成实时 CA 数据接入。
@@ -646,7 +657,7 @@ ARY MVP 验收时，应满足以下条件。
 ## 14.3 安全
 
 * MVP 使用 GitHub 登录作为账号入口。
-* 后台访问必须经过登录和 `User.roles` 权限校验。
+* 后台访问必须经过登录、`AuthSession.activeRole`、角色资格状态和资源归属校验。
 * Race Console、Admin Console、Screen Console 的访问边界必须隔离。
 * 公开数据、内部数据、原始 CA Session、未发布评分、未发布 Report 必须隔离。
 * 资源动作级权限以 `ary-permission-matrix.md` 为准。
@@ -785,7 +796,7 @@ ARY MVP 验收时，应满足以下条件。
 
 * 可以创建赛事。
 * 可以通过 GitHub 登录并补全个人资料。
-* Admin 可以维护用户的 `User.roles`。
+* Admin 可以维护用户的 `UserRole` 资格。
 * 可以报名。
 * 可以提交作品。
 * 可以评审。
@@ -864,3 +875,29 @@ ARY MVP 要完成的不是一个普通 Hackathon 网站，而是一套以赛事 
 让案例可沉淀，
 让平台可转化。
 ```
+
+## Race Live Web 管理补充（2026-07-16）
+
+Organizer 必须能够在单场 Race Workspace 中完成 Round 创建、已批准参赛名单同步与调整、已发布 Track 绑定、Round 启停和 Race Live 准备。running Round 的 Track 与名单锁定，同一 Race 最多一个 running Round。准备成功后 ScreenState 必须指向该 Round 的稳定 `ary_race_live` Projection 并切换为 `live`；失败不得覆盖上一稳定版本。CA 和风险事实仍是源数据，Projection 仅为可重建展示读模型。
+## 赛题附件与作品安全补充（2026-07-17）
+
+* Race 的文字 challenge 继续必填，Organizer 可附加一个 10 MiB 以内的 PDF 赛题；附件按不可变修订、扫描状态与审计事件管理。
+* public Race 仅公开已通过检查并明确发布的修订；private/draft 附件允许 managed Organizer 查看安全历史修订，并允许当前 Race 的有效 Rider/团队成员从赛事空间下载当前 `clean` 修订。Rider 不能读取历史未发布修订，资格在下载时重新校验。
+* ARY 不长期保存赛题正文。生产上传在内存完成结构检查和 ClamAV 扫描后转存到 Organizer 自有 S3/R2/OSS；下载时 ARY 只完成权限判断并签发短期对象地址。
+* 缺少 Organizer 自有存储、扫描失败或外部写入失败时不保留平台附件副本，也不形成可发布修订。
+* Work 继续提交 Repo、Commit SHA 和可选 Demo，不接受源码压缩包。新提交必须由最小权限 GitHub App 验证仓库与 Commit。
+* 外部 Demo 必须经过站内风险提示页；ARY 不抓取、内嵌、构建或运行用户外部内容。
+
+## Registration 审核、参赛选手库与三 Judge 评审补充（2026-07-17）
+
+* Organizer Race Workspace 的审核队列只展示 pending Registration。通过后原记录进入 approved 读取范围，拒绝必须填写原因；参赛选手库只是按状态授权查询的视图，不复制或移动参赛事实。
+* 审核通过必须在一个 Serializable 事务中记录审核人/时间、锁定团队、幂等创建唯一 RaceProject，并且只生成一次初始 CA 缺失风险；重复或并发审批不得产生重复对象。
+* Organizer 维护赛事级 Judge 池。池成员必须拥有 active Judge 资格且不是本场个人或团队参赛者；已获得 Assignment 的成员不可移除，评审结果发布后 Judge 池锁定。
+* 提交窗口关闭后由 Organizer 显式触发平台自动分配。`balanced-random-v1` 先按当前负载选择，再用可审计批次种子打散同负载候选；所有 Work 在单个 Serializable 事务中保留合法 Assignment 并补足，任何 Work 无法达到要求时整批零写入。
+* 每件可评审 Work 必须恰好分给三个不同 Judge，数据库通过 slot 1–3、Work/slot 唯一和 Work/Judge 唯一约束阻止第四名 Judge及重复领取。
+* 两个评分维度均为 0–100 整数。三份评审全部提交后才计算 `avgResult`、`avgRiding` 和两者平均的 overall；内部同分同名次，展示顺序按 Work ID 稳定。
+* Organizer 可查看全场进度和聚合分；对应 Judge 仅在本人已提交且三份完成后读取聚合分，不读取其他 Judge 的单项记录；Rider 仅在 Organizer 发布评审结果后读取本人作品聚合分。公共页面不公开内部均分，只公开正式 Award。
+* 平均分不自动生成 Award。Award 仍由 Organizer 基于评审事实手工确认与发布。
+* 状态修改操作必须显示 pending 并在成功后体现实体变化或上下文结果面板，不能只追加一行提示。赛题 PDF 管理沿用 ARY 蓝白工作台，通过 XHR 显示真实传输进度，传输完成后进入不伪造百分比的扫描状态；安全协议和存储边界不变。
+* 赛题 PDF 管理采用与当前 AppShell 一致的蓝白双栏工作区，包含拖拽/选择、已选文件、修订说明、上传/扫描状态、安全规则和版本历史。格式、扫描、存储或权限失败只能映射为受控安全原因，并在原上下文提供重新选择、重试或继续使用最后安全修订的恢复入口，不能泄露存储 Key、扫描器响应或任意服务端异常。
+* 工作台状态动作统一采用“pending → 实体迁移 → 结果面板”反馈：成功必须表现为队列移除、状态/计数更新或下一动作出现；预期业务失败留在原操作上下文。该反馈层不改变权限判断，服务端仍对每次动作重新鉴权。

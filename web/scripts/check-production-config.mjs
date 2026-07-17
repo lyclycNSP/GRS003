@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const errors = [];
-const required = ["DATABASE_URL", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "NEXT_PUBLIC_APP_URL", "CA_CONNECTOR_KEYS", "DEFAULT_CA_CONNECTOR_ID", "TRACK_ASSET_ROOT"];
+const required = ["DATABASE_URL", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "NEXT_PUBLIC_APP_URL", "CA_CONNECTOR_KEYS", "DEFAULT_CA_CONNECTOR_ID", "TRACK_ASSET_ROOT", "ORGANIZER_ATTACHMENT_STORES_JSON", "CLAMAV_HOST", "GITHUB_APP_ID", "GITHUB_APP_SLUG", "GITHUB_APP_PRIVATE_KEY"];
 for (const name of required) {
   if (!process.env[name]) errors.push(`${name} is required`);
 }
@@ -20,6 +20,9 @@ if ((process.env.DATABASE_URL ?? "").startsWith("file:")) {
   errors.push("production DATABASE_URL must use a managed database, not SQLite");
 }
 if (process.env.ENABLE_DEBUG_LOGIN === "true") errors.push("ENABLE_DEBUG_LOGIN must be false in production");
+if (process.env.ATTACHMENT_STORAGE_DRIVER !== "organizer-s3") errors.push("ATTACHMENT_STORAGE_DRIVER must be organizer-s3 in production");
+if (process.env.ATTACHMENT_SCANNER !== "clamav") errors.push("ATTACHMENT_SCANNER must be clamav in production");
+if (process.env.GITHUB_REPOSITORY_VERIFIER !== "github-app") errors.push("GITHUB_REPOSITORY_VERIFIER must be github-app in production");
 
 if (process.env.TRACK_ASSET_ROOT) {
   const root = path.resolve(process.env.TRACK_ASSET_ROOT);
@@ -41,6 +44,18 @@ try {
   }
 } catch {
   errors.push("CA_CONNECTOR_KEYS must be valid JSON");
+}
+
+try {
+  const stores = JSON.parse(process.env.ORGANIZER_ATTACHMENT_STORES_JSON ?? "{}");
+  if (!stores || typeof stores !== "object" || Array.isArray(stores) || Object.keys(stores).length === 0) errors.push("ORGANIZER_ATTACHMENT_STORES_JSON must contain at least one Organizer-owned store");
+  for (const [userId, store] of Object.entries(stores)) {
+    if (!store || typeof store !== "object" || !store.bucket || !store.region || !store.accessKeyId || !store.secretAccessKey) {
+      errors.push(`ORGANIZER_ATTACHMENT_STORES_JSON.${userId} must contain bucket, region, accessKeyId and secretAccessKey`);
+    }
+  }
+} catch {
+  errors.push("ORGANIZER_ATTACHMENT_STORES_JSON must be valid JSON");
 }
 
 if (errors.length) {

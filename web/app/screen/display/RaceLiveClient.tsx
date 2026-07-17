@@ -15,7 +15,7 @@ import { RaceLiveMiniMap } from "./components/RaceLiveMiniMap";
 import { RaceLiveStage } from "./components/RaceLiveStage";
 import { RaceLiveTopThree } from "./components/RaceLiveTopThree";
 
-const PublicScreenStateSchema = z.object({
+export const PublicScreenStateSchema = z.object({
   activeGroupOrder: z.number().int().positive(),
   autoRotateEnabled: z.boolean(),
   rotationIntervalSeconds: z.number().int().min(5).max(120),
@@ -23,11 +23,40 @@ const PublicScreenStateSchema = z.object({
   fallbackEnabled: z.boolean(),
   mode: z.enum(["live", "leaderboard", "works", "announcement"])
 }).strict();
-type PublicScreenState = z.infer<typeof PublicScreenStateSchema>;
-type PublicScreenWork = { id: string; title: string; summary: string; entrantDisplayName: string };
-type PublicAnnouncement = { title: string; body: string } | null;
+export type PublicScreenState = z.infer<typeof PublicScreenStateSchema>;
+export type PublicScreenWork = { id: string; title: string; summary: string; entrantDisplayName: string };
+export type PublicAnnouncement = { title: string; body: string } | null;
 
-export function RaceLiveClient({ raceSlug, initialNow, snapshot: initialSnapshot, trackProfile: initialTrackProfile, backgroundAssetRef: initialBackgroundAssetRef, screenState: initialScreenState, announcement: initialAnnouncement, works: initialWorks }: {
+function RaceLiveModeContent({ mode, snapshot, announcement, works }: {
+  mode: PublicScreenState["mode"];
+  snapshot: AryRaceLiveSnapshot;
+  announcement: PublicAnnouncement;
+  works: PublicScreenWork[];
+}) {
+  if (mode === "announcement") {
+    return <section className="race-live-mode-panel race-live-announcement" data-testid="race-live-mode-content">
+      <div className="race-live-mode-kicker">赛事公告 · ANNOUNCEMENT</div>
+      <h1>{announcement?.title ?? snapshot.race.title}</h1>
+      <p>{announcement?.body || "暂无公告，现场信息将在发布后自动更新。"}</p>
+    </section>;
+  }
+  if (mode === "leaderboard") {
+    return <section className="race-live-mode-panel" data-testid="race-live-mode-content">
+      <div className="race-live-mode-heading"><span>实时榜单 · LEADERBOARD</span><h1>{snapshot.race.title}</h1></div>
+      <div className="screen-board-list">{snapshot.globalRanking.length ? snapshot.globalRanking.map((entry) => <article key={entry.entryId}>
+        <b>#{entry.rank}</b><span>{entry.entrantDisplayName}</span><em>{Math.round(entry.roundProgress * 100)}%</em>
+      </article>) : <div className="race-live-empty">榜单尚未生成</div>}</div>
+    </section>;
+  }
+  return <section className="race-live-mode-panel" data-testid="race-live-mode-content">
+    <div className="race-live-mode-heading"><span>公开作品 · WORKS</span><h1>{snapshot.race.title}</h1></div>
+    <div className="screen-board-list">{works.length ? works.map((work) => <article key={work.id}>
+      <b>{work.entrantDisplayName}</b><span>{work.title}</span><em>{work.summary}</em>
+    </article>) : <div className="race-live-empty">暂无公开作品</div>}</div>
+  </section>;
+}
+
+export function RaceLiveClient({ raceSlug, initialNow, snapshot: initialSnapshot, trackProfile: initialTrackProfile, backgroundAssetRef: initialBackgroundAssetRef, screenState: initialScreenState, announcement: initialAnnouncement, works: initialWorks, pollingEnabled = true }: {
   raceSlug: string;
   initialNow: string;
   snapshot: AryRaceLiveSnapshot;
@@ -36,14 +65,27 @@ export function RaceLiveClient({ raceSlug, initialNow, snapshot: initialSnapshot
   screenState: PublicScreenState;
   announcement: PublicAnnouncement;
   works: PublicScreenWork[];
+  pollingEnabled?: boolean;
 }) {
   const [now, setNow] = useState(() => parseRaceLiveInitialNow(initialNow));
   const [raceLive, setRaceLive] = useState({ snapshot: initialSnapshot, trackProfile: initialTrackProfile, backgroundAssetRef: initialBackgroundAssetRef, screenState: initialScreenState, announcement: initialAnnouncement, works: initialWorks });
+  useEffect(() => {
+    if (pollingEnabled) return;
+    setRaceLive({
+      snapshot: initialSnapshot,
+      trackProfile: initialTrackProfile,
+      backgroundAssetRef: initialBackgroundAssetRef,
+      screenState: initialScreenState,
+      announcement: initialAnnouncement,
+      works: initialWorks
+    });
+  }, [pollingEnabled, initialSnapshot, initialTrackProfile, initialBackgroundAssetRef, initialScreenState, initialAnnouncement, initialWorks]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
   useEffect(() => {
+    if (!pollingEnabled) return;
     let active = true;
     const poll = async () => {
       try {
@@ -62,7 +104,7 @@ export function RaceLiveClient({ raceSlug, initialNow, snapshot: initialSnapshot
     void poll();
     const timer = window.setInterval(() => void poll(), 3000);
     return () => { active = false; window.clearInterval(timer); };
-  }, [raceSlug]);
+  }, [pollingEnabled, raceSlug]);
   const { snapshot, trackProfile, backgroundAssetRef, screenState, announcement, works } = raceLive;
   const activeOrder = resolveActiveGroup({
     groupCount: snapshot.displayGroups.length,
@@ -75,20 +117,16 @@ export function RaceLiveClient({ raceSlug, initialNow, snapshot: initialSnapshot
   const track = useMemo(() => compileTrack(trackProfile), [trackProfile]);
   const presentation = buildRaceLivePresentation(snapshot, activeOrder, now);
 
-  if (screenState.mode === "announcement") return <section className="race-live-shell"><header className="race-live-header"><div><span>ARY RACE LIVE</span><h1>{announcement?.title ?? snapshot.race.title}</h1></div></header><section className="race-live-mode-panel"><h2>{announcement?.body ?? "暂无公告"}</h2></section><footer className="race-live-footer"><span>announcement</span><span>{screenState.fallbackEnabled ? "stable fallback source" : "primary projection"}</span></footer></section>;
-  if (screenState.mode === "leaderboard") return <section className="race-live-shell"><header className="race-live-header"><div><span>ARY RACE LIVE</span><h1>{snapshot.race.title} 榜单</h1></div></header><section className="screen-board-list">{snapshot.globalRanking.map((entry) => <article key={entry.entryId}><b>#{entry.rank}</b><span>{entry.entrantDisplayName}</span><em>{Math.round(entry.roundProgress * 100)}%</em></article>)}</section><footer className="race-live-footer"><span>leaderboard</span><span>{screenState.fallbackEnabled ? "stable fallback source" : "primary projection"}</span></footer></section>;
-  if (screenState.mode === "works") return <section className="race-live-shell"><header className="race-live-header"><div><span>ARY RACE LIVE</span><h1>{snapshot.race.title} 作品</h1></div></header><section className="screen-board-list">{works.map((work) => <article key={work.id}><b>{work.entrantDisplayName}</b><span>{work.title}</span><em>{work.summary}</em></article>)}</section><footer className="race-live-footer"><span>works</span><span>{screenState.fallbackEnabled ? "stable fallback source" : "primary projection"}</span></footer></section>;
-
-  return <section className="race-live-shell">
+  return <section className={`race-live-shell race-live-mode-${screenState.mode}`} data-screen-mode={screenState.mode}>
     <RaceLiveHeader snapshot={snapshot} presentation={presentation} autoRotateEnabled={screenState.autoRotateEnabled} />
     <section className="race-live-summary-row">
       <RaceLiveTopThree items={presentation.top3} />
       <RaceLiveKpis snapshot={snapshot} share={presentation.providerShare} />
     </section>
-    <section className="race-live-track-row">
+    {screenState.mode === "live" ? <section className="race-live-track-row">
       <RaceLiveMiniMap profile={trackProfile} track={track} entries={presentation.entries} backgroundAssetRef={backgroundAssetRef} />
       <RaceLiveStage profile={trackProfile} track={track} entries={presentation.entries} bubbles={presentation.bubbles} backgroundAssetRef={backgroundAssetRef} />
-    </section>
+    </section> : <RaceLiveModeContent mode={screenState.mode} snapshot={snapshot} announcement={announcement} works={works} />}
     <RaceLiveAttentionTicker items={presentation.attentionItems} />
     <RaceLiveFooter snapshot={snapshot} presentation={presentation} autoRotateEnabled={screenState.autoRotateEnabled} rotationIntervalSeconds={screenState.rotationIntervalSeconds} now={now} />
   </section>;

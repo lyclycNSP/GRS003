@@ -40,6 +40,29 @@
   font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
 }
 
+.screen-display .race-live-simple { grid-template-rows:auto minmax(0,1fr) auto; }
+.race-live-simple-header { padding:clamp(18px,2vw,36px);border:1px solid #bed6f2;border-radius:16px;background:#fff;box-shadow:0 4px 18px rgba(41,98,168,.08); }
+.race-live-simple-header span { color:#0876e8;font-weight:800;letter-spacing:.12em; }
+.screen-display .race-live-simple-header h1 { max-width:none;margin:8px 0 0;color:#071f50;font-size:clamp(34px,4vw,72px);line-height:1.05; }
+.screen-display .race-live-mode-panel { min-height:0;padding:5vw;border:1px solid #bed6f2;border-radius:16px;background:linear-gradient(135deg,#fff,#f4f9ff);box-shadow:0 4px 18px rgba(41,98,168,.08); }
+.screen-display .race-live-mode-panel h2 { max-width:1200px;margin:0;color:#082653;font-size:clamp(30px,4vw,68px);line-height:1.28; }
+.screen-display .screen-board-list { min-height:0;display:grid;align-content:start;gap:10px;padding:clamp(12px,1.5vw,26px);overflow:auto;border:1px solid #bed6f2;border-radius:16px;background:#fff; }
+.screen-display .screen-board-list article { display:grid;grid-template-columns:minmax(100px,.5fr) minmax(160px,1fr) minmax(180px,1.5fr);gap:20px;align-items:center;padding:clamp(12px,1.2vw,22px);border:1px solid #d9e7f7;border-radius:12px;background:#f8fbff;color:#082653; }
+.screen-display .screen-board-list em { color:#547299; }
+.race-live-empty { display:grid;place-items:center;min-height:45vh;color:#547299;font-size:clamp(24px,3vw,48px);font-weight:700; }
+.static-screen { height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:12px;color:#082653; }
+.static-screen-header,.static-screen-panel,.static-screen-footer { border:1px solid #bed6f2;border-radius:16px;background:#fff;box-shadow:0 4px 18px rgba(41,98,168,.08); }
+.static-screen-header { padding:clamp(16px,2vw,34px); }
+.static-screen-header span { color:#0876e8;font-weight:800;letter-spacing:.12em; }
+.screen-display .static-screen-header h1 { max-width:none;margin:7px 0 0;color:#071f50;font-size:clamp(34px,4vw,72px); }
+.static-screen-panel { display:grid;place-items:center;padding:5vw;text-align:center;background:linear-gradient(135deg,#fff,#f3f8ff); }
+.static-screen-panel h2 { margin:0;color:#082653;font-size:clamp(28px,3.2vw,56px); }
+.static-screen-panel p { margin:15px 0 0;color:#547299;font-size:clamp(16px,1.5vw,26px); }
+.static-screen-metrics { display:flex;justify-content:center;gap:clamp(30px,5vw,90px);margin-top:30px; }
+.static-screen-metrics b { display:block;color:#0865d1;font-size:clamp(30px,4vw,64px); }
+.static-screen-metrics span { color:#547299; }
+.static-screen-footer { display:flex;justify-content:space-between;padding:12px 20px;color:#547299; }
+
 .race-live-header,
 .race-live-summary-row,
 .race-live-track-row,
@@ -205,3 +228,134 @@
   .race-live-attention article:nth-child(n+4) { display:none; }
   .race-live-attention { grid-template-columns:minmax(130px,0.5fr) repeat(2,minmax(0,1fr)); }
 }
+
+/* Race Live is a venue output, not a public-site card layout. Keep every mode in
+   the same high-contrast frame so a mode change never flashes to a white page. */
+.screen-output-root,
+.screen-display {
+  background:
+    radial-gradient(circle at 74% 18%, rgba(24, 126, 255, .22), transparent 29%),
+    radial-gradient(circle at 15% 82%, rgba(0, 218, 184, .12), transparent 28%),
+    #020b1b;
+}
+
+.screen-display { color: #eaf6ff; }
+.race-live-shell { color: #eaf6ff; }
+
+.race-live-brand,
+.race-live-session,
+.race-live-top3,
+.race-live-kpi-grid,
+.race-live-minimap,
+.race-live-stage,
+.race-live-attention,
+.race-live-footer,
+.race-live-mode-panel,
+.static-screen-header,
+.static-screen-panel,
+.static-screen-footer {
+  border-color: rgba(83, 175, 255, .28);
+  background: linear-gradient(145deg, rgba(8, 25, 52, .94), rgba(3, 13, 31, .94));
+  box-shadow: inset 0 0 0 1px rgba(77, 198, 255, .05), 0 14px 38px rgba(0, 0, 0, .24);
+}
+
+.race-live-brand b,
+.race-live-session b,
+.race-live-kpi-grid b,
+.screen-display .static-screen-header h1 { color: #f3f9ff; }
+.race-live-brand small,
+.race-live-section-label b,
+.race-live-top3 article em,
+.race-live-footer b,
+.static-screen-header span { color: #42b8ff; }
+.race-live-session small,
+.race-live-section-label small,
+.race-live-kpi-grid small,
+.race-live-kpi-grid span,
+.race-live-minimap > div small,
+.race-live-footer,
+.static-screen-panel p,
+.static-screen-footer { color: #8eacca; }
+
+.race-live-session > div,
+.race-live-section-label,
+.race-live-top3 article,
+.race-live-kpi-grid article,
+.race-live-attention > div,
+.race-live-attention article { border-color: rgba(83, 175, 255, .16); }
+.race-live-top3 article span,
+.race-live-minimap li { color: #d9ecff; }
+.race-live-top3 article strong,
+.race-live-horse .race-live-rank { background: linear-gradient(135deg, #136dff, #0ec8ef); }
+.kpi-bar { background: rgba(115, 171, 218, .17); }
+.kpi-bar i { background: linear-gradient(90deg, #136dff, #27dcff); }
+.race-live-stage { border-color: rgba(65, 194, 255, .5); }
+.race-live-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 55px rgba(1, 8, 24, .58);
+}
+.race-live-stage-status { background: rgba(3, 16, 38, .88); color: #63d8ff; border: 1px solid rgba(90, 206, 255, .4); }
+.race-live-attention > div b { color: #ff8091; }
+.race-live-attention > div small { color: #ff586f; }
+.race-live-attention article { color: #bfd7ee; }
+.race-live-attention article em { background: rgba(221, 53, 80, .18); color: #ff8796; }
+
+.screen-display .race-live-mode-panel {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: clamp(10px, 1.2vh, 20px);
+  padding: clamp(16px, 1.6vw, 30px);
+  overflow: hidden;
+}
+.race-live-mode-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.race-live-mode-heading span,
+.race-live-mode-kicker { color: #52c9ff; font-weight: 800; letter-spacing: .14em; font-size: clamp(11px, .8vw, 15px); }
+.screen-display .race-live-mode-heading h1,
+.screen-display .race-live-announcement h1 { margin: 0; color: #f6fbff; line-height: 1.08; }
+.screen-display .race-live-mode-heading h1 { font-size: clamp(24px, 2.2vw, 42px); }
+.screen-display .screen-board-list {
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  align-content: stretch;
+  grid-auto-rows: minmax(0, 1fr);
+  border: 0;
+  background: transparent;
+}
+.screen-display .screen-board-list article {
+  grid-template-columns: minmax(90px, .38fr) minmax(180px, 1fr) minmax(180px, 1.25fr);
+  padding: clamp(10px, 1vw, 18px);
+  border-color: rgba(83, 175, 255, .2);
+  background: linear-gradient(90deg, rgba(12, 42, 81, .72), rgba(5, 24, 50, .72));
+  color: #eaf6ff;
+}
+.screen-display .screen-board-list article b { color: #55d5ff; }
+.screen-display .screen-board-list em { color: #a7c3dd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.race-live-empty { min-height: 0; color: #87a8c6; }
+
+.screen-display .race-live-announcement {
+  grid-template-rows: auto auto 1fr;
+  align-content: center;
+  padding: clamp(34px, 5vw, 96px);
+  background:
+    linear-gradient(90deg, rgba(3, 13, 31, .98), rgba(5, 23, 51, .83)),
+    radial-gradient(circle at 85% 45%, rgba(15, 161, 255, .28), transparent 34%);
+}
+.screen-display .race-live-announcement h1 { margin-top: clamp(14px, 2vh, 28px); font-size: clamp(42px, 5.3vw, 100px); }
+.screen-display .race-live-announcement p { max-width: 1200px; margin: clamp(18px, 3vh, 42px) 0 0; color: #c9e2f6; font-size: clamp(24px, 2.5vw, 48px); line-height: 1.42; }
+
+.static-screen { color: #eaf6ff; }
+.static-screen-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: clamp(16px, 2vw, 34px); }
+.static-screen-header > div { min-width: 0; }
+.static-screen-header strong { color: #ff4f6d; font-size: clamp(12px, .9vw, 17px); letter-spacing: .12em; }
+.static-screen-header em { color: #9ab8d4; font-style: normal; text-transform: uppercase; }
+.static-screen-panel { background: linear-gradient(145deg, rgba(8, 25, 52, .96), rgba(2, 10, 26, .96)); }
+.static-screen-panel h2 { color: #f3f9ff; }
+.static-screen-metrics b { color: #50cfff; }
+.static-screen-metrics span { color: #9ab8d4; }
+.static-screen-footer { border-radius: 12px; }

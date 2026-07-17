@@ -1,11 +1,61 @@
 import { expect, test } from "@playwright/test";
+import type { PrismaClient, ScreenState } from "@prisma/client";
+
+const raceId = "race_bay_2026";
+let prisma: PrismaClient;
+let originalState: ScreenState;
+
+function restoreData(state: ScreenState) {
+  return {
+    mode: state.mode,
+    fallbackEnabled: state.fallbackEnabled,
+    currentRoundId: state.currentRoundId,
+    stableProjectionId: state.stableProjectionId,
+    activeGroupOrder: state.activeGroupOrder,
+    autoRotateEnabled: state.autoRotateEnabled,
+    rotationIntervalSeconds: state.rotationIntervalSeconds,
+    rotationEpochAt: state.rotationEpochAt,
+    rotationPausedAt: state.rotationPausedAt,
+    controlVersion: state.controlVersion
+  };
+}
+
+test.beforeAll(async () => {
+  process.env.DATABASE_URL = "file:./e2e.db";
+  const { PrismaClient: Client } = await import("@prisma/client");
+  prisma = new Client();
+  originalState = await prisma.screenState.findUniqueOrThrow({ where: { raceId } });
+});
+
+test.beforeEach(async () => {
+  await prisma.screenState.update({
+    where: { raceId },
+    data: {
+      mode: "live",
+      fallbackEnabled: false,
+      currentRoundId: "round_bay_1",
+      stableProjectionId: "projection_bay_race_live_1",
+      activeGroupOrder: 1,
+      autoRotateEnabled: true,
+      rotationPausedAt: null
+    }
+  });
+});
+
+test.afterAll(async () => {
+  try {
+    await prisma.screenState.update({ where: { raceId }, data: restoreData(originalState) });
+  } finally {
+    await prisma.$disconnect();
+  }
+});
 
 for (const viewport of [{ width: 1920, height: 1080 }, { width: 1366, height: 768 }]) {
   test(`Race Live renders a bounded public group at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     let snapshotPolls = 0;
     page.on("request", (request) => { if (request.url().includes("/api/public/races/bay-area-happy-trip/screen")) snapshotPolls += 1; });
-    await page.goto("/screen/display");
+    await page.goto("/screen/display/race_bay_2026");
     await expect(page.getByTestId("race-live-stage")).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Public site navigation" })).toHaveCount(0);
     await expect(page.getByTestId("race-live-header")).toBeVisible();

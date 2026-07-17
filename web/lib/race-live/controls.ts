@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { canManageRace, requireAuth, type AuthContext } from "../auth";
+import { canManageRace, type AuthContext } from "../auth";
 import { prisma } from "../prisma";
 import { AryRaceLiveSnapshotSchema } from "./contracts";
 import { resolveActiveGroup } from "./rotation";
@@ -8,12 +8,8 @@ export { resolveActiveGroup } from "./rotation";
 type ControlResult = { ok: true; message: string; id: string } | { ok: false; message: string };
 
 function authorize(ctx: AuthContext | null, raceId: string, reason?: string): ControlResult | null {
-  requireAuth(ctx);
-  if (!ctx.roles.includes("organizer") && !ctx.roles.includes("admin")) throw new Error("FORBIDDEN");
-  if (!ctx.roles.includes("admin") && !canManageRace(ctx, raceId)) throw new Error("FORBIDDEN");
-  if (ctx.roles.includes("admin") && !ctx.managedRaceIds.includes(raceId) && !reason?.trim()) {
-    return { ok: false, message: "Admin跨Race操作必须填写原因" };
-  }
+  if (!ctx) return { ok: false, message: "请先登录 Organizer 账号" };
+  if (ctx.activeRole !== "organizer" || !canManageRace(ctx, raceId)) return { ok: false, message: "没有控制该赛事大屏的权限" };
   return null;
 }
 

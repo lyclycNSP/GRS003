@@ -1,0 +1,42 @@
+.page { display: grid; gap: 20px; color: #0b214d; }
+.page :global(.risk-center-hero) { position: relative; overflow: hidden; padding: 32px 36px; border: 1px solid #dbe8fb; border-radius: 24px; background: radial-gradient(circle at 88% 24%, rgba(77, 147, 255, .22), transparent 25%), linear-gradient(125deg, #fff 0%, #f8fbff 55%, #e9f3ff 100%); box-shadow: 0 18px 48px rgba(28, 78, 147, .08); }
+.page :global(.risk-center-hero)::after { content: ""; position: absolute; right: 5%; bottom: -105px; width: 280px; height: 180px; border: 1px solid rgba(58, 128, 235, .2); border-radius: 50%; transform: rotate(-12deg); }
+.page :global(.risk-center-hero h1) { margin: 8px 0 8px; font-size: clamp(30px, 3vw, 44px); letter-spacing: -.04em; }
+.page :global(.section-kicker) { margin: 0; color: #0868ed; font-size: 11px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+.page :global(.hero-subtitle), .page :global(.module-summary) { max-width: 770px; color: #647899; line-height: 1.75; }
+.page :global(.work-detail-actions), .page :global(.risk-quick-filters), .page :global(.risk-card-actions), .page :global(.console-action-row) { display: flex; flex-wrap: wrap; gap: 8px; }
+.page :global(.work-detail-actions) { position: relative; z-index: 1; margin-top: 18px; }
+.page :global(.work-detail-actions a), .page :global(.inline-action) { display: inline-flex; align-items: center; padding: 8px 12px; border: 1px solid #d4e3f7; border-radius: 10px; color: #0b63d7; font-size: 12px; font-weight: 800; text-decoration: none; background: rgba(255,255,255,.82); }
+.page :global(.work-detail-actions a:first-child) { color: #fff; border-color: transparent; background: linear-gradient(135deg, #0967e7, #2788ff); box-shadow: 0 8px 20px rgba(17, 104, 225, .18); }
+.page :global(.console-signal-bar), .page :global(.console-flow-strip) { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+.page :global(.console-signal-bar article), .page :global(.console-flow-strip article) { position: relative; min-height: 124px; padding: 18px; overflow: hidden; border: 1px solid #dce7f7; border-radius: 17px; background: rgba(255,255,255,.91); box-shadow: 0 12px 28px rgba(29, 78, 143, .06); }
+.page :global(.console-signal-bar article)::before, .page :global(.console-flow-strip article)::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: linear-gradient(#1478f6, #64b1ff); }
+.page :global(.console-signal-bar span), .page :global(.console-flow-strip span) { color: #537099; font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.page :global(.console-signal-bar b), .page :global(.console-flow-strip b) { display: block; margin: 7px 0 5px; color: #0b285c; font-size: 22px; }
+.page :global(.console-signal-bar p), .page :global(.console-flow-strip p) { margin: 0; color: #7b8ca8; font-size: 12px; line-height: 1.55; }
+.page :global(.form-card) { padding: 23px; border: 1px solid #dbe7f7; border-radius: 20px; background: rgba(255,255,255,.92); box-shadow: 0 14px 38px rgba(30, 77, 139, .065); }
+.page :global(.form-card h2) { margin: 0 0 6px; font-size: 21px; }
+.page :global(.form-hint) { color: #7385a2; font-size: 12px; line-height: 1.65; }
+.page :global(.risk-filter-card) { background: linear-gradient(140deg, #fff, #f7faff); }
+.page :global(.risk-filter-form) { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; gap: 10px; margin-top: 15px; }
+.page :global(.console-field-form label), .page :global(.console-field-form label span) { display: block; }
+.page :global(.console-field-form label span) { margin-bottom: 6px; color: #4f6586; font-size: 11px; font-weight: 800; }
+.page :global(select), .page :global(textarea), .page :global(input) { width: 100%; padding: 10px 11px; border: 1px solid #d6e2f2; border-radius: 10px; color: #18325e; background: #fff; }
+.page :global(textarea) { min-height: 82px; resize: vertical; }
+.page :global(button) { padding: 10px 14px; border: 0; border-radius: 10px; color: #fff; font-weight: 800; background: linear-gradient(135deg, #0967e7, #2789ff); box-shadow: 0 7px 17px rgba(15, 103, 224, .15); cursor: pointer; }
+.page :global(button:disabled) { cursor: not-allowed; opacity: .58; box-shadow: none; }
+.page :global(button[aria-busy="true"]) { cursor: progress; }
+.page :global(.risk-flag-grid) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; margin-top: 16px; }
+.page :global(.risk-flag-card) { padding: 18px; border: 1px solid #dbe6f5; border-radius: 16px; background: linear-gradient(145deg, #fff, #f9fbff); }
+.page :global(.risk-flag-header) { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; }
+.page :global(.risk-flag-header b) { color: #183765; font-size: 14px; }
+.page :global(.status-pill) { display: inline-flex; width: fit-content; padding: 5px 8px; border-radius: 999px; color: #4d6587; font-size: 10px; font-weight: 900; background: #eef3f9; }
+.page :global(.status-pill.good) { color: #087c59; background: #e3f8f0; }
+.page :global(.status-pill.warn) { color: #a65d0b; background: #fff0d8; }
+.page :global(.status-pill.risk) { color: #bd3443; background: #ffe9ec; }
+.page :global(.risk-flag-card > p) { color: #526884; line-height: 1.65; }
+.page :global(.risk-flag-meta) { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 13px 0; padding: 11px; border-radius: 12px; color: #6f819d; font-size: 11px; background: #f3f7fc; }
+.page :global(.risk-note) { padding: 10px 12px; border-left: 3px solid #56a1ff; border-radius: 7px; color: #41618d !important; background: #edf5ff; }
+.page :global(.risk-disposition-form) { display: grid; grid-template-columns: 150px 1fr auto; align-items: end; gap: 10px; margin-top: 14px; }
+.page :global(.empty-state) { grid-column: 1 / -1; padding: 32px; text-align: center; border: 1px dashed #cadbf1; border-radius: 14px; color: #7185a4; background: #f8fbff; }
+@media (max-width: 1150px) { .page :global(.console-signal-bar), .page :global(.console-flow-strip) { grid-template-columns: repeat(2, 1fr); } .page :global(.risk-filter-form) { grid-template-columns: repeat(2, 1fr); } .page :global(.risk-filter-form button) { grid-column: span 2; } .page :global(.risk-flag-grid) { grid-template-columns: 1fr; } }

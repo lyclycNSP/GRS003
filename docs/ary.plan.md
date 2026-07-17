@@ -171,9 +171,10 @@
 
 * GitHub 登录。
 * 资料补全。
-* Admin Console 基础版。
-* `User.roles` 维护。
-* Race Console 框架和 Organizer / Rider / Judge View 入口。
+* GitHub 已验证邮箱、公共账号资料与协议门禁。
+* 规范化 `UserRole` 多角色资格、独立 RoleProfile 和 `RoleApplication` 审核。
+* `AuthSession.activeRole` 单会话角色切换与 Rider / Judge / Organizer / Admin 独立 Console。
+* Admin Console 角色申请和单个资格状态管理。
 
 不做什么：
 
@@ -183,12 +184,14 @@
 验收用例：
 
 * 用户可登录并补全资料。
-* Admin 可维护 `User.roles`。
-* 不同 role 看到不同 Console 入口。
+* Rider 可自助开通，Judge / Organizer 经审核开通，Admin 只能由有效 Admin 授予。
+* 多角色用户每个会话只激活一个角色；不同设备会话互不影响。
+* 页面、API、Server Action 只接受 `activeRole`，跨角色直达被拒绝。
+* 同一 Race 的 Rider 与 Organizer/Judge 冲突规则、Organizer+Judge 共存和自行分配均有领域测试。
 
 风险：
 
-* 多 role 用户的视图切换和权限边界容易混淆。
+* PostgreSQL 手写迁移必须在全新库与已有基线库分别部署验证；本地缺少可用 PostgreSQL 时不得把该环境项标记完成。
 
 是否可 demo：是。
 

@@ -3,6 +3,7 @@ import { isIP } from "node:net";
 import { z } from "zod";
 
 export const WORK_SUBMISSION_HASH_SCHEMA = "ary.work-submission.v1";
+export const VERIFIED_WORK_SUBMISSION_HASH_SCHEMA = "ary.work-submission.v2";
 
 const workSubmissionSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -34,6 +35,13 @@ export type WorkSubmissionHashPayload = ValidatedWorkSubmissionInput & {
   versionNumber: number;
   submittedByUserId: string;
   submittedAt: Date;
+};
+
+export type VerifiedRepositoryHashFields = {
+  repositoryNodeId: string;
+  repositoryVisibility: string;
+  repositoryVerifiedAt: Date;
+  repositoryVerificationStatus: "verified";
 };
 
 function stableJson(value: unknown): string {
@@ -141,6 +149,27 @@ export function createWorkSubmissionIntegrityHash(payload: WorkSubmissionHashPay
     demoUrl: payload.demoUrl,
     repoUrl: payload.repoUrl,
     repoCommitSha: payload.repoCommitSha,
+    submittedByUserId: payload.submittedByUserId,
+    submittedAt: payload.submittedAt
+  };
+  return createHash("sha256").update(stableJson(canonical)).digest("hex");
+}
+
+export function createVerifiedWorkSubmissionIntegrityHash(payload: WorkSubmissionHashPayload & VerifiedRepositoryHashFields): string {
+  const canonical = {
+    schemaVersion: VERIFIED_WORK_SUBMISSION_HASH_SCHEMA,
+    workId: payload.workId,
+    registrationId: payload.registrationId,
+    versionNumber: payload.versionNumber,
+    title: payload.title,
+    summary: payload.summary,
+    demoUrl: payload.demoUrl,
+    repoUrl: payload.repoUrl,
+    repoCommitSha: payload.repoCommitSha,
+    repositoryNodeId: payload.repositoryNodeId,
+    repositoryVisibility: payload.repositoryVisibility,
+    repositoryVerifiedAt: payload.repositoryVerifiedAt,
+    repositoryVerificationStatus: payload.repositoryVerificationStatus,
     submittedByUserId: payload.submittedByUserId,
     submittedAt: payload.submittedAt
   };

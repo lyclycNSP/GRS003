@@ -24,6 +24,8 @@ async function main() {
   await prisma.award.deleteMany();
   await prisma.judgingRecord.deleteMany();
   await prisma.judgeAssignment.deleteMany();
+  await prisma.judgeAllocationBatch.deleteMany();
+  await prisma.raceJudgeMembership.deleteMany();
   await prisma.submissionAuditEvent.deleteMany();
   await prisma.work.updateMany({ data: { currentVersionId: null } });
   await prisma.workSubmissionVersion.deleteMany();
@@ -41,6 +43,12 @@ async function main() {
   await prisma.teamMember.deleteMany();
   await prisma.team.deleteMany();
   await prisma.race.deleteMany();
+  await prisma.roleApplication.deleteMany();
+  await prisma.riderProfile.deleteMany();
+  await prisma.judgeProfile.deleteMany();
+  await prisma.organizerProfile.deleteMany();
+  await prisma.userRole.deleteMany();
+  await prisma.authSession.deleteMany();
   await prisma.authAccount.deleteMany();
   await prisma.user.deleteMany();
 
@@ -51,17 +59,37 @@ async function main() {
         slug: "ary-ops",
         displayName: "Lin Organizer",
         githubLogin: "ary-ops",
+        githubUserId: "debug-org",
+        email: "organizer@example.com",
+        verifiedEmailsJson: json(["organizer@example.com"]),
+        emailVerifiedAt: new Date(), emailConfirmedAt: new Date(),
+        termsVersion: "2026-07-15", termsAcceptedAt: new Date(), privacyVersion: "2026-07-15", privacyAcceptedAt: new Date(),
+        preferredRole: "organizer",
         profileCompleted: true,
-        rolesJson: json(["organizer", "admin", "judge", "rider"]),
         city: "San Francisco"
+      },
+      {
+        id: "user_org_2",
+        slug: "northstar-ops",
+        displayName: "Nora Organizer",
+        githubLogin: "northstar-ops",
+        githubUserId: "debug-org-2",
+        email: "organizer-alt@example.com",
+        verifiedEmailsJson: json(["organizer-alt@example.com"]),
+        emailVerifiedAt: new Date(), emailConfirmedAt: new Date(),
+        termsVersion: "2026-07-15", termsAcceptedAt: new Date(), privacyVersion: "2026-07-15", privacyAcceptedAt: new Date(),
+        preferredRole: "organizer",
+        profileCompleted: true,
+        city: "Singapore"
       },
       {
         id: "user_rider_1",
         slug: "mira-chen",
         displayName: "Mira Chen",
         githubLogin: "mira-ca",
+        githubUserId: "debug-rider-1", email: "mira@example.com", verifiedEmailsJson: json(["mira@example.com"]),
+        emailVerifiedAt: new Date(), emailConfirmedAt: new Date(), termsVersion: "2026-07-15", termsAcceptedAt: new Date(), privacyVersion: "2026-07-15", privacyAcceptedAt: new Date(), preferredRole: "rider",
         profileCompleted: true,
-        rolesJson: json(["rider"]),
         city: "Oakland"
       },
       {
@@ -69,8 +97,9 @@ async function main() {
         slug: "ana-ruiz",
         displayName: "Ana Ruiz",
         githubLogin: "ana-route",
+        githubUserId: "debug-rider-2", email: "ana@example.com", verifiedEmailsJson: json(["ana@example.com"]),
+        emailVerifiedAt: new Date(), emailConfirmedAt: new Date(), termsVersion: "2026-07-15", termsAcceptedAt: new Date(), privacyVersion: "2026-07-15", privacyAcceptedAt: new Date(), preferredRole: "rider",
         profileCompleted: true,
-        rolesJson: json(["rider"]),
         city: "Shenzhen"
       },
       {
@@ -78,21 +107,67 @@ async function main() {
         slug: "ava-judge",
         displayName: "Ava Judge",
         githubLogin: "judge-ava",
+        githubUserId: "debug-judge", email: "judge@example.com", verifiedEmailsJson: json(["judge@example.com"]),
+        emailVerifiedAt: new Date(), emailConfirmedAt: new Date(), termsVersion: "2026-07-15", termsAcceptedAt: new Date(), privacyVersion: "2026-07-15", privacyAcceptedAt: new Date(), preferredRole: "judge",
         profileCompleted: true,
-        rolesJson: json(["judge"]),
         city: "Seattle"
+      },
+      {
+        id: "user_admin_1", slug: "ary-admin", displayName: "ARY Admin", githubLogin: "ary-admin", githubUserId: "debug-admin",
+        email: "admin@example.com", verifiedEmailsJson: json(["admin@example.com"]), emailVerifiedAt: new Date(), emailConfirmedAt: new Date(),
+        termsVersion: "2026-07-15", termsAcceptedAt: new Date(), privacyVersion: "2026-07-15", privacyAcceptedAt: new Date(), preferredRole: "admin", profileCompleted: true
+      },
+      {
+        id: "user_multi_1", slug: "multi-role-user", displayName: "Multi Role User", githubLogin: "multi-role", githubUserId: "debug-multi",
+        email: "multi@example.com", verifiedEmailsJson: json(["multi@example.com"]), emailVerifiedAt: new Date(), emailConfirmedAt: new Date(),
+        termsVersion: "2026-07-15", termsAcceptedAt: new Date(), privacyVersion: "2026-07-15", privacyAcceptedAt: new Date(), preferredRole: "organizer", profileCompleted: true
       },
       ...(includeE2EFixtures ? [{
         id: "user_rider_e2e",
         slug: "e2e-rider",
         displayName: "E2E Rider",
         githubLogin: "e2e-rider",
+        githubUserId: "debug-rider-e2e", email: "rider-e2e@example.com", verifiedEmailsJson: json(["rider-e2e@example.com"]),
+        emailVerifiedAt: new Date(), emailConfirmedAt: new Date(), termsVersion: "2026-07-15", termsAcceptedAt: new Date(), privacyVersion: "2026-07-15", privacyAcceptedAt: new Date(), preferredRole: "rider",
         profileCompleted: true,
-        rolesJson: json(["rider"]),
         city: "Test Track"
       }] : [])
     ]
   });
+
+  await prisma.userRole.createMany({ data: [
+    { id: "role_org_organizer", userId: "user_org_1", role: "organizer", status: "active", source: "seed" },
+    { id: "role_org_alt_organizer", userId: "user_org_2", role: "organizer", status: "active", source: "seed" },
+    { id: "role_org_admin", userId: "user_org_1", role: "admin", status: "active", source: "seed" },
+    { id: "role_org_judge", userId: "user_org_1", role: "judge", status: "active", source: "seed" },
+    { id: "role_org_rider", userId: "user_org_1", role: "rider", status: "active", source: "seed" },
+    { id: "role_rider_1", userId: "user_rider_1", role: "rider", status: "active", source: "seed" },
+    { id: "role_rider_2", userId: "user_rider_2", role: "rider", status: "active", source: "seed" },
+    { id: "role_judge_1", userId: "user_judge_1", role: "judge", status: "active", source: "seed" },
+    { id: "role_admin_1", userId: "user_admin_1", role: "admin", status: "active", source: "seed" },
+    { id: "role_multi_rider", userId: "user_multi_1", role: "rider", status: "active", source: "seed" },
+    { id: "role_multi_judge", userId: "user_multi_1", role: "judge", status: "active", source: "seed" },
+    { id: "role_multi_organizer", userId: "user_multi_1", role: "organizer", status: "active", source: "seed" },
+    ...(includeE2EFixtures ? [{ id: "role_rider_e2e", userId: "user_rider_e2e", role: "rider", status: "active", source: "seed" }] : [])
+  ] });
+
+  await prisma.riderProfile.createMany({ data: [
+    { id: "rider_profile_org", userId: "user_org_1", headline: "Agent builder", skillsJson: json(["TypeScript", "Operations"]), completedAt: new Date() },
+    { id: "rider_profile_mira", userId: "user_rider_1", headline: "Travel agent rider", skillsJson: json(["TypeScript", "Product Design"]), bio: "Building explainable travel agents.", city: "Oakland", organization: "ARY Community", completedAt: new Date() },
+    { id: "rider_profile_ana", userId: "user_rider_2", headline: "Local discovery rider", skillsJson: json(["Python", "Research"]), city: "Shenzhen", completedAt: new Date() },
+    { id: "rider_profile_multi", userId: "user_multi_1", headline: "Multi-role community member", skillsJson: json(["AI", "Events"]), completedAt: new Date() },
+    ...(includeE2EFixtures ? [{ id: "rider_profile_e2e", userId: "user_rider_e2e", headline: "E2E Rider", skillsJson: json(["Testing"]), completedAt: new Date() }] : [])
+  ] });
+  await prisma.judgeProfile.createMany({ data: [
+    { id: "judge_profile_org", userId: "user_org_1", organization: "ARY", title: "Reviewer", expertiseJson: json(["Agents"]), reviewBio: "Experienced agent product reviewer and event operator.", conflictConfirmedAt: new Date(), completedAt: new Date() },
+    { id: "judge_profile_ava", userId: "user_judge_1", organization: "Agent Guild", title: "Senior Judge", expertiseJson: json(["Agent UX", "Evaluation"]), reviewBio: "Reviews agent products with emphasis on evidence and reproducibility.", conflictConfirmedAt: new Date(), completedAt: new Date() },
+    { id: "judge_profile_multi", userId: "user_multi_1", organization: "ARY Community", title: "Community Judge", expertiseJson: json(["AI", "Events"]), reviewBio: "Community reviewer with experience organizing and judging agent races.", conflictConfirmedAt: new Date(), completedAt: new Date() }
+  ] });
+  await prisma.organizerProfile.createMany({ data: [
+    { id: "organizer_profile_org", userId: "user_org_1", organizationName: "ARY", position: "Race Director", eventCategoriesJson: json(["Agent Race"]), organizerBio: "Organizes ARY races and manages live event operations.", completedAt: new Date() },
+    { id: "organizer_profile_org_alt", userId: "user_org_2", organizationName: "Northstar Labs", position: "Program Lead", eventCategoriesJson: json(["Applied AI"]), organizerBio: "Runs an independent applied-agent race portfolio.", completedAt: new Date() },
+    { id: "organizer_profile_multi", userId: "user_multi_1", organizationName: "ARY Community", position: "Organizer", eventCategoriesJson: json(["Community"]), organizerBio: "Organizes community agent events and also participates in other races.", completedAt: new Date() }
+  ] });
 
   await prisma.race.createMany({
     data: [
@@ -105,7 +180,7 @@ async function main() {
         challenge: "构建大湾区旅行、游玩伴随 Agent，让路线、预算、天气和本地灵感成为可展示的赛场作品。",
         summary: "构建大湾区旅行、游玩伴随 Agent，像你身边手头的旅行达人和本地精英，让用户无所不知、玩得尽兴。",
         taskId: "DEV-12",
-        organizerJson: json(["user_org_1"]),
+        organizerJson: json(["user_org_1", "user_multi_1"]),
         scheduleJson: json({ registration: "已结束", race: "进行中", submission: "开放中", judging: "排队中", results: "未发布" }),
         rulesJson: json({ allowCAConnectionUntil: "judging", maxMainWorksPerRegistration: 1, caFailureBlocksSubmission: false }),
         metricsJson: json({ riders: 36, activeRiders: 27, sessions: 188, submittedWorks: 14, totalCost: "$512.70", riskSignals: 5 }),
@@ -122,13 +197,13 @@ async function main() {
         challenge: "构建能帮助用户理解金融材料、整理风险点和形成学习笔记的投研辅助 Agent。",
         summary: "面向个人投资学习者的资料整理、术语解释、公司信息摘要和风险提示 Agent。",
         taskId: "DEV-13",
-        organizerJson: json(["user_org_1"]),
+        organizerJson: json(["user_org_2"]),
         scheduleJson: json({ registration: "已结束", race: "进行中", submission: "开放中", judging: "排队中", results: "未发布" }),
         rulesJson: json({ safetyBoundary: "no investment advice" }),
         metricsJson: json({ riders: 28, activeRiders: 21, sessions: 164, submittedWorks: 9, totalCost: "$438.20", riskSignals: 8 }),
         submissionOpensAt: new Date("2020-01-01T00:00:00Z"),
         submissionClosesAt: new Date("2099-01-01T00:00:00Z"),
-        createdByUserId: "user_org_1"
+        createdByUserId: "user_org_2"
       },
       ...(includeE2EFixtures ? [{
         id: "race_submission_e2e",
@@ -420,8 +495,28 @@ async function main() {
     ]
   });
 
-  await prisma.judgeAssignment.create({
-    data: { id: "assign_localjoy_ava", raceId: "race_bay_2026", workId: "work-localjoy", workSubmissionVersionId: "work-version-localjoy-1", judgeUserId: "user_judge_1", assignedByUserId: "user_org_1", status: "assigned", assignedAt: new Date() }
+  await prisma.raceJudgeMembership.createMany({
+    data: ["user_org_1", "user_judge_1", "user_multi_1"].map((judgeUserId, index) => ({
+      id: `judge_pool_bay_${index + 1}`, raceId: "race_bay_2026", judgeUserId,
+      selectedByUserId: "user_org_1", status: "active", selectedAt: new Date("2026-06-18T11:00:00Z")
+    }))
+  });
+  await prisma.judgeAllocationBatch.create({
+    data: {
+      id: "judge_batch_bay_seed", raceId: "race_bay_2026", createdByUserId: "user_org_1",
+      seed: "seed-bay-2026", algorithmVersion: "balanced-random-v1", workCount: 2,
+      retainedCount: 0, createdCount: 6, createdAt: new Date("2026-06-18T11:05:00Z")
+    }
+  });
+  await prisma.judgeAssignment.createMany({
+    data: ["work-gba-wander", "work-localjoy"].flatMap((workId) => {
+      const workSubmissionVersionId = workId === "work-gba-wander" ? "work-version-gba-1" : "work-version-localjoy-1";
+      return ["user_org_1", "user_judge_1", "user_multi_1"].map((judgeUserId, index) => ({
+        id: `assign_${workId}_${index + 1}`, raceId: "race_bay_2026", workId, workSubmissionVersionId,
+        judgeUserId, assignedByUserId: "user_org_1", status: "assigned", slot: index + 1,
+        allocationBatchId: "judge_batch_bay_seed", assignedAt: new Date("2026-06-18T11:05:00Z")
+      }));
+    })
   });
 
   await prisma.report.createMany({

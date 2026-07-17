@@ -27,12 +27,12 @@ export async function publishTrackProfileVersion(
   assetStore: TrackAssetStore = new LocalTrackAssetStore()
 ): Promise<PublishResult> {
   if (!ctx) return { ok: false, message: "请先登录" };
-  if (!ctx.roles.includes("organizer") && !ctx.roles.includes("admin")) return { ok: false, message: "只有Organizer或Admin可发布Track" };
+  if (ctx.activeRole !== "organizer") return { ok: false, message: "只有 Organizer 可发布 Track" };
   const requestId = input.publishRequestId.trim();
   if (!/^[a-zA-Z0-9_-]{8,100}$/.test(requestId)) return { ok: false, message: "publishRequestId格式无效" };
   if (input.raceId) {
     if (!canManageRace(ctx, input.raceId)) return { ok: false, message: "无权发布该Race的Track" };
-  } else if (!ctx.roles.includes("admin")) return { ok: false, message: "只有Admin可发布system Track" };
+  }
 
   let clientValidation;
   let manualValidation;

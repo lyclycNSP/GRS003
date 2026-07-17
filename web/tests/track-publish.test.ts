@@ -10,8 +10,8 @@ import { bindTrackVersionToRound } from "../lib/domain";
 import { buildAryRaceLiveProjection } from "../lib/race-live/projection-builder";
 import { getPublicRaceLiveSnapshot } from "../lib/queries";
 
-const organizer = { userId: "user_org_1", roles: ["organizer" as const], profileCompleted: true, managedRaceIds: ["race_bay_2026"], approvedRegistrationIds: [], assignedWorkIds: [] };
-const rider = { ...organizer, userId: "user_rider_1", roles: ["rider" as const], managedRaceIds: [] };
+const organizer = { userId: "user_org_1", availableRoles: ["organizer" as const], activeRole: "organizer" as const, profileCompleted: true, managedRaceIds: ["race_bay_2026"], approvedRegistrationIds: [], assignedWorkIds: [] };
+const rider = { ...organizer, userId: "user_rider_1", availableRoles: ["rider" as const], activeRole: "rider" as const, managedRaceIds: [] };
 const managedRider = { ...rider, managedRaceIds: ["race_bay_2026"] };
 const validationEvidence = {
   validationReportJson: JSON.stringify({ generatedAt: "2026-07-15T10:00:00.000Z", valid: true, issues: [] }),

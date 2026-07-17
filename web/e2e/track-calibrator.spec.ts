@@ -3,8 +3,11 @@ import { expect, test } from "@playwright/test";
 test("Organizer can discover Track Management from Console", async ({ page }) => {
   await page.goto("/api/debug/login?user=organizer");
   await page.goto("/console?raceId=race_bay_2026");
-  const entry = page.getByRole("link", { name: "Track Management" });
+  const entry = page
+    .getByTestId("console-current-race")
+    .getByRole("link", { name: "Track Management", exact: true });
   await expect(entry).toBeVisible();
+  await expect(entry).toHaveAttribute("href", "/console/tracks?raceId=race_bay_2026");
   await entry.click();
   await expect(page).toHaveURL(/\/console\/tracks\?raceId=race_bay_2026/);
   await expect(page.getByRole("link", { name: "打开 Track Calibrator" })).toBeVisible();
@@ -61,5 +64,10 @@ test("Organizer draft recovery, shared preview, validation and publish", async (
   await expect(page.getByTestId("track-version")).toHaveValue("1.0.1");
 
   await page.goto("/console/tracks?raceId=race_bay_2026");
-  await expect(page.getByRole("heading", { name: "Calibrator E2E Track 1.0.0" })).toBeVisible();
+  const publishedTrack = page
+    .getByTestId("track-management-workspace")
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Calibrator E2E Track", exact: true }) });
+  await expect(publishedTrack).toContainText("版本 1.0.0");
+  await expect(publishedTrack.getByText("published", { exact: true })).toBeVisible();
 });

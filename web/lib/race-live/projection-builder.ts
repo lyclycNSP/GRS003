@@ -70,6 +70,18 @@ export async function buildAryRaceLiveProjection(
   input: { raceId: string; roundId: string; now?: Date }
 ): Promise<ProjectionBuildResult> {
   requireManagedRace(ctx, input.raceId);
+  return buildAryRaceLiveProjectionCore(input);
+}
+
+export async function buildAryRaceLiveProjectionInternal(
+  input: { raceId: string; roundId: string; now?: Date }
+): Promise<ProjectionBuildResult> {
+  return buildAryRaceLiveProjectionCore(input);
+}
+
+async function buildAryRaceLiveProjectionCore(
+  input: { raceId: string; roundId: string; now?: Date }
+): Promise<ProjectionBuildResult> {
   const now = input.now ?? new Date();
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -171,6 +183,39 @@ export async function buildAryRaceLiveProjection(
         const orderedEntries = entries.sort((left, right) => left.displayOrder - right.displayOrder || left.value.entryId.localeCompare(right.value.entryId));
         const totalParticipants = orderedEntries.reduce((sum, entry) => sum + entry.value.participantCount, 0);
         const totalTokens = orderedEntries.reduce((sum, entry) => sum + (entry.value.costTokens ?? 0), 0);
+        const sourceWatermark = canonicalHash({
+          roundId: round.id,
+          roundStatus: round.status,
+          trackProfileVersionId: round.trackProfileVersionId,
+          entries: orderedEntries.map((entry) => ({
+            displayOrder: entry.displayOrder,
+            registrationId: entry.value.registrationId,
+            participantCount: entry.value.participantCount,
+            roundProgress: entry.value.roundProgress,
+            overallProgress: entry.value.overallProgress,
+            raceStatus: entry.value.raceStatus,
+            dataStatus: entry.value.dataStatus,
+            riskLevel: entry.value.riskLevel,
+            agentProviders: entry.value.agentProviders,
+            costTokens: entry.value.costTokens,
+            updatedAt: entry.value.updatedAt
+          }))
+        });
+        const reusable = await tx.projection.findFirst({
+          where: { raceId: input.raceId, type: "ary_race_live", status: "stable", schemaVersion: "ary.race-live.v1", sourceWatermark },
+          orderBy: { sequence: "desc" }
+        });
+        if (reusable) {
+          const parsedReusable = AryRaceLiveSnapshotSchema.safeParse(JSON.parse(reusable.payloadJson));
+          if (parsedReusable.success && parsedReusable.data.roundId === round.id) {
+            await tx.screenState.upsert({
+              where: { raceId: input.raceId },
+              update: { currentRoundId: round.id, stableProjectionId: reusable.id },
+              create: { id: `screen_${randomUUID()}`, raceId: input.raceId, mode: "live", currentRoundId: round.id, stableProjectionId: reusable.id }
+            });
+            return { ok: true, message: "Race Live Projection已是最新", id: reusable.id, snapshot: parsedReusable.data };
+          }
+        }
         const sequenceAggregate = await tx.projection.aggregate({
           where: { raceId: input.raceId, type: "ary_race_live" },
           _max: { sequence: true }
@@ -257,7 +302,7 @@ export async function buildAryRaceLiveProjection(
             schemaVersion: snapshot.schemaVersion,
             sequence,
             generatedAt: now,
-            sourceWatermark: `${round.id}:${now.toISOString()}`,
+            sourceWatermark,
             payloadHash: canonicalHash(snapshot)
           }
         });

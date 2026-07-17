@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { PrismaClient } from "@prisma/client";
 import {
   approveRegistration,
-  assignJudge,
+  allocateRaceJudges,
   configureSubmissionWindow,
   createRace,
   createTeam,
@@ -18,6 +18,7 @@ import {
   regenerateReport,
   registerCAConnection,
   runP0Regression,
+  saveRaceJudgePool,
   simulateProjectionFailure,
   simulateReportFailure,
   submitJudgingRecord,
@@ -27,8 +28,9 @@ import {
   switchScreenMode,
   toggleScreenFallback,
   updateReviewFlagStatus,
+  updateTeam,
   updateProfile,
-  updateUserRoles
+  setUserRoleStatus
 } from "../lib/domain";
 import { isRaceOrganizer, type AuthContext } from "../lib/auth";
 import { getConsoleSnapshotForUser, getRaceResults, getRiskCenterSnapshotForUser, getWorkBySlug } from "../lib/queries";
@@ -49,7 +51,8 @@ async function test(name: string, fn: () => Promise<void>) {
 
 const organizer: AuthContext = {
   userId: "user_org_1",
-  roles: ["organizer", "admin", "judge", "rider"],
+  availableRoles: ["organizer", "admin", "judge", "rider"],
+  activeRole: "organizer",
   profileCompleted: true,
   managedRaceIds: ["race_bay_2026", "race_finance_2026", "race_genesis_2026", "race_submission_e2e"],
   approvedRegistrationIds: [],
@@ -58,11 +61,17 @@ const organizer: AuthContext = {
 
 const rider: AuthContext = {
   userId: "user_rider_1",
-  roles: ["rider"],
+  availableRoles: ["rider"],
+  activeRole: "rider",
   profileCompleted: true,
   managedRaceIds: [],
   approvedRegistrationIds: ["reg_mira"],
   assignedWorkIds: []
+};
+
+const admin: AuthContext = {
+  userId: "user_admin_1", availableRoles: ["admin"], activeRole: "admin", profileCompleted: true,
+  managedRaceIds: [], approvedRegistrationIds: [], assignedWorkIds: []
 };
 
 function signedSignal(connectorId: string, overrides: Partial<RidingSignalPayload> = {}) {
@@ -109,6 +118,11 @@ async function main() {
   });
 
   await test("Rider team can create, join, submit and share CA access", async () => {
+    const teamRace = await createRace(organizer, { title: `Team Race ${Date.now()}`, challenge: "Team registration", summary: "Team flow" });
+    assert.equal(teamRace.ok, true);
+    assert.equal((await publishRace(organizer, teamRace.id!)).ok, true);
+    const teamRaceId = teamRace.id!;
+    const teamOrganizer = { ...organizer, managedRaceIds: [...organizer.managedRaceIds, teamRaceId] };
     const runSuffix = Date.now().toString(36);
     const captainId = `user_team_captain_test_${runSuffix}`;
     const memberId = `user_team_member_test_${runSuffix}`;
@@ -118,27 +132,42 @@ async function main() {
     ]) {
       await prisma.user.upsert({
         where: { id },
-        update: { rolesJson: JSON.stringify(["rider"]), profileCompleted: true },
-        create: { id, slug, displayName, rolesJson: JSON.stringify(["rider"]), profileCompleted: true }
+        update: { profileCompleted: true },
+        create: { id, slug, displayName, profileCompleted: true }
+      });
+      await prisma.userRole.upsert({
+        where: { userId_role: { userId: id, role: "rider" } },
+        update: { status: "active" },
+        create: { id: `role_${id}`, userId: id, role: "rider", status: "active", source: "test" }
       });
     }
-    const captain: AuthContext = { userId: captainId, roles: ["rider"], profileCompleted: true, managedRaceIds: [], approvedRegistrationIds: [], assignedWorkIds: [] };
-    const member: AuthContext = { userId: memberId, roles: ["rider"], profileCompleted: true, managedRaceIds: [], approvedRegistrationIds: [], assignedWorkIds: [] };
-    const created = await createTeam(captain, "race_finance_2026", `Team Flow ${Date.now()}`);
+    const captain: AuthContext = { userId: captainId, availableRoles: ["rider"], activeRole: "rider", profileCompleted: true, managedRaceIds: [], approvedRegistrationIds: [], assignedWorkIds: [] };
+    const member: AuthContext = { userId: memberId, availableRoles: ["rider"], activeRole: "rider", profileCompleted: true, managedRaceIds: [], approvedRegistrationIds: [], assignedWorkIds: [] };
+    const created = await createTeam(captain, { raceId: teamRaceId, name: `Team Flow ${Date.now()}`, description: "Domain team flow", maxMembers: 5 });
     assert.equal(created.ok, true);
     const team = await prisma.team.findUnique({ where: { id: created.id! } });
     assert.ok(team);
-    const joined = await joinTeam(member, team.inviteCode);
+    assert.equal(team.description, "Domain team flow");
+    const updated = await updateTeam(captain, team.id, { name: team.name, description: "Updated team profile", maxMembers: 2 });
+    assert.equal(updated.ok, true);
+    const wrongRace = await joinTeam(member, "race_bay_2026", team.inviteCode);
+    assert.equal(wrongRace.ok, false);
+    const joined = await joinTeam(member, teamRaceId, team.inviteCode);
     assert.equal(joined.ok, true);
-    const individualBlocked = await submitRegistration(member, "race_finance_2026");
+    const belowMembers = await updateTeam(captain, team.id, { name: team.name, description: "Too small", maxMembers: 1 });
+    assert.equal(belowMembers.ok, false);
+    const individualBlocked = await submitRegistration(member, teamRaceId);
     assert.equal(individualBlocked.ok, false);
     const submitted = await submitTeamRegistration(captain, team.id);
     assert.equal(submitted.ok, true);
     const registration = await prisma.registration.findUnique({ where: { id: submitted.id! } });
     assert.equal(registration?.participantType, "team");
     assert.equal(registration?.teamId, team.id);
-    const approved = await approveRegistration(organizer, registration!.id);
+    const approved = await approveRegistration(teamOrganizer, registration!.id);
     assert.equal(approved.ok, true);
+    assert.equal((await configureSubmissionWindow(teamOrganizer, teamRaceId, {
+      opensAt: new Date(Date.now() - 60_000), closesAt: new Date(Date.now() + 3_600_000)
+    })).ok, true);
     const project = await prisma.raceProject.findUnique({ where: { registrationId: registration!.id } });
     assert.ok(project);
     const connection = await registerCAConnection(member, project.id);
@@ -164,19 +193,20 @@ async function main() {
 
   await test("profile completion saves user fields", async () => {
     await prisma.user.update({ where: { id: "user_rider_1" }, data: { profileCompleted: false } });
-    const result = await updateProfile(rider, { displayName: "Mira Chen", city: "Oakland", githubLogin: "mira-ca" });
+    const result = await updateProfile(rider, { displayName: "Mira Chen", email: "mira@example.com", confirmEmail: true, acceptTerms: true, acceptPrivacy: true, timeZone: "America/Los_Angeles", locale: "en" });
     assert.equal(result.ok, true);
     const user = await prisma.user.findUnique({ where: { id: "user_rider_1" } });
     assert.equal(user?.profileCompleted, true);
-    assert.equal(user?.city, "Oakland");
+    assert.equal(user?.emailConfirmedAt instanceof Date, true);
   });
 
-  await test("only admin can maintain User.roles", async () => {
-    await assert.rejects(() => updateUserRoles(rider, "user_judge_1", ["judge", "rider"]), /FORBIDDEN/);
-    const result = await updateUserRoles(organizer, "user_judge_1", ["judge", "rider"]);
+  await test("only active admin can grant Admin role", async () => {
+    await assert.rejects(() => setUserRoleStatus(rider, "user_judge_1", "admin", "grant"), /FORBIDDEN/);
+    await assert.rejects(() => setUserRoleStatus(organizer, "user_judge_1", "admin", "grant"), /FORBIDDEN/);
+    const result = await setUserRoleStatus(admin, "user_judge_1", "admin", "grant");
     assert.equal(result.ok, true);
-    const user = await prisma.user.findUnique({ where: { id: "user_judge_1" } });
-    assert.deepEqual(JSON.parse(user!.rolesJson), ["judge", "rider"]);
+    const grant = await prisma.userRole.findUnique({ where: { userId_role: { userId: "user_judge_1", role: "admin" } } });
+    assert.equal(grant?.status, "active");
   });
 
 
@@ -187,11 +217,13 @@ async function main() {
       summary: "Isolated judge flow fixture."
     });
     assert.equal(raceResult.ok, true);
+    const isolatedOrganizer: AuthContext = { ...organizer, managedRaceIds: [...organizer.managedRaceIds, raceResult.id!] };
+    assert.equal((await publishRace(isolatedOrganizer, raceResult.id!)).ok, true);
     const registrationResult = await submitRegistration(rider, raceResult.id!);
     assert.equal(registrationResult.ok, true);
-    const approved = await approveRegistration(organizer, registrationResult.id!);
+    const approved = await approveRegistration(isolatedOrganizer, registrationResult.id!);
     assert.equal(approved.ok, true);
-    const configured = await configureSubmissionWindow(organizer, raceResult.id!, {
+    const configured = await configureSubmissionWindow(isolatedOrganizer, raceResult.id!, {
       opensAt: new Date(Date.now() - 60_000),
       closesAt: new Date(Date.now() + 3_600_000)
     });
@@ -200,14 +232,17 @@ async function main() {
     const workResult = await submitWork(isolatedRider, registrationResult.id!, { title: "Judge Flow Work", summary: "Judge flow", demoUrl: "https://demo.example.com/judge", repoUrl: "https://github.com/example/judge", repoCommitSha: "b".repeat(40) });
     assert.equal(workResult.ok, true);
     const publishedWork = await prisma.work.findUnique({ where: { id: workResult.id! } });
-    const locked = await lockSubmissionWindow(organizer, raceResult.id!, "进入领域评审测试");
+    const locked = await lockSubmissionWindow(isolatedOrganizer, raceResult.id!, "进入领域评审测试");
     assert.equal(locked.ok, true);
-    const assignment = await assignJudge(organizer, publishedWork!.id, "user_judge_1");
-    assert.equal(assignment.ok, true);
-    const judgeCtx: AuthContext = { userId: "user_judge_1", roles: ["judge"], profileCompleted: true, managedRaceIds: [], approvedRegistrationIds: [], assignedWorkIds: [publishedWork!.id] };
-    const record = await submitJudgingRecord(judgeCtx, assignment.id!, { scoreResult: 90, scoreRiding: 87, comments: "Looks complete." });
+    assert.equal((await saveRaceJudgePool(isolatedOrganizer, raceResult.id!, ["user_org_1", "user_judge_1", "user_multi_1"])).ok, true);
+    assert.equal((await allocateRaceJudges(isolatedOrganizer, raceResult.id!, "domain-test-seed")).ok, true);
+    const assignment = await prisma.judgeAssignment.findUniqueOrThrow({
+      where: { workId_judgeUserId: { workId: publishedWork!.id, judgeUserId: "user_judge_1" } }
+    });
+    const judgeCtx: AuthContext = { userId: "user_judge_1", availableRoles: ["judge"], activeRole: "judge", profileCompleted: true, managedRaceIds: [], approvedRegistrationIds: [], assignedWorkIds: [publishedWork!.id] };
+    const record = await submitJudgingRecord(judgeCtx, assignment.id, { scoreResult: 90, scoreRiding: 87, comments: "Looks complete." });
     assert.equal(record.ok, true);
-    const saved = await prisma.judgingRecord.findUnique({ where: { assignmentId: assignment.id! } });
+    const saved = await prisma.judgingRecord.findUnique({ where: { assignmentId: assignment.id } });
     assert.equal(saved?.status, "submitted");
   });
 
@@ -231,12 +266,13 @@ async function main() {
     assert.equal(reviewOnlyWork, null);
   });
 
-  await test("Console snapshot scopes registrations and judge assignments to selected Race", async () => {
-    const snapshot = await getConsoleSnapshotForUser("user_judge_1", "race_genesis_2026");
-    assert.equal(snapshot.race?.id, "race_genesis_2026");
-    assert.equal(snapshot.assignments.length, 0);
-    assert.equal(snapshot.currentUser?.judgeAssignments.length, 0);
-    assert.equal(snapshot.currentUser?.registrations.every((registration) => registration.raceId === "race_genesis_2026"), true);
+  await test("Console snapshot rejects races outside the active Judge scope", async () => {
+    const forbidden = await getConsoleSnapshotForUser("user_judge_1", "race_genesis_2026", "judge");
+    assert.notEqual(forbidden.race?.id, "race_genesis_2026");
+    const snapshot = await getConsoleSnapshotForUser("user_judge_1", "race_bay_2026", "judge");
+    assert.equal(snapshot.race?.id, "race_bay_2026");
+    assert.ok(snapshot.assignments.every((assignment) => assignment.judgeUserId === "user_judge_1"));
+    assert.ok(snapshot.race?.registrations.every((registration) => registration.work && snapshot.assignments.some((assignment) => assignment.workId === registration.work?.id)));
   });
 
   await test("Award rejects a legacy unversioned Work", async () => {
@@ -282,7 +318,8 @@ async function main() {
     assert.equal(flagAfterResolve?.resolvedByUserId, "user_org_1");
     const riderTwo: AuthContext = {
       userId: "user_rider_2",
-      roles: ["rider"],
+      availableRoles: ["rider"],
+      activeRole: "rider",
       profileCompleted: true,
       managedRaceIds: [],
       approvedRegistrationIds: ["reg_ana"],
@@ -301,7 +338,8 @@ async function main() {
   await test("judge cannot update ReviewFlag status", async () => {
     const judgeCtx: AuthContext = {
       userId: "user_judge_1",
-      roles: ["judge"],
+      availableRoles: ["judge"],
+      activeRole: "judge",
       profileCompleted: true,
       managedRaceIds: [],
       approvedRegistrationIds: [],
@@ -313,13 +351,13 @@ async function main() {
       resolutionNote: "Judge should not be allowed."
     });
     assert.equal(result.ok, false);
-    assert.match(result.message, /Organizer\/Admin/);
+    assert.match(result.message, /Organizer/);
   });
 
   await test("risk center snapshot is role scoped", async () => {
-    const organizerRisk = await getRiskCenterSnapshotForUser("user_org_1", "race_bay_2026");
-    const riderRisk = await getRiskCenterSnapshotForUser("user_rider_2", "race_bay_2026");
-    const judgeRisk = await getRiskCenterSnapshotForUser("user_judge_1", "race_bay_2026");
+    const organizerRisk = await getRiskCenterSnapshotForUser("user_org_1", "race_bay_2026", "organizer");
+    const riderRisk = await getRiskCenterSnapshotForUser("user_rider_2", "race_bay_2026", "rider");
+    const judgeRisk = await getRiskCenterSnapshotForUser("user_judge_1", "race_bay_2026", "judge");
     assert.ok(organizerRisk.allFlags.length >= 3);
     assert.ok(organizerRisk.allFlags[0].updatedAt instanceof Date);
     assert.equal(riderRisk.allFlags.length, 0);

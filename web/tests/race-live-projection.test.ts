@@ -4,7 +4,8 @@ import { buildAryRaceLiveProjection, deriveDataStatus, deriveEntryProgress } fro
 
 const organizer = {
   userId: "user_org_1",
-  roles: ["organizer" as const],
+  availableRoles: ["organizer" as const],
+  activeRole: "organizer" as const,
   profileCompleted: true,
   managedRaceIds: ["race_bay_2026"],
   approvedRegistrationIds: [],
