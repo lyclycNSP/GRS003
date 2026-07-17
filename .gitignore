@@ -4,3 +4,15 @@
 .mavis/plans/plan.yaml
 .mavis/plans/plan-v2.yaml
 web/.npm-cache/
+
+# Local Codex/runtime artifacts
+web/.codex-logs/
+web/prisma/dev.workflow*.db
+web/prisma/dev.pre-*.db
+
+# Root lockfile is accidental; the Node application lives under web/
+/package-lock.json
+
+# Local conversation/QA exports are not repository documentation
+/docs/ary-vibe-coding-full-qa-transcript-*.md
+/docs/ary-vibe-coding-qa-record-*.md

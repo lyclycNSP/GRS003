@@ -3,7 +3,7 @@ import metroProfile from "../public/tracks/metro-raceway/1.0.0/track.profile.jso
 import { prisma } from "../lib/prisma";
 import { archiveTrackProfileVersion, deleteArchivedTrackProfileVersion } from "../lib/track-calibrator/version-lifecycle";
 
-const organizer = { userId: "user_org_1", roles: ["organizer" as const], profileCompleted: true, managedRaceIds: ["race_bay_2026"], approvedRegistrationIds: [], assignedWorkIds: [] };
+const organizer = { userId: "user_org_1", availableRoles: ["organizer" as const], activeRole: "organizer" as const, profileCompleted: true, managedRaceIds: ["race_bay_2026"], approvedRegistrationIds: [], assignedWorkIds: [] };
 
 async function main() {
   const suffix = `${process.pid}-${Date.now()}`;

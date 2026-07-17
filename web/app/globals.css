@@ -1,9 +1,12 @@
 :root {
   color-scheme: light;
+  --ary-font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ary-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --blue-950: #06164a;
   --blue-900: #09266f;
   --blue-800: #0a3fb8;
   --blue-700: #075bec;
+  --blue-600: #116ee8;
   --blue-500: #168cff;
   --blue-100: #eaf3ff;
   --cyan: #30d8ff;
@@ -14,6 +17,40 @@
   --glass: rgba(255, 255, 255, 0.72);
   --glass-strong: rgba(255, 255, 255, 0.9);
   --shadow: 0 18px 44px rgba(11, 57, 150, 0.16);
+  --surface: #ffffff;
+  --surface-muted: #f5f8fd;
+  --surface-blue: #eef5ff;
+  --success: #0b9b6d;
+  --warning: #d47a08;
+  --danger: #d83b52;
+  --ary-page-bg: #f4f8fe;
+  --ary-surface: rgba(255, 255, 255, 0.92);
+  --ary-surface-strong: #ffffff;
+  --ary-surface-soft: rgba(244, 249, 255, 0.88);
+  --ary-border: rgba(36, 92, 177, 0.14);
+  --ary-border-strong: rgba(32, 102, 218, 0.28);
+  --ary-text: #0c224d;
+  --ary-text-secondary: #526787;
+  --ary-text-tertiary: #7e8da6;
+  --ary-primary: #1263e6;
+  --ary-primary-hover: #0a52cc;
+  --ary-primary-soft: #eaf3ff;
+  --ary-success: #0d9b70;
+  --ary-success-soft: #e9fbf4;
+  --ary-warning: #d67a08;
+  --ary-warning-soft: #fff6e5;
+  --ary-danger: #d53a50;
+  --ary-danger-soft: #fff0f2;
+  --ary-violet: #6d5ce7;
+  --ary-violet-soft: #f1efff;
+  --ary-radius-sm: 9px;
+  --ary-radius-md: 14px;
+  --ary-radius-lg: 20px;
+  --ary-radius-xl: 26px;
+  --ary-shadow-sm: 0 8px 24px rgba(28, 67, 130, 0.07);
+  --ary-shadow-md: 0 16px 42px rgba(25, 65, 130, 0.1);
+  --ary-shadow-lg: 0 24px 70px rgba(25, 65, 130, 0.14);
+  --ary-focus-ring: 0 0 0 3px rgba(25, 105, 232, 0.16);
 }
 
 * {
@@ -36,9 +73,7 @@ body {
     linear-gradient(245deg, rgba(18, 119, 255, 0.1), transparent 42%),
     #eef6ff;
   color: var(--ink);
-  font-family:
-    "Arial Narrow", "PingFang SC", "Microsoft YaHei", Inter, ui-sans-serif,
-    system-ui, sans-serif;
+  font-family: var(--ary-font-sans);
   letter-spacing: 0;
 }
 
@@ -4626,3 +4661,256 @@ body {
 .inspector-list { display: grid; gap: .45rem; max-height: 220px; overflow: auto; padding: .5rem 0; }
 .inspector-list label { display: grid; grid-template-columns: 1fr 90px; align-items: center; gap: .5rem; margin: 0; }
 @media (max-width: 900px) { .calibrator-grid > * { grid-column: 1 !important; } .preview-controls { grid-template-columns: 1fr; } .calibrator-toolbar { position: static; } }
+.role-switch-menu {
+  position: relative;
+}
+
+.race-registration-feedback {
+  display: inline-flex;
+  margin: 18px 0 0;
+}
+
+.race-registration-state {
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+  padding: 9px 13px;
+  border: 1px solid rgba(29, 111, 224, 0.18);
+  border-radius: 12px;
+  color: #184a94;
+  background: rgba(239, 247, 255, 0.92);
+  font-size: 12px;
+}
+
+.race-registration-state span { color: #6b7e9e; font-size: 11px; }
+.race-registration-state a { color: #0b62db; font-weight: 900; text-decoration: none; }
+
+.role-switch-menu summary {
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.role-switch-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.65rem);
+  z-index: 50;
+  min-width: 210px;
+  padding: 0.7rem;
+  border: 1px solid rgba(42, 93, 170, 0.22);
+  border-radius: 14px;
+  background: rgba(248, 252, 255, 0.98);
+  box-shadow: 0 18px 45px rgba(14, 44, 93, 0.18);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.role-switch-popover form,
+.role-switch-popover button,
+.role-switch-popover a {
+  width: 100%;
+}
+
+.profile-github-summary,
+.admin-user-card,
+.admin-role-list form {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.profile-github-summary img {
+  border-radius: 50%;
+}
+
+.profile-consent {
+  grid-column: 1 / -1;
+}
+
+.admin-user-card {
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(42, 93, 170, 0.14);
+}
+
+.admin-user-card > div:first-child,
+.admin-role-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.admin-role-list form {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.rider-skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+@media (max-width: 760px) {
+  .admin-user-card { flex-direction: column; }
+  .admin-role-list form { justify-content: flex-start; }
+}
+
+/* ARY shared visual foundation ------------------------------------------------
+   This compatibility layer keeps the established public-page class contract
+   while new pages progressively adopt components from components/ui. Screen
+   Display remains intentionally scoped to its own .screen-display styles. */
+
+::selection {
+  color: #fff;
+  background: rgba(18, 99, 230, 0.82);
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid rgba(18, 99, 230, 0.72);
+  outline-offset: 2px;
+}
+
+:where(input, select, textarea) {
+  color: var(--ary-text);
+  font-family: var(--ary-font-sans);
+}
+
+:where(input, select, textarea)::placeholder { color: #9aa8bc; }
+
+:where(.route-page, .console-main, .calibrator-shell) :where(input, select, textarea) {
+  min-height: 40px;
+  border: 1px solid var(--ary-border);
+  border-radius: var(--ary-radius-sm);
+  outline: none;
+  background: rgba(255, 255, 255, 0.96);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+:where(.route-page, .console-main, .calibrator-shell) :where(input, select, textarea):focus {
+  border-color: rgba(18, 99, 230, 0.58);
+  box-shadow: var(--ary-focus-ring);
+}
+
+.route-page {
+  width: min(100%, 1480px);
+  padding: 32px 38px 68px;
+}
+
+:where(.route-page) :where(.module-title, .race-hero-panel, .work-detail-hero, .risk-center-hero, .debug-login-hero) {
+  color: var(--ary-text);
+}
+
+:where(.route-page) :where(.module-title, .race-hero-panel) h1 {
+  color: var(--ary-text);
+  font-family: var(--ary-font-sans);
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+}
+
+:where(.route-page) :where(.module-title, .race-hero-panel) p {
+  color: var(--ary-text-secondary);
+  font-family: var(--ary-font-sans);
+}
+
+:where(.route-page) .section-kicker {
+  color: var(--ary-primary);
+  font-family: var(--ary-font-sans);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+:where(.route-page, .console-main) :where(
+  .form-card,
+  .work-card,
+  .profile-card,
+  .benefit-card,
+  .race-state-grid > article,
+  .race-content-grid > article,
+  .award-grid > article,
+  .review-card-grid > article,
+  .ops-grid > article,
+  .assigned-work-card,
+  .score-form-card,
+  .admin-user-card
+) {
+  border-color: var(--ary-border);
+  border-radius: var(--ary-radius-lg);
+  background: var(--ary-surface);
+  box-shadow: var(--ary-shadow-sm);
+  backdrop-filter: blur(14px);
+}
+
+:where(.route-page, .console-main) :where(.work-card, .profile-card, .benefit-card) {
+  transition: border-color 170ms ease, box-shadow 170ms ease, transform 170ms ease;
+}
+
+:where(.route-page, .console-main) :where(.work-card, .profile-card, .benefit-card):hover {
+  border-color: var(--ary-border-strong);
+  box-shadow: var(--ary-shadow-md);
+  transform: translateY(-2px);
+}
+
+:where(.route-page, .console-main) :where(.form-card, .score-form-card) {
+  padding: 20px;
+}
+
+:where(.route-page, .console-main) :where(.form-card, .score-form-card) h2 {
+  color: var(--ary-text);
+  font-family: var(--ary-font-sans);
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+:where(.route-page, .console-main) :where(.form-card, .score-form-card) label {
+  color: #314c78;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+:where(.route-page, .console-main, .calibrator-shell) :where(button, .inline-action, .work-card-actions a) {
+  border-radius: var(--ary-radius-sm);
+  font-family: var(--ary-font-sans);
+  font-weight: 850;
+}
+
+:where(.route-page, .console-main, .calibrator-shell) :where(button, .inline-action):disabled {
+  cursor: not-allowed;
+  filter: saturate(0.55);
+  opacity: 0.62;
+}
+
+.status-pill {
+  min-height: 23px;
+  border-color: #d9e3f0;
+  border-radius: 999px;
+  color: #526783;
+  background: #f0f3f8;
+  font-family: var(--ary-font-sans);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.status-pill.good { border-color: #ccefe0; color: var(--ary-success); background: var(--ary-success-soft); }
+.status-pill.warn { border-color: #f2dfb9; color: var(--ary-warning); background: var(--ary-warning-soft); }
+.status-pill.risk { border-color: #f3d2d9; color: var(--ary-danger); background: var(--ary-danger-soft); }
+
+:where(.route-page, .console-main) :where(.table-row, .event-stream article) {
+  border-color: var(--ary-border);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+@media (max-width: 1180px) {
+  .route-page { padding-right: 26px; padding-left: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.route-page, .console-main) :where(.work-card, .profile-card, .benefit-card),
+  :where(.route-page, .console-main, .calibrator-shell) :where(input, select, textarea) {
+    transition: none;
+  }
+}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { publishTrackProfileVersionAction } from "@/app/actions";
+import { PendingActionButton } from "@/app/components/ui";
 import { CanvasEditor } from "@/components/track-calibrator/CanvasEditor";
 import { CalibratorToolbar } from "@/components/track-calibrator/CalibratorToolbar";
 import { ManualValidationPanel } from "@/components/track-calibrator/ManualValidationPanel";
@@ -15,6 +16,7 @@ import { createManualValidationState, type CalibratorDraft, type CalibratorValid
 import { createEditorHistory, pushEditorChange, redoEditorChange, reverseTrackDirection, undoEditorChange } from "@/lib/track-calibrator/editor-history";
 import { parseTrackProfile, validateTrackProfile, type TrackProfile } from "@/lib/track-profile";
 import { compileTrack } from "@/lib/track-runtime";
+import styles from "../TrackTools.module.css";
 
 function editableProfile(input: unknown): TrackProfile {
   const source = parseTrackProfile(input);
@@ -35,6 +37,7 @@ export function TrackCalibratorClient({ raceId, initialProfile, initialBackgroun
   const [publishRequestId, setPublishRequestId] = useState("");
   const [publishedHashes, setPublishedHashes] = useState<{ profileHash: string; backgroundHash: string } | null>(null);
   const [manualValidation, setManualValidation] = useState<ManualValidationState>(() => createManualValidationState());
+  const [localAction, setLocalAction] = useState<"background" | "save" | "import" | "export" | "delete" | null>(null);
 
   useEffect(() => {
     const repository = createCalibratorDraftRepository();
@@ -82,10 +85,22 @@ export function TrackCalibratorClient({ raceId, initialProfile, initialBackgroun
   };
   const buildDraft = (): CalibratorDraft => ({ draftId, raceId, profile, backgroundAssetId: profile.background.assetId, validationReport: report, manualValidation, ...(publishRequestId ? { publishRequestId } : {}), savedAt: new Date().toISOString() });
 
-  async function saveDraft() {
+  async function saveDraft(showProgress = true) {
     if (!background) { setMessage("背景尚未加载，不能保存 Draft"); return; }
-    await createCalibratorDraftRepository().saveDraft(buildDraft(), background ?? undefined);
-    setMessage("本地 Draft 已保存");
+    if (showProgress) {
+      setLocalAction("save");
+      setMessage("正在保存本地 Draft…");
+    }
+    try {
+      await createCalibratorDraftRepository().saveDraft(buildDraft(), background ?? undefined);
+      setMessage("本地 Draft 已保存");
+      return true;
+    } catch {
+      setMessage("本地 Draft 保存失败，请检查浏览器存储权限后重试");
+      return false;
+    } finally {
+      if (showProgress) setLocalAction(null);
+    }
   }
 
   function validate() {
@@ -103,7 +118,7 @@ export function TrackCalibratorClient({ raceId, initialProfile, initialBackgroun
   async function publish() {
     if (!background || !report?.valid) return;
     setStatus("publishing");
-    await saveDraft();
+    if (!await saveDraft(false)) { setStatus("failed"); return; }
     const form = new FormData();
     form.set("publishRequestId", publishRequestId);
     form.set("raceId", raceId);
@@ -119,12 +134,21 @@ export function TrackCalibratorClient({ raceId, initialProfile, initialBackgroun
 
   async function selectBackground(file: File) {
     if (!file.type.startsWith("image/")) { setMessage("背景文件类型无效"); return; }
-    const bitmap = await createImageBitmap(file);
-    const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-    const checksum = `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
-    setBackground(file);
-    dirty({ ...profile, background: { ...profile.background, fileName: file.name, width: bitmap.width, height: bitmap.height, checksum } });
-    bitmap.close();
+    setLocalAction("background");
+    setMessage("正在读取并校验背景图片…");
+    try {
+      const bitmap = await createImageBitmap(file);
+      const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      const checksum = `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+      setBackground(file);
+      dirty({ ...profile, background: { ...profile.background, fileName: file.name, width: bitmap.width, height: bitmap.height, checksum } });
+      bitmap.close();
+      setMessage(`背景已载入：${file.name}`);
+    } catch {
+      setMessage("背景读取失败，请重新选择有效图片");
+    } finally {
+      setLocalAction(null);
+    }
   }
 
   function copyAsNewDraft() {
@@ -142,6 +166,8 @@ export function TrackCalibratorClient({ raceId, initialProfile, initialBackgroun
   }
 
   async function importDraft(file: File) {
+    setLocalAction("import");
+    setMessage("正在导入 Draft…");
     try {
       const repository = createCalibratorDraftRepository();
       const imported = await repository.importDraftBundle(file);
@@ -160,11 +186,45 @@ export function TrackCalibratorClient({ raceId, initialProfile, initialBackgroun
       setMessage("Draft 已导入并保存到浏览器");
     } catch (error) {
       setMessage(error instanceof Error ? `Draft 导入失败：${error.message}` : "Draft 导入失败");
+    } finally {
+      setLocalAction(null);
     }
   }
 
-  return <section className="calibrator-shell">
-    <header className="module-title"><p className="section-kicker">ARY Track Calibrator / local IndexedDB Draft</p><h1>赛道标定工具</h1><p data-testid="draft-message">{message}</p></header>
+  async function exportDraft() {
+    setLocalAction("export");
+    setMessage("正在生成 Draft 导出文件…");
+    try {
+      const blob = await createCalibratorDraftRepository().exportDraftBundle(draftId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${profile.trackId}-${profile.version}.ary-track-draft.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setMessage("Draft 导出已开始");
+    } catch {
+      setMessage("Draft 导出失败，请先保存本地 Draft");
+    } finally {
+      setLocalAction(null);
+    }
+  }
+
+  async function deleteDraft() {
+    setLocalAction("delete");
+    setMessage("正在删除本地 Draft…");
+    try {
+      await createCalibratorDraftRepository().deleteDraft(draftId);
+      setMessage("本地 Draft 已删除");
+    } catch {
+      setMessage("本地 Draft 删除失败，请重试");
+    } finally {
+      setLocalAction(null);
+    }
+  }
+
+  return <section aria-busy={localAction !== null || status === "publishing"} className={`${styles.calibratorPage} calibrator-shell`}>
+    <header className={`${styles.calibratorHero} module-title`}><div><p className="section-kicker">ARY Track Calibrator · Local IndexedDB Draft</p><h1>赛道标定工具</h1><p>编辑状态只保存在当前浏览器；发布时由服务端重新校验并生成不可变 TrackProfileVersion。</p></div><span className={styles.draftMessage} data-testid="draft-message">{message}</span></header>
     <CalibratorToolbar canUndo={editor.past.length > 0} canRedo={editor.future.length > 0} onUndo={() => applyHistory(undoEditorChange(editor))} onRedo={() => applyHistory(redoEditorChange(editor))} onReverse={() => dirty(reverseTrackDirection(profile))} onImport={(file) => void importDraft(file)} />
     <div className="calibrator-grid">
       <CanvasEditor profile={profile} backgroundUrl={backgroundUrl} onAddPoint={(point) => dirty({ ...profile, centerline: { ...profile.centerline, points: [...profile.centerline.points, point] } })} onMovePoint={(index, point) => dirty({ ...profile, centerline: { ...profile.centerline, points: profile.centerline.points.map((item, itemIndex) => itemIndex === index ? point : item) } })} onDeletePoint={(index) => dirty({ ...profile, centerline: { ...profile.centerline, points: profile.centerline.points.filter((_, itemIndex) => itemIndex !== index) } })} />
@@ -174,7 +234,7 @@ export function TrackCalibratorClient({ raceId, initialProfile, initialBackgroun
       <ManualValidationPanel value={manualValidation} onChange={setManualValidation} />
       <PublishPanel state={status} hashes={publishedHashes} canPublish={Boolean(report?.valid && background && publishRequestId && manualValidation.confirmedAt && Object.values(manualValidation.confirmations).every(Boolean))} onPublish={() => void publish()} onCopy={copyAsNewDraft} />
       <PublishedVersionsPanel versions={versions} onCopy={(item) => void navigator.clipboard.writeText(`${item.trackId}@${item.version}\n${item.profileHash ?? ""}\n${item.backgroundHash ?? ""}`).then(() => setMessage("版本标识已复制"))} />
-      <section className="form-card"><h2>Local Draft</h2><label>更换背景<input data-testid="background-file" type="file" accept="image/webp,image/png,image/jpeg" onChange={(event) => { const file = event.target.files?.[0]; if (file) void selectBackground(file); }} /></label><button data-testid="save-draft" type="button" disabled={!background} onClick={() => void saveDraft()}>保存到浏览器</button><button data-testid="export-draft" type="button" onClick={() => void createCalibratorDraftRepository().exportDraftBundle(draftId).then((blob) => { const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `${profile.trackId}-${profile.version}.ary-track-draft.json`; link.click(); URL.revokeObjectURL(url); })}>导出 Draft</button><button data-testid="delete-draft" type="button" onClick={() => void createCalibratorDraftRepository().deleteDraft(draftId).then(() => setMessage("本地 Draft 已删除"))}>删除本地 Draft</button></section>
+      <section className="form-card"><h2>Local Draft</h2><label aria-busy={localAction === "background"}>更换背景<input data-testid="background-file" disabled={localAction !== null} type="file" accept="image/webp,image/png,image/jpeg" onChange={(event) => { const file = event.target.files?.[0]; if (file) void selectBackground(file); }} /></label><PendingActionButton disabled={!background || localAction !== null} isPending={localAction === "save"} label="保存到浏览器" onClick={() => void saveDraft()} pendingLabel="正在保存 Draft…" testId="save-draft" type="button" variant="inherit" /><PendingActionButton disabled={localAction !== null} isPending={localAction === "export"} label="导出 Draft" onClick={() => void exportDraft()} pendingLabel="正在生成导出文件…" testId="export-draft" type="button" variant="inherit" /><PendingActionButton disabled={localAction !== null} isPending={localAction === "delete"} label="删除本地 Draft" onClick={() => void deleteDraft()} pendingLabel="正在删除 Draft…" testId="delete-draft" type="button" variant="inherit" /></section>
     </div>
   </section>;
 }

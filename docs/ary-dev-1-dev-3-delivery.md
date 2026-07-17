@@ -1,5 +1,7 @@
 # ARY DEV-1到DEV-3交付与验收记录
 
+> 历史交付说明：本文记录早期静态原型口径。2026-07-15 起，角色实现以规范化 `UserRole` 多资格、`AuthSession.activeRole` 单会话激活角色、独立分类资料与四类独立工作台为准；下文 `User.roles` 与多视图描述仅用于追溯，不再是当前产品或权限基线。
+
 版本：v0.2
 文档类型：Architecture & Demo Delivery
 状态：已交付

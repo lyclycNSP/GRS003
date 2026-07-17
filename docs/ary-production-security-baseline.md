@@ -276,6 +276,16 @@ DATABASE_URL=postgresql://... npm run build
 * 尚未实现真实 CA HTTP snapshot fetch；当前生产端点接收的是签名 Riding Signal 摘要。
 * 未对普通业务字段做字段级加密；正式环境依赖 PostgreSQL / 云盘 / 备份加密，若未来保存原始会话或敏感个人信息，必须重新做数据分类和字段级保护。
 * CSP 当前用于限制嵌入、对象和表单目标，尚未升级为 nonce-based script CSP。
-* Repo commit SHA 当前只做格式校验和不可变声明，未联网验证该 commit 属于声明仓库；仓库抓取、归档、secret / 依赖扫描、文件杀毒和 Demo 沙箱均不在本轮范围。
+* 新 Work 的 Repo 与 commit SHA 已接入 GitHub App 在线归属验证；历史版本保持 `legacy_unverified`。仓库抓取、归档、secret / 依赖和恶意代码扫描仍不在本轮范围，外部 Demo 仅通过站内风险提示页降险而非沙箱执行。
+
+## 3.9 赛题附件与外部作品内容
+
+* 赛题附件仅接受 10 MiB 以内 PDF。ARY 在请求内存中完成结构检查和 ClamAV 扫描，扫描通过后直接写入 Organizer 自有 S3/R2/OSS；生产环境禁止平台本地附件存储。
+* `ORGANIZER_ATTACHMENT_STORES_JSON` 必须存入 Secret Manager，按 Organizer userId 隔离 Bucket/前缀和最小权限凭据。缺少对应配置时上传失败关闭。
+* Rider 下载经 ARY 重新鉴权后签发最长 300 秒的对象存储 URL；URL 使用 `no-referrer`，不得记录签名查询参数。
+* 开发 `memory` 存储只用于本地交互和 E2E，进程重启即失效；不得用于 production。扫描服务异常时仍失败关闭。
+* 旧 `platform_legacy` 对象必须通过带源/目标 SHA-256 校验的迁移脚本转移，数据库提交成功后才删除本地副本；迁移完成前发布保持 no-go。
+* 新 Work 使用最小权限 GitHub App 确认仓库与 Commit，短期 installation token 不入库；Demo 不由服务端抓取或嵌入，统一经过基于 Work ID 的站内提示页。
+* GitHub 验证不等于代码安全扫描。ARY 不 clone、构建或执行参赛仓库，Secret、依赖和恶意代码扫描仍是剩余风险。
 
 这些剩余项不影响本次代码安全基线结论，但其中第 7、8 节的生产门禁会决定能否承接真实赛事。

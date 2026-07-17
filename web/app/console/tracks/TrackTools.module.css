@@ -1,0 +1,64 @@
+.page { display: grid; gap: 20px; color: #0b214d; }
+.statePage { min-height: 420px; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 40px; text-align: center; border: 1px solid #dce7f7; border-radius: 22px; color: #647899; background: linear-gradient(145deg, #fff, #f2f7ff); }
+.statePage h1 { margin: 0; color: #102b5d; }
+.statePage a { padding: 10px 15px; border-radius: 10px; color: #fff; text-decoration: none; background: #0c6fed; }
+.hero { min-height: 188px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 32px 36px; overflow: hidden; border: 1px solid #dce8fb; border-radius: 24px; background: radial-gradient(circle at 88% 20%, rgba(70, 155, 255, .24), transparent 25%), linear-gradient(125deg, #fff, #f8fbff 55%, #e9f4ff); box-shadow: 0 18px 48px rgba(28, 78, 147, .08); }
+.eyebrow { margin: 0; color: #0869eb; font-size: 11px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+.hero h1 { margin: 8px 0 9px; font-size: clamp(30px, 3vw, 44px); letter-spacing: -.04em; }
+.hero p { max-width: 690px; margin: 0; color: #617697; line-height: 1.7; }
+.heroActions { display: flex; gap: 9px; margin-top: 18px; }
+.heroActions a { padding: 10px 14px; border: 1px solid #d2e1f5; border-radius: 10px; color: #155eb9; font-size: 12px; font-weight: 800; text-decoration: none; background: #fff; }
+.heroActions .primaryLink { color: #fff; border-color: transparent; background: linear-gradient(135deg, #0867e8, #288aff); box-shadow: 0 8px 20px rgba(17, 104, 225, .2); }
+.trackGraphic { position: relative; flex: 0 0 170px; height: 130px; }
+.trackGraphic span { position: absolute; inset: 17px; border: 9px solid rgba(40, 125, 245, .18); border-radius: 52% 44% 48% 45%; transform: rotate(-12deg); }
+.trackGraphic span:nth-child(2) { inset: 32px; border-width: 3px; border-color: rgba(48, 129, 242, .38); transform: rotate(-15deg); }
+.trackGraphic span:nth-child(3) { inset: 54px 49px; border: 0; border-radius: 50%; background: #2f88f8; box-shadow: 0 0 0 9px rgba(47,136,248,.14), 0 0 30px rgba(39,126,238,.42); }
+.errorNotice { margin: 0; padding: 12px 15px; border: 1px solid #ffd5d8; border-radius: 13px; color: #b22737; background: #fff3f4; }
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 13px; }
+.metrics article { padding: 18px; border: 1px solid #dce7f7; border-radius: 17px; background: #fff; box-shadow: 0 11px 28px rgba(29,78,143,.06); }
+.metrics span { color: #52709b; font-size: 11px; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+.metrics b { display: block; margin: 7px 0 3px; font-size: 25px; }
+.metrics p { margin: 0; color: #8190aa; font-size: 11px; }
+.workspaceGrid { display: grid; grid-template-columns: minmax(0,1.7fr) minmax(320px,.7fr); align-items: start; gap: 15px; }
+.panel { padding: 22px; border: 1px solid #dce7f7; border-radius: 20px; background: rgba(255,255,255,.92); box-shadow: 0 14px 38px rgba(30,77,139,.065); }
+.panelHeading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 15px; }
+.panelHeading p { margin: 0 0 3px; color: #0b6bee; font-size: 10px; font-weight: 900; letter-spacing: .13em; }
+.panelHeading h2 { margin: 0; font-size: 21px; }
+.panelHeading > span { color: #7185a5; font-size: 11px; }
+.hint { color: #7284a2; font-size: 12px; line-height: 1.65; }
+.versionGrid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.versionCard { overflow: hidden; border: 1px solid #dbe6f5; border-radius: 16px; background: #fff; }
+.versionPreview { position: relative; height: 88px; overflow: hidden; background: linear-gradient(145deg, #e6f2ff, #cfe4ff 45%, #f5f9ff); }
+.versionPreview::before, .versionPreview::after { content: ""; position: absolute; width: 150px; height: 62px; border: 5px solid rgba(20,112,238,.18); border-radius: 50%; transform: rotate(-13deg); }
+.versionPreview::before { left: 25px; top: 14px; }.versionPreview::after { right: -42px; bottom: -34px; }
+.versionPreview span { position: absolute; z-index: 1; top: 10px; left: 10px; padding: 4px 7px; border-radius: 99px; color: #0862d1; font-size: 9px; font-weight: 900; background: rgba(255,255,255,.82); }
+.versionPreview i { position: absolute; left: 55%; top: 43%; width: 10px; height: 10px; border-radius: 50%; background: #126fe8; box-shadow: 0 0 0 7px rgba(18,111,232,.14); }
+.versionBody { padding: 14px; }
+.versionBody > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.versionBody h3 { margin: 0; font-size: 15px; }.versionBody p { margin: 7px 0 10px; color: #7183a0; font-size: 11px; }
+.versionBody dl { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 0 0 10px; }
+.versionBody dl div { padding: 8px; border-radius: 9px; background: #f4f7fb; }.versionBody dt { color: #8b98ac; font-size: 9px; }.versionBody dd { margin: 3px 0 0; overflow: hidden; color: #385278; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.versionBody a { color: #0b67dd; font-size: 11px; font-weight: 800; text-decoration: none; }
+.goodPill,.warningPill,.neutralPill { display: inline-flex; width: fit-content; padding: 4px 7px; border-radius: 99px; font-size: 9px; font-weight: 900; }.goodPill { color: #087b59; background:#e3f8ef; }.warningPill { color:#a7600b;background:#fff0d9; }.neutralPill { color:#58708e;background:#edf2f8; }
+.roundList { display: grid; gap: 10px; margin-top: 15px; }
+.roundList form { display: grid; gap: 10px; padding: 14px; border: 1px solid #dce7f5; border-radius: 14px; background: #f9fbff; }
+.roundList form > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.currentBinding { margin: 0; padding: 8px 10px; border-left: 3px solid #2580f3; border-radius: 7px; color: #617697; font-size: 10px; background: #eef6ff; }
+.currentBinding strong { color: #155eb9; }
+.roundList label span { display: block; margin-bottom: 5px; color: #657a99; font-size: 10px; font-weight: 800; }
+.roundList select { width:100%; padding:10px; border:1px solid #d5e1f1; border-radius:9px; color:#19345f;background:#fff; }
+.roundList button { padding:10px; border:0; border-radius:10px; color:#fff; font-weight:800; background:linear-gradient(135deg,#0967e7,#2789ff); cursor:pointer; }.roundList button:disabled{opacity:.42;cursor:not-allowed;}.roundList button[aria-busy="true"]{cursor:progress;}
+.emptyState { grid-column:1/-1; padding:30px; text-align:center; border:1px dashed #cbdcf2; border-radius:13px; color:#7185a4; background:#f8fbff; }
+@media(max-width:1150px){.metrics{grid-template-columns:repeat(2,1fr)}.workspaceGrid{grid-template-columns:1fr}.versionGrid{grid-template-columns:1fr}.trackGraphic{display:none}}
+.calibratorRoute { min-width: 0; }
+.calibratorPage { display: grid; gap: 14px; min-width: 0; color: #0b214d; }
+.calibratorHero { min-height: 142px; display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 27px 31px; border: 1px solid #dce8fb; border-radius: 22px; background: radial-gradient(circle at 88% 20%, rgba(68,149,255,.2), transparent 24%), linear-gradient(125deg,#fff,#f8fbff 58%,#eaf4ff); box-shadow: 0 15px 40px rgba(28,78,147,.07); }
+.calibratorHero :global(.section-kicker) { margin: 0; color:#0869eb; font-size:10px; font-weight:900; letter-spacing:.13em; text-transform:uppercase; }
+.calibratorHero h1 { margin:7px 0 6px; font-size:34px; letter-spacing:-.035em; }.calibratorHero p { max-width:720px; margin:0; color:#667a99; font-size:12px; line-height:1.65; }
+.draftMessage { flex:0 0 auto; padding:10px 13px; border:1px solid #cfe1f7; border-radius:11px; color:#0c64d7; font-size:11px; font-weight:800; background:rgba(255,255,255,.85); }
+.calibratorPage :global(.calibrator-toolbar) { border:1px solid #dbe7f7; border-radius:16px; background:rgba(255,255,255,.94); box-shadow:0 10px 28px rgba(30,77,139,.06); }
+.calibratorPage :global(.calibrator-grid) { gap:14px; }
+.calibratorPage :global(.form-card), .calibratorPage :global(.calibrator-panel) { border-color:#dbe7f7; border-radius:17px; background:rgba(255,255,255,.94); box-shadow:0 11px 30px rgba(30,77,139,.06); }
+.calibratorPage[aria-busy="true"] :global(.calibrator-import) { pointer-events:none; opacity:.55; }
+.calibratorPage :global(button[aria-busy="true"]) { cursor:progress; }
+@media(max-width:1150px){.calibratorHero{align-items:flex-start;flex-direction:column}.draftMessage{flex:auto}}

@@ -1,5 +1,7 @@
 # ARY Web 全角色 E2E 与 CI 修改说明
 
+> 历史阶段说明：本文中的 Admin `User.roles` 表单测试已由 2026-07-15 的 RoleApplication / UserRole 资格管理与会话角色切换 E2E 取代。
+
 文档类型：阶段修改总结  
 覆盖时间：2026-07-13  
 对应任务：`WEB-1 Judge / Public / Screen E2E`、`WEB-1 Rider / Organizer / Admin E2E + CI`  

@@ -101,7 +101,7 @@
 必须监控：
 
 * GitHub 登录成功率。
-* 资料补全和 `User.roles` 更新。
+* 公共资料补全、角色申请、`UserRole` 资格更新和当前会话 `activeRole` 变化。
 * 报名提交和审核。
 * CA 实时接入状态。
 * Projection 生成、重算和失败。

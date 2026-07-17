@@ -4,6 +4,7 @@
 
 * 2026-06-13 冻结为 ARY MVP 领域基线。
 * 后续聚合边界、领域事件、数据模型草案应以本版本为输入。
+* 2026-07-15 角色模型修订：`UserRole` 成为规范化角色资格实体，`AuthSession.activeRole` 是单会话唯一激活角色；本文后续历史段落中的 `User.roles` 集合约定均由本修订取代。
 
 来源文档：
 
@@ -27,7 +28,8 @@ MVP 关键约束：
 
 * MVP 当前支持个人参赛和轻量团队参赛；团队参赛最终仍落到一条 Registration，不引入复杂多组织或多租户。
 * ARY MVP 使用 GitHub 账号登录；登录后用户补充个人信息，成为 ARY User。
-* User 持有 `roles` 集合，可以同时拥有 `rider`、`judge`、`organizer`、`admin` 中的多个身份。MVP 不把角色分配建模为独立实体。
+* User 可通过多个 `UserRole` 持有 `rider`、`judge`、`organizer`、`admin` 资格；每个 AuthSession 仅激活一个角色，业务权限不能形成并集。
+* RiderProfile、JudgeProfile、OrganizerProfile 互相独立；RoleApplication 按用户和目标角色保存申请与审核历史。
 * Score Rubric 暂不进入当前领域模型，后续再细化。
 
 ---
@@ -204,7 +206,10 @@ MVP 关键约束：
 | Work | 作品资产 | 由 Registration 产生，进入展示、评审、榜单和 Evidence |
 | Work Submission Version | 不可变作品提交事实 | 记录 Work 某次提交的规范化内容、GitHub commit 声明、服务端时间和 canonical SHA-256；创建后不更新、不删除 |
 | Submission Audit Event | 提交控制审计事实 | 追加记录版本提交、窗口配置、全场冻结、Admin 重开和作品发布动作 |
+| Race Problem Version | 不可变赛题附件修订事实 | 记录 Race 的 PDF 修订元数据、扫描状态、内容哈希、Organizer 自有存储引用、发布与停用审计；正文不作为平台长期资产 |
 | Judge Assignment | 评审分配事实 | 连接拥有 judge role 的 User 与 Work |
+| Race Judge Membership | 赛事评委池成员事实 | 连接 Race 与可参与自动分配的 active Judge，记录选择人、状态与锁定边界 |
+| Judge Allocation Batch | 原子评审分配批次事实 | 记录算法版本、随机种子、操作者、保留/新增 Assignment 数与提交时间 |
 | Judging Record | 评审事实 | 基于 Judge Assignment 产生，包含评分和评语；评委和作品从分配关系追溯，MVP 暂不处理奖项推荐 |
 | Award | 奖项结果 | 连接 Race 与获奖 Registration，可选关联 Work，包含奖项名称和名次 |
 | Evidence | 能力证据事实 | 归属 Registration，通过 sourceRef 引用 Session Summary、Work、Judging Record、GitHub 代码材料等来源 |
@@ -277,7 +282,7 @@ MVP 关键约束：
 | Riding Metrics Calculation | Session Data, CAConnection Metrics, RaceProject Metrics | 从实时 Session 和摘要计算单个 CAConnection 与 RaceProject 聚合层的成本、进度、风险、能力 |
 | Work Creation Flow | Registration, Work | 创建或提交作品资产，之后进入展示、评审、榜单 |
 | Review Readiness Check | Registration, Race Project, Work, Evidence | 评审前识别空骑行、无 CA 数据、空作品、缺必填材料、疑似违规和接入异常，生成风险提示 |
-| Judge Assignment Flow | User(role=organizer), User(role=judge), Work | 主办方把作品分配给拥有 judge role 的 User |
+| Judge Assignment Flow | User(role=organizer), Race Judge Membership, Judge Allocation Batch, Work | 主办方维护赛事 Judge 池；提交冻结后平台按 `balanced-random-v1` 在一个 Serializable 事务中为每件 Work 保留合法 Assignment 并补足三个不同 Judge |
 | Judging Flow | User(role=judge), Work, Judge Assignment, Judging Record | 拥有 judge role 的 User 查看作品、参考骑行摘要、评分、评语 |
 | Award Generation Flow | Registration, Judging Record, Award | 评审后形成 Award；Award 授予获奖 Registration，可追溯到相关 Judging Record，包含奖项名称和名次 |
 | Leaderboard Publishing Flow | Award, Leaderboard | 按 Award 名次排列并发布榜单 |
@@ -917,8 +922,8 @@ classDiagram
 
 * `Team` / `TeamMember` 是当前新增的轻量团队参赛实体；团队报名仍由 `Registration` 承载，避免重做后续 RaceProject、Work、Award 和 Report 链路。
 * `Organization` 不在图中，MVP 用 User + roles 表达身份。
-* `RoleAssignment` 不在图中。MVP 阶段 role 只是 `User.roles` 集合；如果后续需要 `assignedBy`、`assignedAt`、`scopeRaceId`、`revokedAt`，再升级为独立实体。
-* `Rider`、`Judge` 不再作为独立核心实体。参赛者、评委、主办方、管理员都由 `User.roles` 表达。
+* 角色资格已升级为 `UserRole` 实体，记录状态、来源、授予人和时间；角色申请由 `RoleApplication` 记录。
+* `Rider`、`Judge` 不作为独立账号实体；其资格由 `UserRole` 表达，分类资料由对应的一对一 Profile 表达。
 * `Score Rubric` 不在图中，当前只保留 `scoreResult` 和 `scoreRiding` 作为评审记录上的概念字段。
 * `Registration` 是参赛事实中枢。`RaceProject` 和 `Work` 都从 Registration 长出，避免重复表达 Race + Rider 关系。
 * `RaceProject` 是某次参赛的骑行工作区容器，由 approved `Registration` 自动生成，不等同于单个外部 CA Project；一个 `RaceProject` 可以包含多个 `CAConnection`。
@@ -928,7 +933,7 @@ classDiagram
 * `JudgeAssignment` 和关联 Work 的 `Award` 固定引用明确版本，不能依赖之后可能变化的 Work 投影。
 * `Session Summary` 没有单独建类，先作为 `EvidenceType.session_summary` 表达；MVP 中它只能来自实时接入 Session 的摘要，不接受赛后手动上传补交。
 * `JudgingRecord` 通过 `JudgeAssignment` 追溯评委和作品，不重复维护 User / Work 直连事实。
-* `JudgeAssignment.assignedByUserId` 记录分配动作的操作者，通常应是拥有 organizer 或 admin role 的 User。
+* `JudgeAssignment.assignedByUserId` 记录分配批次的操作者；当前业务动作仅允许管理该 Race 的 active Organizer，Admin 不继承赛事经营权限。
 * `Award` 是结果事实，授予 `Registration`，可选关联获奖 `Work`，可弱追溯到相关 `JudgingRecord`；`Leaderboard` 是按 Award 名次排序的读取模型，因此只弱依赖 Award。
 * `Projection` 只表达过程展示数据，主要服务 Live Hall 和大屏；评审后的赛事结果归入 `Report` / `Award` / `Leaderboard`。
 
@@ -951,9 +956,11 @@ classDiagram
 | WorkSubmissionVersion 创建后不可变 | 不提供更新、删除领域动作；canonical hash 固定 schemaVersion、规范化内容、提交人和服务端时间 |
 | 提交窗口是全场边界 | 仅 open 可提交；Organizer 可配置/提前关闭但不能解锁；Admin 仅在无 JudgeAssignment 时可带原因重开 |
 | 评审和发布必须绑定冻结版本 | not_started / open 时不得分配 Judge、首次公开 Work 或发布关联 Work 的 Award；legacy Work 必须先重新提交版本 |
-| 一个 Work 可以被多个 Judge 分配和评审 | 通过 JudgeAssignment 和 JudgingRecord 表达 |
-| JudgeAssignment 应记录 assignedByUserId | 分配人应拥有 organizer 或 admin role，用于审计和权限追溯 |
+| 一个可评审 Work 必须恰好分配三个不同 Judge | JudgeAssignment 使用 slot 1–3；`UNIQUE(workId, slot)` 阻止第四个槽位，`UNIQUE(workId, judgeUserId)` 阻止同一 Judge 重复领取同一 Work |
+| JudgeAssignment 应记录 assignedByUserId 和 allocationBatchId | 分配人必须是管理该 Race 的 active Organizer；批次保存随机种子、算法版本和保留/新增数量，用于审计与事务重试 |
 | JudgingRecord 应来源于一个 JudgeAssignment | 评审记录的评委和作品从 JudgeAssignment 推导，不重复保存为独立事实 |
+| 三份评审完成后才形成聚合结果 | `avgResult`、`avgRiding` 分别取三人算术平均，`overall=(avgResult+avgRiding)/2`，保留两位小数；同分同名次并按 Work ID 稳定显示 |
+| 评审结果发布后锁定评审事实 | 发布后禁止修改 JudgingRecord、Judge 池和 Assignment；聚合分不是 Award，Award 仍由 Organizer 手工确认和发布 |
 | Award 应授予一个 Registration | Race、获奖 User 从 Registration 推导；Work 是可选获奖资产引用 |
 | Award.raceId 若保存，必须与 Registration.raceId 一致 | Award 的 Race 可从 Registration 推导；若为查询或约束保存冗余 raceId，必须保持一致 |
 | Award 应可追溯到评审依据或决策说明 | 可通过 JudgingRecord 弱依赖或 decisionReason 表达 |
@@ -965,6 +972,16 @@ classDiagram
 | screen_feed_projection 应区分 feed item 类型 | 大屏可显示 current_leaderboard_projection 或 leaderboard_read_model，但二者不能混为同一种结果事实 |
 | Report 是评审后结果和总结 | 不用于表达实时过程状态 |
 | managed race 由 Race 与 Organizer User 的关系判定 | MVP 不引入 Organization；可由 Race 上的 organizer 用户集合或创建者关系表达 |
+
+## Registration 审核与 Judge 批次分配补充（2026-07-17）
+
+* Registration 审核记录 `reviewedByUserId`、`reviewedAt` 和 `reviewNote`。审批仅接受 pending 状态，并在同一 Serializable 事务中锁定团队、幂等创建 RaceProject 和一次初始 CA 缺失风险；拒绝原因必填。
+* “参赛选手库”是 Registration 状态的受权读取模型：approved 为当前参赛者，rejected / withdrawn / cancelled 为历史；它不复制或搬移数据库事实。
+* `RaceJudgeMembership` 表达 Organizer 维护的赛事级 Judge 池；成员必须拥有 active Judge 资格且不能是本场个人或团队参赛者。已持有 Assignment 的成员不得移除，结果发布后 Judge 池锁定。
+* `JudgeAllocationBatch` 记录 `balanced-random-v1` 的批次种子与审计信息。算法先选择当前负载较低的 Judge，再以批次种子在同负载候选中稳定打散；所有 Work 在一个 Serializable 事务中补足，任一 Work 无法达到三个不同 Judge 时整批零写入。
+* 迁移按 `assignedAt + id` 为旧 Assignment 回填 slot，并由旧 Assignment 回填 Judge 池；发现任一 Work 已超过三条 Assignment 时必须中止，不得静默删除历史记录。
+* `WorkReviewAggregate` 是由三份已提交 JudgingRecord 派生的内部读取模型，不取代单项评审事实，也不自动生成 Award。Race 发布评审结果后锁定 Judge 池、Assignment 和 JudgingRecord。
+* 赛题上传错误与工作台 Action 结果是交互投影，不是领域事实；受控错误码可以驱动重试/恢复入口，但不能绕过扫描、存储归属或资源权限。
 ## Race Live 领域补充（2026-07-14）
 
 - `RaceRound` 表达 Race 内的结构化轮次；`RaceRoundEntry` 将 approved Registration 固定到 Round，按 `displayOrder + id` 稳定排序。

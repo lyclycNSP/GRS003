@@ -1,0 +1,33 @@
+.page { display: grid; gap: 18px; width: min(100%, 1420px); margin: 0 auto; color: var(--ary-text, #10234d); }
+.backLink { display: inline-flex; align-items: center; min-height: 39px; padding: 0 15px; border: 1px solid rgba(28,97,215,.18); border-radius: 10px; color: #1764d6; background: #fff; box-shadow: 0 8px 20px rgba(30,84,174,.08); font-size: 11px; font-weight: 900; text-decoration: none; }
+.directoryPanel { display: grid; gap: 16px; padding: 22px; border: 1px solid rgba(40,99,190,.14); border-radius: 18px; background: rgba(255,255,255,.94); box-shadow: 0 15px 38px rgba(27,71,141,.08); }
+.panelHeading { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; }
+.panelHeading span { color: #1967d8; font-size: 10px; font-weight: 950; letter-spacing: .08em; }
+.panelHeading h2 { margin: 5px 0 0; color: #102b5f; font-size: 24px; }
+.panelHeading nav { display: flex; gap: 5px; padding: 4px; border-radius: 10px; background: #f1f5fb; }
+.panelHeading nav a { padding: 7px 12px; border-radius: 7px; color: #607392; font-size: 11px; font-weight: 850; text-decoration: none; }
+.panelHeading nav a[aria-current="page"] { color: #fff; background: linear-gradient(135deg, #075bdc, #278cff); box-shadow: 0 6px 15px rgba(19,102,230,.18); }
+.searchForm { display: grid; grid-template-columns: minmax(280px, 1fr) auto auto; align-items: end; gap: 9px; padding: 14px; border-radius: 13px; background: #f7faff; }
+.searchForm label { display: grid; gap: 6px; color: #3d5780; font-size: 10px; font-weight: 850; }
+.searchForm input { min-height: 39px; padding: 0 12px; border: 1px solid rgba(37,94,184,.18); border-radius: 9px; outline: none; color: #173264; background: #fff; }
+.searchForm input:focus { border-color: #4388ee; box-shadow: 0 0 0 3px rgba(48,118,231,.11); }
+.searchForm button, .searchForm > a { display: inline-flex; align-items: center; justify-content: center; min-height: 39px; padding: 0 16px; border: 0; border-radius: 9px; color: #fff; background: linear-gradient(135deg, #075bdc, #278cff); font-size: 11px; font-weight: 900; text-decoration: none; }
+.searchForm > a { color: #1764d6; background: #eaf2ff; }
+.participantList { display: grid; gap: 11px; }
+.participantCard { display: grid; grid-template-columns: minmax(190px,.75fr) minmax(460px,1.6fr); gap: 15px 22px; padding: 18px; border: 1px solid rgba(40,99,190,.12); border-radius: 15px; background: linear-gradient(145deg,#fff,#f7faff); }
+.identityBlock span { color: #1767db; font-size: 9px; font-weight: 950; letter-spacing: .08em; }
+.identityBlock h3 { margin: 8px 0 5px; color: #102b5f; font-size: 18px; }
+.identityBlock p { margin: 0; color: #71819d; font-size: 10px; }
+.factList { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin: 0; }
+.factList div { display: grid; align-content: start; gap: 4px; padding-left: 11px; border-left: 1px solid rgba(40,99,190,.12); }
+.factList dt { color: #7a8aa5; font-size: 9px; font-weight: 800; }
+.factList dd { margin: 0; overflow-wrap: anywhere; color: #24436f; font-size: 10px; font-weight: 800; }
+.memberStrip { grid-column: 1/-1; display: flex; flex-wrap: wrap; gap: 7px; padding-top: 13px; border-top: 1px solid rgba(40,99,190,.1); }
+.memberStrip > span { display: flex; gap: 6px; padding: 6px 9px; border-radius: 8px; color: #315485; background: #edf4fd; font-size: 10px; font-weight: 800; }
+.memberStrip small { color: #7889a4; }
+.cardFooter { grid-column: 1/-1; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-top: 12px; border-top: 1px solid rgba(40,99,190,.1); color: #687b9b; font-size: 10px; }
+.emptyState { padding: 44px 20px; border: 1px dashed rgba(43,106,207,.25); border-radius: 14px; color: #647897; background: #f8fbff; text-align: center; }
+.emptyState strong { color: #173565; }
+.emptyState p { margin: 7px 0 0; font-size: 11px; }
+@media (max-width: 900px) { .participantCard { grid-template-columns: 1fr; } .factList { grid-template-columns: repeat(2,minmax(0,1fr)); } .searchForm { grid-template-columns: 1fr auto; } .searchForm label { grid-column: 1/-1; } }
+@media (max-width: 560px) { .directoryPanel { padding: 15px; } .panelHeading { align-items: stretch; flex-direction: column; } .factList { grid-template-columns: 1fr; } .cardFooter { align-items: flex-start; flex-direction: column; } }

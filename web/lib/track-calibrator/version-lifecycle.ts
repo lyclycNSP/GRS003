@@ -8,12 +8,10 @@ type LifecycleResult = { ok: true; message: string } | { ok: false; message: str
 type VersionWithReferences = Prisma.TrackProfileVersionGetPayload<{ include: { track: true; _count: { select: { raceRounds: true } } } }>;
 
 async function editableVersion(ctx: AuthContext | null, versionId: string): Promise<{ version: VersionWithReferences } | { error: string }> {
-  if (!ctx || (!ctx.roles.includes("organizer") && !ctx.roles.includes("admin"))) return { error: "只有Organizer或Admin可管理Track版本" } as const;
+  if (!ctx || ctx.activeRole !== "organizer") return { error: "只有 Organizer 可管理 Track 版本" } as const;
   const version = await prisma.trackProfileVersion.findUnique({ where: { id: versionId }, include: { track: true, _count: { select: { raceRounds: true } } } });
   if (!version) return { error: "Track版本不存在" } as const;
-  if (version.track.raceId === null) {
-    if (!ctx.roles.includes("admin")) return { error: "只有Admin可管理system Track" } as const;
-  } else if (!canManageRace(ctx, version.track.raceId)) return { error: "无权管理该Race的Track" } as const;
+  if (version.track.raceId !== null && !canManageRace(ctx, version.track.raceId)) return { error: "无权管理该 Race 的 Track" } as const;
   return { version } as const;
 }
 

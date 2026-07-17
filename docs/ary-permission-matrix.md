@@ -12,7 +12,9 @@
 
 本文是 ARY MVP 的权限矩阵附件，定义资源动作级访问规则。PRD 只保留角色原则；实际架构设计、接口鉴权、页面入口和测试用例应以本文为权限输入。
 
-MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。用户身份通过 `User.roles` 集合表达，可同时拥有 `rider`、`judge`、`organizer`、`admin` 多重身份；MVP 不建立独立 `RoleAssignment` 实体。
+MVP 使用 GitHub Account 登录；用户补充公共账号资料后成为 ARY User。角色资格通过规范化 `UserRole` 表达，一个用户可同时拥有 `rider`、`judge`、`organizer`、`admin` 多个有效资格；每个 `AuthSession` 只保存一个 `activeRole`。页面、查询、Server Action 与 API 必须按当前会话的 `activeRole` 和资源归属鉴权，不得合并多个角色的权限。
+
+`RoleApplication` 按“用户 + 申请角色”保存草稿、待审、通过、驳回和撤回记录。Rider 完成分类资料后可自助开通；Judge、Organizer 需 Admin 审核；Admin 不出现在注册入口，只能由有效 Admin 授予。Admin 激活时不获得 Organizer、Rider 或 Judge 的业务权限，执行相应业务前必须切换角色。
 
 ---
 
@@ -21,10 +23,10 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 | 角色 | 权限范围 |
 |---|---|
 | Public | 未登录或未授权公众，只能访问已公开、已发布资源 |
-| Rider | 拥有 `rider` role 的用户，只能管理自己的报名、RaceProject、Work、报告和可见骑行摘要 |
-| Judge | 拥有 `judge` role 的用户，只能访问分配给自己的评审任务和相关作品 / Evidence 摘要 |
-| Organizer | 拥有 `organizer` role 的用户，只能管理自己负责的 Race 及其报名、提交、评审、榜单、报告和展示 |
-| Admin | 拥有 `admin` role 的用户，可以维护用户角色，并可进行必要系统管理和异常处理 |
+| Rider | 当前会话激活有效 `rider` 资格的用户，只能管理自己的报名、RaceProject、Work、报告和可见骑行摘要 |
+| Judge | 当前会话激活有效 `judge` 资格的用户，只能访问分配给自己的评审任务和相关作品 / Evidence 摘要 |
+| Organizer | 当前会话激活有效 `organizer` 资格的用户，只能管理自己负责的 Race 及其报名、提交、评审、榜单、报告和展示 |
+| Admin | 当前会话激活有效 `admin` 资格的用户，可以管理角色申请和资格状态，并进行带审计的系统异常处理；不继承业务角色权限 |
 
 范围说明：
 
@@ -76,11 +78,12 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 
 | Action | Public | Rider | Judge | Organizer | Admin |
 |---|---|---|---|---|---|
-| create_team | - | own race participation | - | managed race assistance | system |
+| create_team | - | active Rider while registration is open | - | - | - |
 | join_team | - | invite code before submitted | - | - | - |
 | leave_team | - | member before submitted | - | - | - |
-| remove_member | - | captain before submitted | - | managed race exception | system |
-| submit_team_registration | - | captain before submitted | - | managed race assistance | system |
+| update_team | - | captain before submitted | - | - | - |
+| remove_member | - | captain before submitted | - | - | - |
+| submit_team_registration | - | captain before submitted | - | - | - |
 | view_team_status | - | own team | assigned work context | managed race | system |
 
 规则：
@@ -88,6 +91,8 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 * Team 只用于当前 Race 的轻量团队参赛，不表达 Organization、学校或长期团队。
 * Team `draft` 阶段可加入、退出或移除成员；提交后进入 `submitted`，审核通过后进入 `locked`。
 * 团队至少 2 人才能提交团队报名。
+* 团队人数上限由队长在 2–10 人内设置，默认 5；不得调低到当前成员数以下。团队简介可选，提交后与成员名单一起锁定。
+* 建队、入队和提交报名均重新校验报名窗口、当前 Rider 身份、赛事角色冲突、唯一参赛关系、团队状态与邀请码所属 Race。
 * Team 提交后生成一条团队 Registration，后续 RaceProject、CAConnection、Work、Award、Report 均沿用 Registration 闭环。
 
 ## 3.3 RaceProject
@@ -159,34 +164,37 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 | Action | Public | Rider | Judge | Organizer | Admin |
 |---|---|---|---|---|---|
 | view_public | - | - | - | - | - |
-| view_private | - | own | assigned work context | managed race | system |
-| mark_in_review | - | - | - | managed race | system |
-| resolve | - | - | - | managed race | system |
-| reopen | - | own related flag | assigned context summary only | managed race | system |
-| add_resolution_note | - | - | assigned context summary only | managed race | system |
+| view_private | - | own / team related | assigned work context | managed race | global read-only |
+| mark_in_review | - | - | - | managed race | - |
+| resolve | - | - | - | managed race | - |
+| reopen | - | own / team related flag | - | managed race | - |
+| add_resolution_note | - | - | read assigned result only | managed race | - |
 
 规则：
 
 * `ReviewFlag` 用于表达空骑行、无 CA 数据、缺材料、接入异常、疑似违规和过程性风险提示，不自动替代人工评审。
 * Rider 只能看到与自己相关且对整改有帮助的风险摘要，不读取 Organizer 内部判断或原始 CA 证据。
 * Judge 只能读取分配作品相关的风险摘要和处置结果，用于评审上下文，不直接执行风险关闭。
-* Organizer 或 Admin 可以将风险标记为 `open`、`in_review` 或 `resolved`，并记录最小处置说明。
+* Organizer 只能处置自己管理 Race 的风险；Admin 提供跨赛事只读治理、筛选和审计视图，不替代 Organizer 处置。
+* Rider 的 own 范围包含本人个人 Registration 以及本人所在团队的 Registration；团队成员可在整改后重新打开相关风险。
 * 风险被 `resolved` 后仍保留审计记录，并继续在 Judge 评审上下文中可见。
+* `open` / `in_review` 是辅助判断信号，不自动阻断报名、Work 提交或 Judge 评审。
 
 ## 3.6 JudgeAssignment
 
 | Action | Public | Rider | Judge | Organizer | Admin |
 |---|---|---|---|---|---|
-| view | - | - | assigned | managed race | system |
-| create | - | - | - | managed race | system |
-| update | - | - | - | managed race | system |
-| remove | - | - | - | managed race | system |
+| view | - | own aggregate after release | assigned own / aggregate after completion | managed race | governance read only |
+| manage_judge_pool | - | - | - | managed race | - |
+| allocate_batch | - | - | - | managed race | - |
+| remove_pool_member | - | - | - | managed race, unassigned only | - |
 
 规则：
 
-* JudgeAssignment 应记录 `assignedByUserId`。
-* 分配人应拥有 `organizer` 或 `admin` role。
-* 只能在提交窗口关闭后创建；创建时绑定 Work 当前 WorkSubmissionVersion，Judge 后续始终读取该固定版本。
+* JudgeAssignment 应记录 `assignedByUserId`、slot 和 allocationBatchId；仅管理该 Race 的 active Organizer 可维护 Judge 池和执行批量分配，Admin 不替代 Organizer 经营赛事。
+* Judge 池只接受 active Judge，且不得包含本场个人或团队参赛者；已有 Assignment 的池成员不可移除。
+* 只能在提交窗口关闭后分配；创建时绑定 Work 当前 WorkSubmissionVersion，Judge 后续始终读取该固定版本。
+* 每件 Work 必须恰好拥有三个不同 Judge。候选不足、版本冲突、已有超过三条 Assignment 或重复关系时整批拒绝且零写入。
 
 ## 3.7 JudgingRecord
 
@@ -200,8 +208,16 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 
 规则：
 
-* JudgingRecord 应来源于 JudgeAssignment。
-* MVP 暂不处理奖项推荐。
+* JudgingRecord 应来源于 JudgeAssignment；评分两个维度均为 0–100 整数，评论最长 2000 字。
+* Organizer 可查看全场评审进度和聚合分；Judge 只有在本人已提交且同 Work 三份评审全部完成后才能读取聚合分，且不能读取其他 Judge 的单项记录。
+* Rider 只有在 Organizer 发布评审结果后才能读取本人 Work 的维度均分；公共访客不读取内部均分，只读取正式 Award。
+* 发布评审结果后锁定 JudgingRecord、Judge 池和 Assignment。平均分不自动生成 Award，Award 仍由 Organizer 手工发布。
+
+## 3.6.1 Registration 审核与参赛选手库
+
+* 仅管理该 Race 的 active Organizer 可审核 pending Registration。通过与拒绝均记录审核人、时间；拒绝必须填写原因。
+* 通过操作必须幂等且原子：Registration 更新、团队锁定、唯一 RaceProject 和一次初始 CA 缺失风险不可出现部分成功。
+* Race Workspace 只展示 pending 队列；受权参与者库展示 approved 参赛者和 rejected / withdrawn / cancelled 历史。隐藏或篡改 `raceId` 不改变服务端 managed Race 鉴权。
 
 ## 3.8 Award / Leaderboard
 
@@ -264,7 +280,7 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 
 规则：
 
-* Admin Console 只承载基础账号、个人资料状态和 `User.roles` 管理。
+* Admin Console 只承载基础账号、角色申请和 `UserRole` 资格状态管理。
 * MVP 不建立独立 `RoleAssignment` 实体。
 
 ## 3.12 Announcement
@@ -283,14 +299,16 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 | Action | Public | Rider | Judge | Organizer | Admin |
 |---|---|---|---|---|---|
 | view_public_display | public | public | public | public | public |
-| configure | - | - | - | managed race | system |
-| switch_mode | - | - | - | managed race | system |
-| fallback_to_stable_projection | - | - | - | managed race | system |
-| fallback_to_static_notice | - | - | - | managed race | system |
+| view_private_preview | - | - | - | managed race | - |
+| configure | - | - | - | managed race | - |
+| switch_mode | - | - | - | managed race | - |
+| fallback_to_stable_projection | - | - | - | managed race | - |
+| fallback_to_static_notice | - | - | - | managed race | - |
 
 规则：
 
-* Screen Console 是独立控制台，不混入 Race Console。
+* Screen Console 使用 `/screen?raceId={raceId}`，必须显式指定 Race，且只允许当前激活 Organizer 管理自己负责的 Race；缺失、无效或未授权 ID 不回退默认赛事。
+* Display 使用 `/screen/display/{raceId}`；public 且非 draft 的 Race 可匿名查看，draft/private 仅对应 Organizer 预览，旧 `/screen/display` 不读取任何默认赛事。
 * 大屏展示失败时，可切换到最近一次稳定 Projection 或静态榜单 / 公告。
 
 ---
@@ -303,8 +321,8 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 * Rider 只能操作自己的 Registration、RaceProject、Work、rider_report 和私有摘要。
 * Judge 只能访问分配给自己的 Work、Evidence 摘要和 JudgingRecord。
 * Organizer 只能管理自己负责的 Race 及其相关资源。
-* Admin 可以维护 `User.roles`，但 Admin Console 不承担赛事执行、CA 接入维护或数据运营职责。
-* Projection 重建、Report 生成、大屏 fallback 等内部维护动作只能由 Organizer 管理赛事范围或 Admin 系统范围执行。
+* Admin 可以维护 `UserRole` 资格，但 Admin Console 不承担赛事执行、CA 接入维护或数据运营职责。
+* Projection 重建与 Report 生成只能由 Organizer 管理赛事范围或 Admin 系统范围执行；大屏控制仅由当前激活 Organizer 在 managed Race 范围执行。
 
 ---
 
@@ -319,7 +337,7 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 | 已落地的 actor 校验 | Judge 评分校验 assignment 归属；Organizer/Admin 才能管理当前 Race、Screen、Award、Report；Rider 只能操作自己的 Registration / RaceProject / Work；团队成员可接入团队 RaceProject，团队 Work 由队长提交 | `web/lib/domain.ts`、`web/tests/domain.test.ts` |
 | 公开端访问控制 | 公开 Works / Results / Review 只读取已发布和公开资源；非公开 Work detail 不返回公开详情 | `web/lib/queries.ts`、`web/tests/domain.test.ts` |
 | 数据可见性 | `rider_report` 保持 private；`race_report` / `review_summary` 可发布为 public；Award 校验 registration/work 属于当前 Race | `web/lib/domain.ts` |
-| 跨用户隔离 | 生产路径依赖服务端会话；debug login 每次覆盖旧调试角色，避免多角色串扰 | `web/lib/auth.ts` |
+| 跨用户与跨会话隔离 | 生产路径依赖服务端会话；每个会话独立保存 `activeRole`，切换一个设备不影响其他设备 | `web/lib/auth.ts` |
 
 **正式工程化启动时必须补齐**：
 
@@ -335,21 +353,38 @@ MVP 使用 GitHub Account 登录；用户补充个人资料后成为 ARY User。
 | 动作 | Public/Rider/Judge | Organizer | Admin |
 | --- | --- | --- | --- |
 | 查看公开 Race Live | 允许 | 允许 | 允许 |
-| 暂停/继续、前后组、配置间隔 | 禁止 | 仅 managed Race | 允许；跨 Race 必填原因 |
-| fallback 开关和展示模式 | 禁止 | 仅 managed Race | 允许 |
+| 暂停/继续、前后组、配置间隔 | 禁止 | 仅 managed Race | 禁止 |
+| fallback 开关和展示模式 | 禁止 | 仅 managed Race | 禁止 |
 | 修改 RaceRound/Track 绑定 | 禁止 | 仅 managed Race 且符合 Round 状态 | 允许 |
 
-Routine control 归 Organizer；Admin 仅提供紧急全局覆盖。Coach/Cockpit 不参与 ARY 授权模型。
+Routine Screen control 仅归当前激活 Organizer；Admin 不复用赛事大屏控制入口。Coach/Cockpit 不参与 ARY 授权模型。
 
 ## Race Live / Track Calibrator 增量权限
 
 | 动作 | Rider | Judge | Organizer | Admin |
 | --- | --- | --- | --- | --- |
 | 查看公开 Race Live | 允许 | 允许 | 允许 | 允许 |
-| 控制自动轮播 / mode / fallback | 禁止 | 禁止 | 仅 managed Race | 允许；跨 Race 必填原因 |
+| 控制自动轮播 / mode / fallback | 禁止 | 禁止 | 仅 managed Race | 禁止 |
 | 打开 Track Calibrator | 禁止 | 禁止 | 仅 managed Race | 允许 |
 | 发布 Race Track | 禁止 | 禁止 | 仅 managed Race | 允许 |
 | 发布 system Track | 禁止 | 禁止 | 禁止 | 允许 |
 | 绑定 TrackProfileVersion 到 Round | 禁止 | 禁止 | 仅 managed Race 的 pending Round | 允许；仅 pending Round |
 
 Track Calibrator 的 IndexedDB Draft 不参与服务端授权，也不是 ARY 事实源；每次发布仍在服务端重新鉴权和校验。
+## 赛题附件与作品外部内容
+
+| 能力 | Organizer | Rider | Judge | Admin / Public |
+| --- | --- | --- | --- | --- |
+| 上传/发布赛题 PDF | 仅 managed Race；已发布后必须新修订 | 否 | 否 | 否 |
+| 下载 private/draft 赛题 | 仅 managed Race，可查看全部安全修订 | 仅当前 Race 的有效个人报名、团队成员或团队筹备成员，可下载当前 `clean` 修订 | 否 | 否 |
+| 下载 public 已发布修订 | 是 | 是 | 是 | 是 |
+| 授权 GitHub App / 提交 Work | 否 | 仅本人或团队队长 | 否 | 否 |
+| 查看私有 Repo 元数据 | managed Race 上下文 | 本人 | 仅 assigned Work | Admin 仅治理摘要；Public 不披露私有 Repo URL |
+
+附件扫描失败时所有角色均不得下载。GitHub App 验证只证明仓库与 Commit 归属，不授予 ARY 执行代码的权限。
+Rider 的私有下载资格在每次请求时重新校验，拒绝、撤回或取消报名后立即失效；Rider 不得枚举或下载历史未发布修订。
+赛题正文归 Organizer 自有对象存储所有；ARY 仅在上传请求期间进行内存检查，并在下载时签发最长 300 秒的临时地址。平台本地长期存储不属于允许的生产能力。
+
+上传、扫描、发布或下载失败时，页面只消费服务端允许列表中的动作代码并显示受控原因；恢复入口只能重新选择、重试、返回对应 Race Workspace 或继续使用最后一个安全修订。客户端提供的 `next`、错误文案、对象 Key 或隐藏 `raceId` 均不得参与鉴权或改变资源范围。
+
+Registration 审核、Judge 池维护、批次分配与评审结果发布均只允许 managed Race 的 active Organizer。所有按钮的 pending 和结果面板只是反馈层；服务端仍须在事务内复核 activeRole、managed Race、Registration/Work 状态和 Judge 冲突。

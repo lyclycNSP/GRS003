@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { PrismaClient } from "@prisma/client";
 import {
-  assignJudge,
+  allocateRaceJudges,
   configureSubmissionWindow,
   lockSubmissionWindow,
   publishAward,
   publishWork,
   reopenSubmissionWindow,
+  saveRaceJudgePool,
   submitWork
 } from "../lib/domain";
 import type { AuthContext } from "../lib/auth";
@@ -20,7 +21,8 @@ const otherRegistrationId = `reg_submission_other_${suffix}`;
 
 const rider: AuthContext = {
   userId: "user_rider_1",
-  roles: ["rider"],
+  availableRoles: ["rider"],
+  activeRole: "rider",
   profileCompleted: true,
   managedRaceIds: [],
   approvedRegistrationIds: [testRegistrationId],
@@ -29,14 +31,15 @@ const rider: AuthContext = {
 
 const organizer: AuthContext = {
   userId: "user_org_1",
-  roles: ["organizer"],
+  availableRoles: ["organizer"],
+  activeRole: "organizer",
   profileCompleted: true,
   managedRaceIds: [testRaceId, "race_finance_2026"],
   approvedRegistrationIds: [],
   assignedWorkIds: []
 };
 
-const admin: AuthContext = { ...organizer, roles: ["admin"] };
+const admin: AuthContext = { ...organizer, availableRoles: ["admin"], activeRole: "admin" };
 const otherRider: AuthContext = { ...rider, userId: "user_rider_2", approvedRegistrationIds: [otherRegistrationId] };
 
 async function main() {
@@ -104,7 +107,7 @@ async function main() {
   });
   assert.equal(submissionBeforeStart.ok, false);
   assert.match(submissionBeforeStart.message, /not_started/);
-  const assignmentBeforeStart = await assignJudge(organizer, first.id!, "user_judge_1");
+  const assignmentBeforeStart = await allocateRaceJudges(organizer, testRaceId, "before-start");
   assert.equal(assignmentBeforeStart.ok, false);
   assert.match(assignmentBeforeStart.message, /关闭/);
   const publicationBeforeStart = await publishWork(organizer, first.id!);
@@ -143,6 +146,8 @@ async function main() {
   assert.equal(work?.versionCounter, 2);
   assert.equal(work?.currentVersion?.versionNumber, 2);
   assert.equal(work?.currentVersion?.repoCommitSha, "2".repeat(40));
+  assert.equal(work?.currentVersion?.repositoryVerificationStatus, "verified");
+  assert.equal(work?.currentVersion?.hashSchemaVersion, "ary.work-submission.v2");
   assert.equal(work?.submissionVersions.length, 2);
   assert.equal(work?.submissionVersions[0].title, "Immutable Work v1");
   assert.equal(work?.submissionVersions[0].repoCommitSha, "1".repeat(40));
@@ -175,7 +180,7 @@ async function main() {
   });
   assert.equal(configured.ok, true, configured.message);
 
-  const assignmentWhileOpen = await assignJudge(organizer, work!.id, "user_judge_1");
+  const assignmentWhileOpen = await allocateRaceJudges(organizer, testRaceId, "while-open");
   assert.equal(assignmentWhileOpen.ok, false);
   assert.match(assignmentWhileOpen.message, /关闭/);
 
@@ -219,9 +224,16 @@ async function main() {
   assert.equal(reopened.ok, true, reopened.message);
 
   await lockSubmissionWindow(organizer, testRaceId, "正式冻结");
-  const assignment = await assignJudge(organizer, work!.id, "user_judge_1");
-  assert.equal(assignment.ok, true, assignment.message);
-  const storedAssignment = await prisma.judgeAssignment.findUnique({ where: { id: assignment.id! } });
+  await prisma.userRole.create({
+    data: { id: `role_conflicted_judge_${suffix}`, userId: otherRider.userId, role: "judge", status: "active", source: "test" }
+  });
+  const conflictedPool = await saveRaceJudgePool(organizer, testRaceId, [otherRider.userId, "user_judge_1", "user_multi_1"]);
+  assert.equal(conflictedPool.ok, false);
+  assert.match(conflictedPool.message, /参.*赛|冲突|资格/);
+  assert.equal((await saveRaceJudgePool(organizer, testRaceId, ["user_org_1", "user_judge_1", "user_multi_1"])).ok, true);
+  const allocation = await allocateRaceJudges(organizer, testRaceId, "work-submission-test-seed");
+  assert.equal(allocation.ok, true, allocation.message);
+  const storedAssignment = await prisma.judgeAssignment.findUnique({ where: { workId_judgeUserId: { workId: work!.id, judgeUserId: "user_judge_1" } } });
   assert.equal(storedAssignment?.workSubmissionVersionId, work?.currentVersionId);
   const submissionAfterAssignment = await submitWork(rider, testRegistrationId, {
     title: "After assignment",

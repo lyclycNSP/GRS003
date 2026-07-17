@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
+const configuredDistDir = process.env.NEXT_DIST_DIR?.trim();
+const distDir = configuredDistDir && /^(?:\.next|test-results\/\.next)-[a-z0-9][a-z0-9_-]*$/i.test(configuredDistDir)
+  ? configuredDistDir
+  : ".next";
+
 const nextConfig: NextConfig = {
+  distDir,
+  outputFileTracingRoot: process.cwd(),
   experimental: {
     serverActions: {
       bodySizeLimit: "22mb"
