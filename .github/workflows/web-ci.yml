@@ -49,17 +49,39 @@ jobs:
         env:
           DATABASE_URL: postgresql://ary:test@db.invalid/ary
           GITHUB_CLIENT_ID: ci-client
-          GITHUB_CLIENT_SECRET: ci-secret
+          GITHUB_CLIENT_SECRET: ci-placeholder-not-a-secret
           NEXT_PUBLIC_APP_URL: https://ary.example.test
           ENABLE_DEBUG_LOGIN: "false"
           DEFAULT_CA_CONNECTOR_ID: ci-connector
           CA_CONNECTOR_KEYS: '{"ci-connector":{"keyId":"ci-key","secret":"01234567890123456789012345678901"}}'
           TRACK_ASSET_ROOT: ${{ runner.temp }}/ary-track-assets
+          ATTACHMENT_STORAGE_DRIVER: organizer-s3
+          ATTACHMENT_SCANNER: clamav
+          CLAMAV_HOST: 127.0.0.1
+          ORGANIZER_ATTACHMENT_STORES_JSON: '{"ci-organizer":{"region":"auto","bucket":"ci-private-bucket","accessKeyId":"ci-placeholder","secretAccessKey":"ci-placeholder-not-a-secret"}}'
+          GITHUB_REPOSITORY_VERIFIER: github-app
+          GITHUB_APP_ID: "1"
+          GITHUB_APP_SLUG: ary-ci-placeholder
+          GITHUB_APP_PRIVATE_KEY: ci-placeholder-private-key-not-for-use
       - run: npm run prisma:generate
       - run: npm run build
         env:
           DATABASE_URL: postgresql://ary:test@db.invalid/ary
+          GITHUB_CLIENT_ID: ci-client
+          GITHUB_CLIENT_SECRET: ci-placeholder-not-a-secret
+          NEXT_PUBLIC_APP_URL: https://ary.example.test
+          ENABLE_DEBUG_LOGIN: "false"
+          DEFAULT_CA_CONNECTOR_ID: ci-connector
+          CA_CONNECTOR_KEYS: '{"ci-connector":{"keyId":"ci-key","secret":"01234567890123456789012345678901"}}'
           TRACK_ASSET_ROOT: ${{ runner.temp }}/ary-track-assets
+          ATTACHMENT_STORAGE_DRIVER: organizer-s3
+          ATTACHMENT_SCANNER: clamav
+          CLAMAV_HOST: 127.0.0.1
+          ORGANIZER_ATTACHMENT_STORES_JSON: '{"ci-organizer":{"region":"auto","bucket":"ci-private-bucket","accessKeyId":"ci-placeholder","secretAccessKey":"ci-placeholder-not-a-secret"}}'
+          GITHUB_REPOSITORY_VERIFIER: github-app
+          GITHUB_APP_ID: "1"
+          GITHUB_APP_SLUG: ary-ci-placeholder
+          GITHUB_APP_PRIVATE_KEY: ci-placeholder-private-key-not-for-use
 
   browser-e2e:
     name: Playwright browser E2E

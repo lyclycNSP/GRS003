@@ -10,18 +10,18 @@ function isLegacyActionError(message?: string) {
   return Boolean(message && /(失败|错误|拒绝|无权|不存在|必须|不能|已关闭|closed_|invalid|forbidden)/i.test(message));
 }
 
-export default async function RiderRaceWorkspacePage({ params, searchParams }: { params: Promise<{ raceId: string }>; searchParams?: Promise<{ actionMessage?: string; actionError?: string }> }) {
+export default async function RiderRaceWorkspacePage({ params, searchParams }: { params: Promise<{ raceId: string }>; searchParams?: Promise<{ action?: string; entityId?: string; actionMessage?: string; actionError?: string }> }) {
   const { raceId } = await params;
   const ctx = await getAuthContext();
   if (!ctx) redirect(`/login?next=${encodeURIComponent(`/console/rider/races/${raceId}`)}`);
   if (ctx.activeRole !== "rider") redirect("/console");
   if (!(await getRiderPortfolio(ctx.userId)).some((entry) => entry.race.id === raceId)) notFound();
-  const { actionMessage, actionError } = (await searchParams) ?? {};
+  const { action, entityId, actionMessage, actionError } = (await searchParams) ?? {};
   const legacyFailure = isLegacyActionError(actionMessage);
   const errorMessage = actionError ?? (legacyFailure ? actionMessage : undefined);
   const successMessage = legacyFailure ? undefined : actionMessage;
   return <>
-    {successMessage || errorMessage ? <div className={styles.outcomeWrap}>
+    {!action && (successMessage || errorMessage) ? <div className={styles.outcomeWrap}>
       <ActionOutcomePanel
         actionCode={errorMessage ? "rider-race-action-failed" : "rider-race-action-completed"}
         description={errorMessage ?? successMessage}
@@ -32,6 +32,6 @@ export default async function RiderRaceWorkspacePage({ params, searchParams }: {
         title={errorMessage ? "操作未能完成" : "赛事空间已更新"}
       />
     </div> : null}
-    <RoleWorkspacePage role="rider" searchParams={Promise.resolve({ raceId })} />
+    <RoleWorkspacePage role="rider" searchParams={Promise.resolve({ raceId, action, entityId, actionError: action ? actionError : undefined })} />
   </>;
 }

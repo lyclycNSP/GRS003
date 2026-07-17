@@ -123,13 +123,22 @@ function RoleActionOutcome({ action, actionMessage, actionError }: { action?: st
     return null;
   }
   const successTitles: Record<string, string> = {
-    "ca-registered": "CAConnection 已登记", "ca-handshake-completed": "CA 来源握手已完成", "ca-signal-ingested": "CA Signal 已接入", "ca-disabled": "CAConnection 已停用", "work-published": "作品已公开",
+    "ca-registered": "CAConnection 已登记", "ca-handshake-completed": "CA 来源握手已完成", "ca-signal-ingested": "CA Signal 已接入", "ca-disabled": "CAConnection 已停用", "work-submitted": "Work 新版本已提交", "work-published": "作品已公开",
   };
   const failureTitles: Record<string, string> = {
-    "ca-register-failed": "CAConnection 未能登记", "ca-handshake-failed": "CA 来源握手未完成", "ca-signal-ingest-failed": "CA Signal 未能接入", "ca-signal-mock-disabled": "当前环境禁用 CA Mock", "ca-disable-failed": "CAConnection 未能停用", "work-publish-failed": "作品未能公开",
+    "ca-register-failed": "CAConnection 未能登记", "ca-handshake-failed": "CA 来源握手未完成", "ca-signal-ingest-failed": "CA Signal 未能接入", "ca-signal-mock-disabled": "当前环境禁用 CA Mock", "ca-disable-failed": "CAConnection 未能停用", "work-submit-failed": "Work 未能提交", "work-publish-failed": "作品未能公开",
   };
-  if (successTitles[action]) return <ActionOutcomePanel actionCode={action} outcome="success" title={successTitles[action]} description="页面中的状态、计数和下一步操作已经同步刷新。" />;
-  return <ActionOutcomePanel actionCode={action} outcome="error" title={failureTitles[action] ?? "操作未完成"} description="服务端已拒绝本次操作；请根据当前步骤状态检查前置条件后重试。" testId="console-action-error" />;
+  const failureDescriptions: Record<string, string> = {
+    "work-submit-failed": "请检查提交窗口、GitHub App 仓库授权与 Commit SHA 后重试。平台不会绕过仓库和版本身份验证。",
+  };
+  const submissionWindowFailure = action === "work-submit-failed"
+    ? actionError?.match(/作品提交窗口不可用：(not_started|closed_by_deadline|closed_manually|sealed_for_judging)/)?.[0]
+    : undefined;
+  const successDescriptions: Record<string, string> = {
+    "work-submitted": "赛事空间已更新，当前 Work、版本和下一步操作已经同步刷新。",
+  };
+  if (successTitles[action]) return <ActionOutcomePanel actionCode={action} outcome="success" title={successTitles[action]} description={successDescriptions[action] ?? "页面中的状态、计数和下一步操作已经同步刷新。"} testId={action === "work-submitted" ? "rider-race-action-outcome" : undefined} />;
+  return <ActionOutcomePanel actionCode={action} outcome="error" title={failureTitles[action] ?? "操作未完成"} description={submissionWindowFailure ?? failureDescriptions[action] ?? "服务端已拒绝本次操作；请根据当前步骤状态检查前置条件后重试。"} testId="console-action-error" />;
 }
 
 export default async function ConsolePage() {
@@ -646,7 +655,7 @@ export async function RoleWorkspacePage({ role, searchParams }: { role: Role; se
                     </section>
                   </>
                 ) : null}
-                <section className="rider-step-card">
+                <section className="rider-step-card" id="work-submission">
                   <span>Step 4</span>
                   <h3>提交 Work</h3>
                   <p>提交作品标题、摘要、Demo 和 Repo。CA 信号会作为过程证据，作品本身仍由 Organizer/Judge 后续处理。</p>

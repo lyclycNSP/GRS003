@@ -375,6 +375,7 @@ export async function updateReviewFlagStatusAction(formData: FormData) {
 }
 export async function submitWorkAction(formData: FormData) {
   const ctx = await getAuthContext();
+  const raceId = value(formData, "raceId");
   const result = await submitWork(ctx, value(formData, "registrationId"), {
     title: value(formData, "title"),
     summary: value(formData, "summary"),
@@ -382,8 +383,9 @@ export async function submitWorkAction(formData: FormData) {
     repoUrl: value(formData, "repoUrl"),
     repoCommitSha: value(formData, "repoCommitSha")
   });
-  refresh("/console");
-  consoleRedirect(value(formData, "raceId"), result.message);
+  const destination = roleWorkspaceDestination(ctx?.activeRole, raceId);
+  refresh(destination);
+  actionResultRedirect(destination, result, "work-submitted", "work-submit-failed", result.ok ? result.id : undefined, "#work-submission");
 }
 
 export async function configureSubmissionWindowAction(formData: FormData) {
