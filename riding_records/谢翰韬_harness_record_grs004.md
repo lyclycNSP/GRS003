@@ -1,244 +1,149 @@
-# ARY Web E2E 与 CI — Riding Record
+# ARY GRS004 工程化与安全基线 Riding Record
 
 文档类型：Riding / Harness Orchestration Record  
-记录时间：2026-07-13  
+记录时间：2026-07-13 至 2026-07-18
 记录角色：项目推进与 Agent 指挥方（第一人称）  
-覆盖范围：项目理解、下一步方向判断、全角色 E2E、CI 集成和验收收口  
-关联产物：`docs/ary-web-e2e-ci-change-summary.md`、`web/e2e/`、`.github/workflows/web-ci.yml`
+覆盖范围：项目理解、全角色 E2E、CI、SEC-1 生产安全基线与数据安全审计
+关联任务：`WEB-1`、`SEC-1`
 
 ---
 
 ## 0. 一句话总结
 
-这段时间我没有继续要求 Agent 横向增加功能，而是先判断 ARY 已经处在“本地可演示、尚未生产可信”的阶段，再把工作重心逐步收紧到浏览器 E2E 和 CI：先验证 Judge、Public、Screen，再补齐 Rider、Organizer、Admin，最终形成 9 个浏览器场景、20 个领域测试和两个 CI Job，让项目从“功能写出来了”推进到“关键行为能够被重复证明”。
+我没有在 ARY 已具备本地 MVP 闭环后继续横向堆功能，而是将工作收紧为两件高杠杆事项：先用全角色 E2E 与 CI 证明已有流程可重复，再以 SEC-1 审计认证、授权、公开数据和 CA 证据链。最终项目从“能演示”推进到“关键行为有自动化证据、代码级安全边界已收口，但生产环境仍明确 no-go”。
 
-## 1. 我如何理解项目阶段
+## 1. 我如何理解项目阶段并决定方向
 
-### 我的起始指令
+我先要求 Agent 阅读 `PLAN.md`、`STATUS.md`、PRD、权限矩阵、CA 契约、发布运维计划和 `web/` 工程，而不是直接修改代码。确认结果是：`web/` 已承接 Public、Race Console、CA、Projection、Screen、Report、Results 和 Ops 的本地闭环；项目最缺的不是页面，而是可重复的角色行为证明，以及真实赛事所需的身份、数据和上线安全边界。
 
-我先要求 Agent“理解项目情况”，而不是立即修改代码。我的目的，是先确认：
-
-* 当前正式入口是什么；
-* 产品和领域口径是否稳定；
-* 已经完成到哪个阶段；
-* 下一步最值得投入的工程问题是什么。
-
-### Agent 给出的信息
-
-Agent 阅读了 `PLAN.md`、`STATUS.md`、PRD、任务计划、文档路由、`web/README.md`、代码结构和 Git 状态，确认：
-
-* `web/` 是当前正式工程入口；
-* 技术栈是 Next.js、React、TypeScript、Prisma 和 SQLite；
-* Public、四角色 Console、CA、Projection、Screen、Report、Results 和 Ops 已具备本地闭环；
-* 项目已经可演示，但真实 OAuth、CAConnector、浏览器自动化和部署流水线仍未生产化。
-
-### 我的判断
-
-我认可“停止横向扩功能、优先建立可信工程基线”的方向。项目此时最缺的不是另一个页面，而是证明已有页面、权限和状态流不会在后续修改中回归。
-
-这个判断决定了后续工作顺序：
+因此我采用以下顺序：
 
 ```text
-先确定阶段
-→ 再选择最有杠杆的质量问题
-→ 先做关键场景
-→ 再补全角色矩阵
-→ 最后进入 CI
+理解权威文档与现状
+→ 用 E2E 验证已有角色闭环
+→ 将验证纳入 CI
+→ 审计认证、授权、公开数据与 CA 证据
+→ 区分代码级通过与生产 no-go
 ```
 
-## 2. 我如何引导下一步开发方向
+## 2. 我如何指挥 E2E 与 CI 收口
 
-我要求 Agent 给出下一步发展方向。经过讨论，我把优先级理解为：
+### 2.1 从 Judge、Public、Screen 进入
 
-1. 真实身份和服务端权限；
-2. 可重复的多角色浏览器 E2E；
-3. CAConnector 与 staging / production 工程化。
+我首先要求补齐 Judge、Public、Screen E2E，因为三者分别代表敏感评审数据、公开数据边界和现场展示控制权。我要求验证的不是页面能打开，而是：
 
-我没有立即同时启动所有方向，而是选择 E2E 作为当前切入口，原因是：
+* 未登录或未分配 Judge 不能访问 review-only Work；
+* Judge 提交后数据刷新仍然持久化；
+* review-only Work 不会从页面或 API 泄露到公开端；
+* Screen 对非管理者只读，Organizer 才能控制模式与 fallback；
+* Projection 异常时仍保留稳定展示。
 
-* 它可以直接验证现有产品闭环；
-* 它会暴露前端、权限、数据和状态持久化之间的真实问题；
-* 它能成为后续 OAuth、CA 和部署变更的安全网；
-* 它具备清晰、可量化的完成口径。
+Agent 因此发现 Judge 页面缺少 assignment 级入口校验。我要求修复角色、已分配 Work 与具体 Assignment 三层边界，而不是为测试写特例。这说明 E2E 的作用是暴露真实权限缺口，而不是为已有实现补绿灯。
 
-## 3. 第一轮指挥：Judge、Public、Screen E2E
+### 2.2 测试环境的边界决策
 
-### 我的指令
+当执行遇到 `tsx` IPC 受限、Prisma reset 保护、SQLite 初始化 schema 漂移和开发库污染风险时，我没有允许绕过保护或重置开发数据，而是要求使用独立 `e2e.db`、Node 原生 `--import tsx`、修正初始化器并让 Fixture 只在测试数据库创建。测试必须可重复，但不能以破坏开发数据为代价。
 
-我明确提出：
+### 2.3 补齐 Rider、Organizer、Admin 与 CI
 
-> 增加 Judge、Public、Screen E2E。
+第一轮完成后，我继续要求补齐 Rider、Organizer、Admin，并把本地验证纳入 CI：
 
-这三个场景分别代表：
-
-* Judge：敏感的 review-only 内容和评审写入；
-* Public：公开数据边界和用户观看主路径；
-* Screen：现场展示控制权和 fallback 稳定性。
-
-### 我关注的验收重点
-
-我希望验证的不只是页面可以打开，而是：
-
-* 未登录用户不能进入 Judge 页面；
-* Judge 提交后数据刷新仍存在；
-* review-only Work 在页面和 API 两层都不可公开；
-* Screen 未授权用户只能读，Organizer 才能控制；
-* Console 状态能同步到 Display；
-* Projection 异常时 fallback 可用。
-
-### Agent 执行中的关键发现
-
-Agent 在写 Judge E2E 时发现：Judge 页面虽然读取 review-only Work，但没有在页面入口校验当前用户是否被分配该作品。
-
-这说明我的 E2E 要求发挥了作用：它不是为已有实现“补一个绿灯”，而是迫使系统面对真实权限边界。随后 Agent 修复了 role、assignedWorkIds 和具体 Assignment 三层校验。
-
-### 我接受的工程调整
-
-执行过程中出现了几个基础设施问题：
-
-1. `tsx` CLI 在受限环境下创建 IPC 失败；
-2. Prisma `--force-reset` 被危险操作保护拦截；
-3. 手工 SQLite 初始化器缺少 `ScreenState`，与 Prisma schema 漂移；
-4. 测试若复用 `dev.db` 会污染开发数据。
-
-我支持 Agent 把测试环境改为独立 `e2e.db`，使用 Node 原生 `--import tsx`，并修复 SQLite 初始化器，而不是绕过保护或直接重置开发库。
-
-这个选择体现了我的边界判断：测试应当可重复，但不能以破坏开发数据为代价。
-
-### 第一轮结果
-
-第一轮形成 6 个 E2E：
-
-* Judge 2 个；
-* Public 2 个；
-* Screen 2 个。
-
-同时通过领域测试、TypeScript、静态烟测、production build 和实际浏览器抽查。
-
-## 4. 第二轮指挥：补齐 Rider、Organizer、Admin 与 CI
-
-### 我的追加指令
-
-第一轮通过后，我没有把“6 个测试通过”当作最终完成，而是继续要求：
-
-> 完成 Rider、Organizer、Admin E2E 和 CI 集成。
-
-这一步把局部验证扩展为完整角色矩阵，并要求自动化真正进入团队工作流。
-
-### 我对三角色的理解
-
-#### Rider
-
-Rider 不是只验证登录，而要证明：
-
-```text
-approved Registration
-→ RaceProject
-→ 合法 CA Signal
-→ active 状态
-→ Work 提交
-→ 刷新后持久化
-```
-
-#### Organizer
-
-Organizer 要验证 Race-scoped 管理能力，而不是只验证管理按钮存在：
-
-```text
-创建 private/draft Race
-→ Race switch
-→ 当前 Race 上下文正确
-→ 发布为 public/running
-→ 公共 API 可见
-```
-
-#### Admin
-
-Admin 要验证 `User.roles` 真实写入，并在测试结束时恢复 Seed，避免影响后续 Judge 测试。
-
-### 我认可的测试数据策略
-
-为了给 Rider 提供完整而又不影响 Public/Judge 的数据流，Agent 增加了测试专用 Rider。我认可测试数据不应污染日常演示的边界，因此最终 Fixture 只在 `DATABASE_URL` 指向 `e2e.db` 时创建。
-
-这避免了普通开发 Seed 中出现“E2E Rider”，也避免 Rider 提交 Work 后改变现有公开作品或 Judge assignment。
-
-### CI 的指挥边界
-
-我把 CI 的验收目标定为既覆盖工程质量，也覆盖真实浏览器行为；Agent 将其实现为两个并行质量门：
-
-| 质量门 | 我的目的 |
+| 范围 | 我要求证明的行为 |
 | --- | --- |
-| 静态、领域和构建 | 快速发现结构、类型、领域不变量和 production build 回归 |
-| 浏览器 E2E | 验证真实用户路径、权限和持久化 |
+| Rider | approved Registration → RaceProject → 合法 CA Signal → Work 提交与持久化 |
+| Organizer | 创建 Race、切换当前 Race、发布后 Public API 可见 |
+| Admin | `User.roles` 的真实更新及测试后的 seed 恢复 |
+| 静态 / 领域 / 构建 | 路由、类型、领域不变量与 production build 不回归 |
+| 浏览器 E2E | 真实用户路径、权限与持久化可重复证明 |
 
-CI 使用只读权限，浏览器失败时保留 trace、截图和报告。对于无法在本地证明的部分，我保留了明确边界：Workflow 文件已经集成并本地复现，但 GitHub-hosted Runner 首次结果必须在推送后确认，不能提前宣称远程 CI 已经绿色。
+我坚持区分本地与远程证据：Workflow、命令和本地浏览器回归可以证明；GitHub-hosted Runner 的首次结果必须推送后确认，不能提前宣称远程 CI 成功。
 
-## 5. 我在过程中的关键决策
+## 3. 我如何拆解 SEC-1
 
-### 决策 1：先理解项目，再决定开发方向
+我将 SEC-1 理解为从“本地可演示 MVP”走向“可以讨论真实赛事承载条件”的工程化推进，而不是补几个安全名词。ARY 必须回答身份从哪里来、谁能访问哪一场 Race、公开接口会否泄露、CA 证据能否伪造、异常能否追溯和上线依据是否充分。
 
-我没有把 Agent 当成代码生成器直接下达模糊开发命令，而是先要求它读取权威文档、技术入口和当前状态。这让后续投入落在正式 `web/` 工程，而不是历史原型或已删除的 `app/`。
+我要求 Agent 将问题分为五层：
 
-### 决策 2：优先验证已有闭环，不继续堆功能
+1. OAuth 与会话可信性；
+2. 角色与资源范围授权；
+3. Public API 最小披露；
+4. CA 签名、防篡改和防重放；
+5. PostgreSQL、配置门禁和生产基础设施证据。
 
-当项目已经具备本地 MVP 时，我选择 E2E 和 CI，而不是继续添加社区、团队赛、多租户或 AI 自动评审。这保持了 MVP 范围，也提高了首场赛事的可信度。
+我先要求区分“设计承诺”和“实际实现”，逐项回到代码检查 HTTPS、Cookie、OAuth callback、Public API、CA `dev-signature` 和 SQLite 的真实边界，不把规划文档写成已上线保护。
 
-### 决策 3：用权限和公开边界定义 E2E
+## 4. 我的关键安全决策
 
-我没有把“页面返回 200”当成完成，而是要求验证角色隔离、assignment、review-only、API 边界和 Screen 控制权。这直接促成了 Judge 权限缺口的发现与修复。
+| 决策 | 我的判断 | 落地结果 |
+| --- | --- | --- |
+| 随机服务端会话替代裸 `userId` Cookie | 身份不能由客户端自我声明，且需要撤销能力 | `AuthSession` 保存 token hash、归属和过期；Logout 同时清理会话与 Cookie |
+| OAuth 使用一次性 state | 阻断 callback 绕过与登录 CSRF | 缺少或不匹配 state 返回 400；生产不继承 seed 登录名 |
+| Public API 使用白名单 DTO | 页面不渲染不等于接口没有泄露 | 原始 Session、内部 ID、评审、运维和 `sourceRef` 不进入公开响应 |
+| HMAC 与防重放取代 dev-signature | CA 过程证据必须可验证 | key 绑定、constant-time 比较、时间窗、唯一 Receipt 与事务写入 |
+| PostgreSQL 用于 production | SQLite 只适合本地/E2E | baseline migration 与生产配置门禁 |
+| 代码级通过不等于上线 | TLS、备份、密钥和监控不能靠仓库自证 | 建立 go/no-go 硬门禁 |
 
-### 决策 4：测试数据库必须独立
+我坚持“连接失败不取消资格、伪造信号不能污染事实”的产品与安全口径：合法信号可进入 Evidence 与 Projection；伪造、篡改、过期或重放的消息必须拒绝或隔离。
 
-当初始化过程触发危险 reset 保护时，我选择建立独立 `e2e.db`，而不是授权重置开发库。这个决策让测试具备可重复性，也让数据安全边界更清楚。
+## 5. 我如何继续审计并关闭旁路
 
-### 决策 5：区分本地证据和远程证据
+安全基线完成后，我继续检查敏感页面和真实查询路径，提出：未登录者能否直接读取 Ops 数据？Organizer 是否按精确 ID 判断？无范围用户是否能通过 URL 得到敏感信息？
 
-本地可以证明 Workflow YAML、命令、E2E、领域测试和 build 通过，但不能证明尚未推送的 GitHub-hosted Runner 已成功。我在最终验收口径中保留这一差异，避免过度汇报。
+| 问题 | 判断 | 我的范围决策 |
+| --- | --- | --- |
+| `/ops` 读取完整运维快照后直接渲染 | P0：发布、备份和事故信息可能被匿名读取 | 本轮修复 |
+| `organizerJson contains user.id` | P1：`user_12` 与 `user_123` 可能产生子串越权 | 本轮修复 |
+| Console 跨赛事读取范围 | 需要独立审计和产品决策 | 用户要求暂时忽略，明确保留为后续项 |
 
-## 6. Agent 的执行表现
+收到“忽略 Console、修复另外两个”的明确决定后，我没有无限扩大改动范围，只实施获授权修复：
 
-Agent 在本轮表现出的有效能力包括：
+* Ops 先取得 `AuthContext`，按当前 `raceId` 读取范围，仅 `admin` 或精确管理该 Race 的 Organizer 可读取；匿名、无关角色和未知赛事统一 404。
+* Organizer 判断改为解析 JSON 数组后严格比较用户 ID；后续若 Race 数量增长，应转为关系表或 PostgreSQL `jsonb` 精确查询。
+* Console 的 Ops 入口只对当前赛事管理者显示，但 Console 跨赛事读取问题本身保留为后续项。
 
-* 从文档、代码和测试三类证据判断项目阶段；
-* 把产品角色路径转成浏览器可执行断言；
-* 在 E2E 中主动识别 Judge 权限缺口；
-* 面对 `tsx`、Prisma reset、schema 漂移时选择安全替代方案；
-* 使用稳定 `data-testid`，降低测试对页面结构的脆弱依赖；
-* 用条件 Fixture 隔离测试数据；
-* 将验证拆成领域、类型、构建、浏览器和实际烟测多层证据；
-* 同步更新 README、PLAN、STATUS，减少实现与项目状态漂移。
+## 6. 我如何使用和指挥 Agent
 
-需要继续关注的能力边界：
+我把 Agent 用作调查、实现与复验的加速器，而不是把判断外包：
 
-* 当前 CI 尚未得到 GitHub-hosted Runner 的实际结果；
-* OAuth 和 CAConnector 仍然是本地 fallback / mock 边界；
-* 尚未形成移动端 E2E 和视觉差异基线；
-* 生产数据库 migration、监控和回滚仍需后续推进。
+* 要求它先按文档入口定位权威约束，再检查认证、查询、页面、API、E2E 与 schema；
+* 要求它提供代码与测试证据，区分已证实漏洞、代码级能力和未取得生产证据的风险；
+* 用角色、资源范围和拒绝路径定义验收，不接受只验证“200 / 页面存在”；
+* 遇到 `DATABASE_URL` 缺失或本地端口受限时，先判断环境原因，再使用隔离数据库或获批测试服务器重跑；
+* 每次重要结论后同步计划、状态与安全基线，防止实现与项目叙述漂移。
 
-## 7. 最终验收证据
+我的职责始终是控制目标、范围、优先级、验收口径和 no-go 边界；Agent 负责把这些判断转化为可审查的代码与证据。
 
-| 证据 | 结果 |
-| --- | --- |
-| 全角色 / Public / Screen Playwright | 9/9 |
-| 领域测试 | 20/20 |
-| 静态烟测 | 17 页面路由、14 API 路由通过 |
-| TypeScript | 通过 |
-| Next production build | 通过 |
-| 实际浏览器角色隔离抽查 | Rider / Organizer / Admin 通过 |
-| GitHub Actions Workflow | 文件已落盘，本地 YAML 解析通过；远程首次运行待推送 |
+## 7. 验证与证据
 
-## 8. 我的阶段复盘
-
-这轮 Riding 的核心价值，不是多写了三个测试文件，而是建立了一套推进方法：
+验证分为领域测试、Security E2E、静态烟测/TypeScript，以及 production build/preflight 四层。本次安全审计后已执行并通过：
 
 ```text
-读权威文档确认阶段
-→ 选择高杠杆问题
-→ 用角色和权限定义验收
-→ 用自动化暴露真实缺口
-→ 采用安全的数据隔离
-→ 让本地证据进入 CI
-→ 对未验证的外部结果保持诚实
+npm run typecheck
+npm run test:e2e:prepare
+DATABASE_URL=file:./e2e.db npm test
+npm run check:static
+npm run test:e2e:security
 ```
 
-我对 Agent 的指挥不是逐行指定实现，而是持续控制目标、范围、验证口径和风险边界。Agent 负责调查、实现和复验；我负责决定“现在最该解决什么”“什么结果才算完成”“哪些结论还不能提前宣布”。这正是本轮 Riding 表现中最希望展示的能力。
+结果：TypeScript 通过；领域测试 23/23 通过；静态检查通过；Security Playwright E2E 5/5 通过。Ops 隔离覆盖匿名、Rider 和 Organizer 三条路径；Organizer 授权覆盖 `user_123`、`user_12` 与 `user_1234`，证明不再依赖子串命中。
+
+关键证据入口：
+
+* `web/e2e/`、`.github/workflows/web-ci.yml`
+* `web/tests/domain.test.ts`、`web/e2e/security.spec.ts`
+* `web/lib/auth.ts`、`web/lib/ca-attestation.ts`
+* `web/app/ops/page.tsx`、`web/app/api/ca/v1/signals/route.ts`
+* `web/prisma/migrations/20260713_security_production_baseline/migration.sql`
+* `docs/ary-web-e2e-ci-change-summary.md`、`docs/ary-production-security-baseline.md`
+
+## 8. 最终结论与下一步
+
+```text
+全角色关键路径：具备 E2E 与 CI 证据。
+代码级安全基线：通过。
+真实赛事生产上线：当前 no-go。
+```
+
+解除 no-go 的前提仍包括公网 TLS、托管 PostgreSQL 加密与 PITR、secret manager、CA 凭证轮换/吊销、WAF / 分布式限流、集中不可变日志、加密备份恢复、监控告警、压测和 staging 全流程彩排。
+
+下一阶段我会优先推动真实 GitHub OAuth App、托管 PostgreSQL、connector 凭证和 snapshot fetch、部署流水线与 staging 演练，而不是继续增加与上线门禁无关的展示功能；Console 跨赛事读取范围仍是下一轮资源级读取审计项。
